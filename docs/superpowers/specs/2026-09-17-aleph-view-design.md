@@ -151,7 +151,10 @@ type View = {
   render(resource: Resource, ctx: Context, hint?: Hint): Promise<Rendered>;
 };
 
-type Hint = { view?: string };   // a View id
+type Hint = {
+  view?: string;       // a View id
+  fragment?: string;   // the fragment of the requested IRI, without "#"
+};
 
 type Rendered = {
   html: string;
@@ -178,13 +181,18 @@ instance's region and replaces that element's content.
 
 ### Hint
 
-The host sets the hint; a view never does. Three sources feed it:
+The host sets the hint; a view never does. `view` names how to render,
+`fragment` names what within the resource to bring forward: a heading or
+block in a note, a subject in an RDF document. Three sources feed it:
 
 - a control in the shell, where the user picks a view for the current
   resource
 - a `view` query parameter on the resource URL, so a link can carry a
   choice
 - an `as:View` event whose emitter names a view for the target
+
+The fragment comes from the requested IRI. A change of fragment on the
+same resource is an `as:View` without a refetch.
 
 A hint naming a view that is not registered is ignored and the rules
 decide.
@@ -258,10 +266,12 @@ already uses it; a multi-region layout adds regions and nothing else.
 
 Two paths, and the first needs no code in the view.
 
-**Dependency tracking.** The `Context` given to a view instance records
-every IRI that instance resolves. When an `as:Update` names one of them,
-the host calls `render` again, replaces the region, and calls `hydrate`
-again.
+**Host-driven.** The host re-renders an instance whenever one of its
+inputs changes: a resolved IRI, or the hint. The `Context` given to a
+view instance records every IRI that instance resolves; an `as:Update`
+naming one of them, or an `as:View` on the same resource with a
+different view or fragment, makes the host call `render` again, replace
+the region, and call `hydrate` again.
 
 **Self-managed.** A `Handle` with `update` receives every event and
 answers with a `Patch` or with nothing. The host does not re-render such
@@ -288,8 +298,10 @@ Rendered:
   view's root element.
 - Wikilinks in all four forms: `[[Name]]`, `[[Name|Alias]]`,
   `[[Name#Heading]]`, `[[Name#^block]]`. Resolved through the wikilink
-  index (below) to `<a class="internal-link" href="<iri>">`; unresolved
-  ones carry `is-unresolved` and no `href`.
+  index (below) to `<a class="internal-link" href="<iri>">`, the heading
+  or block as the fragment; unresolved ones carry `is-unresolved` and no
+  `href`. With `hint.fragment` set, the matching heading or block is
+  scrolled to and marked `is-flashing`, as Obsidian does.
 - Embeds `![[…]]`: a `.md` target is resolved and rendered inline, with a
   depth limit and a cycle guard; an image target becomes `<img>`; anything
   else becomes a link.
@@ -372,6 +384,13 @@ that serves the shell is a constant document, so it cannot carry the
 representation along. The server-side host removes the round trip (see
 "Deferred"); a private resource needs the fetch after login either way.
 
+The document the slot serves is one cache entry per resource URL, under
+the resource's own headers, so it is kept under a kilobyte: a script
+element and an empty root. The bundle is a static asset at a fixed URL,
+and the server hands static assets out with a one-day expiry, so a full
+page load after the first costs the document and the representation.
+Client-side navigation loads neither.
+
 Navigation: the shell intercepts clicks on same-origin links, pushes
 history, emits `as:View`, and renders the target. Views do not handle
 link clicks.
@@ -415,9 +434,9 @@ Unit, in the repository:
 
 - selection picks by order, evaluates each condition as defined above,
   honors `hint`, falls through to the last rule
-- the instance bookkeeping re-renders on `as:Update` for a resolved IRI,
-  leaves a handle with `update` alone, and applies a slot patch to the
-  named element only
+- the instance bookkeeping re-renders on `as:Update` for a resolved IRI
+  and on a hint change, leaves a handle with `update` alone, and applies
+  a slot patch to the named element only
 - the Markdown view renders fixture notes copied from the vault, one per
   feature above, to the expected DOM
 - the wikilink index is built from a fixture type index and two fixture
@@ -465,6 +484,10 @@ of them:
   `render` as an export, transpiled by jco, wrapped by an adapter that
   implements `View`. Interactivity through an event stream in and patches
   out, which is what `Handle.update` already is.
+- **A service worker** that answers navigation requests with the cached
+  shell and fetches the representation alongside, which removes the
+  second request without a server-side host. A second code path with
+  its own invalidation, so it waits for a measured need.
 - **Server notifications** as an `as:Update` source. The pod already
   serves the notification channels and they speak AS2; this is a
   subscription in the shell.
