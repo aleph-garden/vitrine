@@ -11,23 +11,38 @@ import { issuerOf, type Session } from './main.ts'
  *  current from the runtime's instances, mirrored into document.title),
  *  the IRI field, which dispatches an as:View through the runtime, and
  *  the login control. Login goes to `issuer` when given, else asks for a
- *  WebID and resolves it through issuerOf. */
+ *  WebID and resolves it through issuerOf. `credentialed` says whether the
+ *  session reaches an origin; next to the WebID the chrome marks the resource
+ *  on show anonymous while it does not. */
 export function installChrome(
   host: Element,
   session: Session,
   issuer: string | undefined,
-  runtime: Runtime
+  runtime: Runtime,
+  credentialed: (origin: string) => boolean
 ): void {
   const origin = element('span', 'origin')
   const iri = element('span', 'iri')
   const showing = element('span', 'showing')
   showing.append(origin, ' ', iri)
 
+  const login = loginControl(session, issuer)
+  const anonymous = element('span', 'anonymous')
+  anonymous.textContent = 'anonymous here'
+  host.replaceChildren(showing, openForm(runtime), login)
+
   const show = () => {
     const address = addressOf(location.href)
     origin.textContent = new URL(address.iri).hostname
     iri.textContent = address.iri
     document.title = `${address.iri} · Aleph Garden`
+    // A visitor without a session is anonymous everywhere, which the login
+    // control already says.
+    if (session.webId !== undefined && !credentialed(new URL(address.iri).origin)) {
+      login.after(anonymous)
+    } else {
+      anonymous.remove()
+    }
   }
   show()
   // Navigation has updated the location by the time a host listener runs,
@@ -36,8 +51,6 @@ export function installChrome(
     if (event.type === AS.View) show()
   })
   window.addEventListener('popstate', show)
-
-  host.replaceChildren(showing, openForm(runtime), loginControl(session, issuer))
 }
 
 function openForm(runtime: Runtime): HTMLFormElement {

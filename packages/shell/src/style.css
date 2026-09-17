@@ -285,6 +285,10 @@ a:hover {
 #chrome .origin {
   color: var(--text-normal);
 }
+#chrome .anonymous {
+  color: var(--text-muted);
+  font-size: 0.9em;
+}
 #chrome form {
   display: flex;
   gap: 0.4rem;

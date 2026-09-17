@@ -67,6 +67,9 @@ const turtle =
   async () =>
     new Response(body, { headers: { 'content-type': 'text/turtle' } })
 
+/** The session reaches every origin, which is what most of these tests want. */
+const everywhere = () => true
+
 const submit = (form: HTMLFormElement, value: string): boolean => {
   form.querySelector('input')!.value = value
   return form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }))
@@ -86,7 +89,7 @@ describe('installChrome', () => {
   test('names the origin and the IRI on show, and mirrors the IRI into the title', () => {
     history.replaceState(null, '', 'https://pod.example/https://other.example/a.md')
     const { runtime, emit } = fakeRuntime()
-    installChrome(host, fakeSession().session, undefined, runtime)
+    installChrome(host, fakeSession().session, undefined, runtime, everywhere)
     expect(host.querySelector('.showing .origin')?.textContent).toBe('other.example')
     expect(host.querySelector('.showing .iri')?.textContent).toBe('https://other.example/a.md')
     expect(document.title).toBe('https://other.example/a.md · Aleph Garden')
@@ -100,7 +103,7 @@ describe('installChrome', () => {
 
   test('the IRI field dispatches an as:View and keeps the page', () => {
     const { runtime, dispatched } = fakeRuntime()
-    installChrome(host, fakeSession().session, undefined, runtime)
+    installChrome(host, fakeSession().session, undefined, runtime, everywhere)
     const form = host.querySelector<HTMLFormElement>('form.open')!
     expect(submit(form, 'https://pod.toph.so/public/')).toBe(false)
     expect(dispatched).toEqual([{ type: AS.View, object: 'https://pod.toph.so/public/' }])
@@ -109,7 +112,7 @@ describe('installChrome', () => {
   test('names the WebID in place of a login control when logged in', () => {
     const { runtime } = fakeRuntime()
     const { session } = fakeSession('https://me.example/card#me')
-    installChrome(host, session, 'https://pod.example/', runtime)
+    installChrome(host, session, 'https://pod.example/', runtime, everywhere)
     expect(host.querySelector('.webid')?.textContent).toBe('https://me.example/card#me')
     expect(host.querySelector('.login')).toBeNull()
   })
@@ -117,7 +120,7 @@ describe('installChrome', () => {
   test('the login button goes to the configured issuer', () => {
     const { runtime } = fakeRuntime()
     const { session, logins } = fakeSession()
-    installChrome(host, session, 'https://pod.example/', runtime)
+    installChrome(host, session, 'https://pod.example/', runtime, everywhere)
     host.querySelector<HTMLButtonElement>('button.login')!.click()
     expect(logins).toEqual(['https://pod.example/'])
   })
@@ -129,7 +132,7 @@ describe('installChrome', () => {
       turtle(`@prefix solid: <http://www.w3.org/ns/solid/terms#> .
         <https://me.example/card#me> solid:oidcIssuer <https://issuer.example/> .`)
     )
-    installChrome(host, session, undefined, runtime)
+    installChrome(host, session, undefined, runtime, everywhere)
     const form = host.querySelector<HTMLFormElement>('form.login')!
     expect(submit(form, 'https://me.example/card#me')).toBe(false)
     await new Promise((r) => setTimeout(r, 0))
@@ -140,7 +143,7 @@ describe('installChrome', () => {
   test('a profile that names no issuer leaves the message in the form', async () => {
     const { runtime } = fakeRuntime()
     const { session, logins } = fakeSession(undefined, turtle(''))
-    installChrome(host, session, undefined, runtime)
+    installChrome(host, session, undefined, runtime, everywhere)
     const form = host.querySelector<HTMLFormElement>('form.login')!
     submit(form, 'https://me.example/card#me')
     await new Promise((r) => setTimeout(r, 0))
@@ -148,12 +151,35 @@ describe('installChrome', () => {
     expect(form.querySelector('p.error')?.textContent).toContain('no solid:oidcIssuer')
   })
 
+  test('marks the resource on show anonymous while the session does not reach it', () => {
+    history.replaceState(null, '', 'https://pod.example/https://other.example/a.md')
+    const { runtime, emit } = fakeRuntime()
+    const { session } = fakeSession('https://me.example/card#me')
+    installChrome(host, session, undefined, runtime, (o) => o === 'https://pod.example')
+    expect(host.querySelector('.anonymous')?.textContent).toBe('anonymous here')
+
+    history.replaceState(null, '', 'https://pod.example/notes/b.md')
+    emit({ type: AS.View, object: 'https://pod.example/notes/b.md' })
+    expect(host.querySelector('.anonymous')).toBeNull()
+  })
+
+  test('marks nothing anonymous without a session', () => {
+    history.replaceState(null, '', 'https://pod.example/https://other.example/a.md')
+    const { runtime } = fakeRuntime()
+    installChrome(host, fakeSession().session, undefined, runtime, () => false)
+    expect(host.querySelector('.anonymous')).toBeNull()
+  })
+
   test('installed after installNavigation, the chrome shows the resource navigation mounts', async () => {
     const { runtime, emit } = fakeNavigableRuntime()
     const root = document.createElement('div')
     await runtime.mount(root, 'https://pod.example/notes/a.md')
-    installNavigation(runtime, root, { opens: 'self', session: fakeSession().session })
-    installChrome(host, fakeSession().session, undefined, runtime)
+    installNavigation(runtime, root, {
+      opens: 'self',
+      session: fakeSession().session,
+      credentialed: everywhere
+    })
+    installChrome(host, fakeSession().session, undefined, runtime, everywhere)
 
     emit({
       type: AS.View,

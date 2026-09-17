@@ -195,8 +195,9 @@ describe('installNavigation', () => {
 
   const host = (
     opens: 'any' | 'self' = 'self',
-    webId?: string
-  ): { opens: 'any' | 'self'; session: Session } => {
+    webId?: string,
+    credentialed: (origin: string) => boolean = () => true
+  ) => {
     const session: Session = {
       webId,
       fetch: async () => new Response(''),
@@ -204,7 +205,7 @@ describe('installNavigation', () => {
         return undefined as never
       }
     }
-    return { opens, session }
+    return { opens, session, credentialed }
   }
 
   test('an as:View for another resource mounts it and pushes history', async () => {
@@ -355,6 +356,51 @@ describe('installNavigation', () => {
     })
     await new Promise((r) => setTimeout(r, 0))
     expect(root.querySelector('.login-needed')?.textContent).toBe('This resource needs a login.')
+  })
+
+  test('a 401 under a session names the origin the session does not reach', async () => {
+    const unauthorized = Object.assign(new Error('401 https://other.example/private.md'), {
+      status: 401
+    })
+    const { runtime, emit } = fakeRuntime(unauthorized)
+    const root = document.createElement('div')
+    installNavigation(
+      runtime,
+      root,
+      host('any', 'https://me.example/card#me', () => false)
+    )
+    emit({
+      type: AS.View,
+      object: 'https://other.example/private.md',
+      target: 'https://other.example/private.md'
+    })
+    await new Promise((r) => setTimeout(r, 0))
+    const needed = root.querySelector('.login-needed')
+    expect(needed?.textContent).toBe(
+      'Your session does not apply to other.example. Open at source to log in there.'
+    )
+    const link = needed?.querySelector('a')
+    expect(link?.getAttribute('href')).toBe('https://other.example/private.md')
+    expect(link?.getAttribute('target')).toBe('_top')
+  })
+
+  test('a 401 on an origin the session does reach shows the message and the link', async () => {
+    const unauthorized = Object.assign(new Error('401 https://pod.example/private.md'), {
+      status: 401
+    })
+    const { runtime, emit } = fakeRuntime(unauthorized)
+    const root = document.createElement('div')
+    installNavigation(runtime, root, host('self', 'https://me.example/card#me'))
+    emit({
+      type: AS.View,
+      object: 'https://pod.example/private.md',
+      target: 'https://pod.example/private.md'
+    })
+    await new Promise((r) => setTimeout(r, 0))
+    expect(root.querySelector('.login-needed')).toBeNull()
+    expect(root.querySelector('.error')?.textContent).toContain(
+      '401 https://pod.example/private.md'
+    )
   })
 
   test('any other failed mount shows the message and a link to the resource', async () => {

@@ -69,17 +69,44 @@ export async function createSession(): Promise<Session> {
 }
 
 const SOLID_OIDC_ISSUER = 'http://www.w3.org/ns/solid/terms#oidcIssuer'
+const PIM_STORAGE = 'http://www.w3.org/ns/pim/space#storage'
 
-/** solid:oidcIssuer from the WebID's profile document. */
-export async function issuerOf(fetch: Fetch, webId: string): Promise<string> {
+/** The WebID's profile document as quads, the fragment dropped. Rejects with
+ *  the status on a non-2xx answer. */
+async function profileOf(fetch: Fetch, webId: string): Promise<Quad[]> {
   const profile = new URL(webId)
   profile.hash = ''
   const response = await fetch(profile.href, { headers: { accept: 'text/turtle' } })
   if (!response.ok) throw new Error(`${response.status} ${webId}`)
-  const graph = parseTurtle(await response.text(), profile.href)
-  const issuer = objects(graph, webId, SOLID_OIDC_ISSUER)[0]
+  return parseTurtle(await response.text(), profile.href)
+}
+
+/** solid:oidcIssuer from the WebID's profile document. */
+export async function issuerOf(fetch: Fetch, webId: string): Promise<string> {
+  const issuer = objects(await profileOf(fetch, webId), webId, SOLID_OIDC_ISSUER)[0]
   if (!issuer) throw new Error(`no solid:oidcIssuer in ${webId}`)
   return issuer.value
+}
+
+/** The origins the profile names as the WebID's issuer and storage, kept in
+ *  sessionStorage so a tab reads the profile once. A profile that does not
+ *  answer, or does not parse, names no origin and raises nothing. */
+async function profileOrigins(fetch: Fetch, webId: string): Promise<string[]> {
+  const key = `aleph:origins:${webId}`
+  try {
+    const cached = sessionStorage.getItem(key)
+    if (cached) return JSON.parse(cached) as string[]
+    const graph = await profileOf(fetch, webId)
+    const terms = [
+      ...objects(graph, webId, SOLID_OIDC_ISSUER),
+      ...objects(graph, webId, PIM_STORAGE)
+    ]
+    const origins = [...new Set(terms.map((term) => new URL(term.value).origin))]
+    sessionStorage.setItem(key, JSON.stringify(origins))
+    return origins
+  } catch {
+    return []
+  }
 }
 
 // ------------------------------------------------------------ fetching
@@ -223,23 +250,39 @@ export async function boot(chrome: Element, root: Element): Promise<void> {
   })
   // A DPoP token names the visitor and their issuer to whoever receives it,
   // so it goes only to the origins the session already stands on: the shell's
-  // own, the WebID's and the issuer's. Every other IRI is fetched bare.
+  // own, the WebID's, the issuer's, and those the profile names as the WebID's
+  // issuer and storage. Every other IRI is fetched bare.
+  const bare: Fetch = (input, init) => globalThis.fetch(input, init)
   const credentialed = new Set([location.origin])
   for (const source of [session.webId, config.issuer]) {
     if (source) credentialed.add(new URL(source).origin)
   }
-  const bare: Fetch = (input, init) => globalThis.fetch(input, init)
+  if (session.webId) {
+    for (const origin of await profileOrigins(bare, session.webId)) credentialed.add(origin)
+  }
+  const reaches = (origin: string) => credentialed.has(origin)
   const runtime = createRuntime(renderer, (target) =>
-    fetchResource(credentialed.has(new URL(target).origin) ? session.fetch : bare, target)
+    fetchResource(reaches(new URL(target).origin) ? session.fetch : bare, target)
   )
-  installNavigation(runtime, root, { opens: config.opens ?? 'self', session })
-  installChrome(chrome, session, config.issuer, runtime)
+  const host: Host = { opens: config.opens ?? 'self', session, credentialed: reaches }
+  installNavigation(runtime, root, host)
+  installChrome(chrome, session, config.issuer, runtime, reaches)
 
-  await mountInto(runtime, root, iri, hint, session)
+  await mountInto(runtime, root, iri, hint, host)
+}
+
+/** What navigation and the region need of the host document and the session:
+ *  where a foreign IRI opens, who the visitor is, and which origins the
+ *  session reaches. */
+type Host = {
+  opens: 'any' | 'self'
+  session: Session
+  credentialed: (origin: string) => boolean
 }
 
 /** Mounts the resource into the region and puts a failure there: a 401
- *  without a session asks for the login the chrome offers, anything else
+ *  without a session asks for the login the chrome offers, a 401 on an origin
+ *  the session does not reach says so and offers the source, anything else
  *  shows the message with a link to the resource itself, which a foreign
  *  https resource needs when CORS refuses the shell and the browser can
  *  still open it. */
@@ -248,18 +291,26 @@ async function mountInto(
   root: Element,
   iri: string,
   hint: Hint | undefined,
-  session: Session
+  host: Host
 ): Promise<void> {
   try {
     await runtime.mount(root, iri, hint)
   } catch (e) {
     const status = (e as { status?: number }).status
-    if (status === 401 && !session.webId) {
+    const link = `<a href="${escapeAttr(iri)}" target="_top">Open at source</a>`
+    if (status === 401 && !host.session.webId) {
       writeHtml(root, '<p class="login-needed">This resource needs a login.</p>')
       return
     }
+    if (status === 401 && !host.credentialed(new URL(iri).origin)) {
+      const hostname = escapeText(new URL(iri).hostname)
+      writeHtml(
+        root,
+        `<p class="login-needed">Your session does not apply to ${hostname}. ${link} to log in there.</p>`
+      )
+      return
+    }
     const message = e instanceof Error ? e.message : String(e)
-    const link = `<a href="${escapeAttr(iri)}" target="_top">Open at source</a>`
     writeHtml(root, `<p class="error">${escapeText(message)} ${link}</p>`)
   }
 }
@@ -287,11 +338,7 @@ async function applySnippets(fetch: Fetch): Promise<void> {
  *  the region: another resource is a `mount`, the same resource with a
  *  different fragment is a `dispatch` and no refetch. Under `opens: 'self'`
  *  an IRI on another origin is the browser's, so the shell leaves the page. */
-export function installNavigation(
-  runtime: Runtime,
-  root: Element,
-  host: { opens: 'any' | 'self'; session: Session }
-): void {
+export function installNavigation(runtime: Runtime, root: Element, host: Host): void {
   const current = () => runtime.instances().find((i) => i.region === root)
 
   runtime.listen((event) => {
@@ -316,7 +363,7 @@ export function installNavigation(
       return
     }
     history.pushState(null, '', address.href)
-    void mountInto(runtime, root, address.iri, address.hint, host.session)
+    void mountInto(runtime, root, address.iri, address.hint, host)
   })
 
   window.addEventListener('popstate', () => {
@@ -324,7 +371,7 @@ export function installNavigation(
     if (current()?.iri === iri) {
       void runtime.dispatch({ type: AS.View, object: iri, target: location.href })
     } else {
-      void mountInto(runtime, root, iri, hint, host.session)
+      void mountInto(runtime, root, iri, hint, host)
     }
   })
 }

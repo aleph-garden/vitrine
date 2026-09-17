@@ -8,8 +8,17 @@ const WANTED_URL = 'https://pod.example/notes/Wanted.md'
 const FOREIGN_URL = 'https://other.example/a.md'
 const FALLBACK_VIEW = 'https://w3id.org/aleph/ns/view#Fallback'
 
+const PROFILE_URL = 'https://id.example/me'
+const PROFILE_WEBID = `${PROFILE_URL}#me`
+const PROFILE = `@prefix solid: <http://www.w3.org/ns/solid/terms#> .
+  @prefix pim: <http://www.w3.org/ns/pim/space#> .
+  <${PROFILE_WEBID}> solid:oidcIssuer <https://idp.example/> ; pim:storage <https://store.example/> .`
+
 /** The URL the silent re-login hands back, or undefined for no restore. */
 let restored: string | undefined
+/** The WebID the fake session reports, and the status its profile answers with. */
+let webId: string
+let profileStatus: number
 /** What the session fetch saw; the token rides on these requests. */
 const fetched: string[] = []
 /** What the stubbed global fetch saw; these carry no credentials. */
@@ -17,7 +26,8 @@ const anonymous: string[] = []
 let realFetch: typeof globalThis.fetch
 
 class FakeSession {
-  info = { webId: 'https://pod.example/profile#me', isLoggedIn: true }
+  // Constructed inside createSession, so this reads whatever the test set.
+  info = { webId, isLoggedIn: true }
   private listeners = new Map<string, ((url: string) => void)[]>()
   events = {
     on: (name: string, fn: (url: string) => void) => {
@@ -46,11 +56,21 @@ const { boot, createSession } = await import('../src/main.ts')
 
 beforeEach(() => {
   restored = undefined
+  webId = 'https://pod.example/profile#me'
+  profileStatus = 200
   fetched.length = 0
   anonymous.length = 0
+  sessionStorage.clear()
   realFetch = globalThis.fetch
   globalThis.fetch = (async (input: string | URL | Request) => {
-    anonymous.push(String(input))
+    const url = String(input)
+    anonymous.push(url)
+    if (url === PROFILE_URL) {
+      return new Response(profileStatus === 200 ? PROFILE : 'no', {
+        status: profileStatus,
+        headers: { 'content-type': 'text/turtle' }
+      })
+    }
     return new Response('# foreign', { headers: { 'content-type': 'text/markdown' } })
   }) as typeof globalThis.fetch
   history.replaceState(null, '', LOGIN_URL)
@@ -96,6 +116,53 @@ describe('boot', () => {
     await boot(document.createElement('header'), document.createElement('div'))
     expect(fetched).toContain(WANTED_URL)
     expect(anonymous).not.toContain(WANTED_URL)
+  })
+})
+
+describe('boot and the profile the WebID names', () => {
+  const mount = async (iri: string): Promise<Element> => {
+    history.replaceState(null, '', `https://pod.example/${iri}`)
+    const root = document.createElement('div')
+    await boot(document.createElement('header'), root)
+    return root
+  }
+
+  beforeEach(() => {
+    webId = PROFILE_WEBID
+  })
+
+  test('reaches the storage and the issuer the profile names with the session', async () => {
+    await mount('https://store.example/x')
+    expect(fetched).toContain('https://store.example/x')
+    expect(anonymous).not.toContain('https://store.example/x')
+
+    await mount('https://idp.example/x')
+    expect(fetched).toContain('https://idp.example/x')
+    expect(anonymous).not.toContain('https://idp.example/x')
+  })
+
+  test('reaches an origin the profile leaves out without the session', async () => {
+    await mount('https://other.example/x')
+    expect(anonymous).toContain('https://other.example/x')
+    expect(fetched).not.toContain('https://other.example/x')
+  })
+
+  test('reads the profile once a tab', async () => {
+    await mount('https://store.example/x')
+    await mount('https://store.example/y')
+    expect(anonymous.filter((url) => url === PROFILE_URL)).toHaveLength(1)
+    expect(fetched).toContain('https://store.example/y')
+  })
+
+  test('a profile that does not answer leaves the WebID origin alone credentialed', async () => {
+    profileStatus = 500
+    const root = await mount('https://store.example/x')
+    expect(anonymous).toContain('https://store.example/x')
+    expect(fetched).not.toContain('https://store.example/x')
+    expect(root.querySelector('.markdown-preview-view')).not.toBeNull()
+
+    await mount('https://id.example/x')
+    expect(fetched).toContain('https://id.example/x')
   })
 })
 
