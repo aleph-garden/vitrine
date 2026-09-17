@@ -182,7 +182,7 @@ hands it to the browser is the host document's `opens`, below.
 export function installNavigation(
   runtime: Runtime,
   root: Element,
-  host: { opens: 'any' | 'self'; session: Session }
+  host: { opens: 'any' | 'self'; session: Session; credentialed: (origin: string) => boolean }
 ): void
 ```
 
