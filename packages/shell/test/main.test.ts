@@ -155,6 +155,12 @@ describe('issuerOf', () => {
       )
     ).rejects.toThrow(`no solid:oidcIssuer in ${WEBID}`)
   })
+
+  test('rejects with the status when the profile document is missing', async () => {
+    await expect(issuerOf(fetchOf(response('not found', {}, 404)), WEBID)).rejects.toThrow(
+      `404 ${WEBID}`
+    )
+  })
 })
 
 describe('installNavigation', () => {

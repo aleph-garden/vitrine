@@ -21,14 +21,17 @@ export function addressOf(href: string): Address {
   return { iri, hint: hintOf(url), href }
 }
 
-/** From a link target (an IRI with optional query and fragment): `url`
- *  itself when it is on the shell's origin, `${origin}/${url}` otherwise. */
+/** From a link target (an IRI with optional query and fragment): unwrapped
+ *  through addressOf when it is already under the shell's origin (so a
+ *  pasted shell location resolves to the resource it names), placed behind
+ *  the shell origin at `${origin}/${target.href}` otherwise. */
 export function addressFor(url: string): Address {
   const target = new URL(url)
+  if (target.origin === location.origin) return addressOf(target.href)
   return {
     iri: `${target.origin}${target.pathname}`,
     hint: hintOf(target),
-    href: target.origin === location.origin ? url : `${location.origin}/${url}`
+    href: `${location.origin}/${target.href}`
   }
 }
 

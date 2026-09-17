@@ -53,12 +53,22 @@ describe('addressFor', () => {
       'https://pod.example/docs/view/',
       'https://pod.toph.so/notes/b.md#Intro',
       'https://pod.toph.so/notes/b.md?view=urn:x',
-      'https://pod.toph.so/public/'
+      'https://pod.toph.so/public/',
+      'https://pod.toph.so',
+      'https://other.example'
     ]) {
       const address = addressFor(url)
       const back = addressOf(address.href)
       expect(back.iri).toBe(address.iri)
       expect(back.hint).toEqual(address.hint)
     }
+  })
+
+  test('a shell location pasted into the IRI field unwraps to the inner resource', () => {
+    const url = 'https://pod.example/https://other.example/x'
+    expect(addressFor(url)).toEqual({
+      iri: 'https://other.example/x',
+      href: url
+    })
   })
 })

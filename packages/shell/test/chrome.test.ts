@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { AS, type Event } from '@aleph-garden/view'
-import type { Runtime } from '@aleph-garden/view/dom'
+import type { Instance, Runtime } from '@aleph-garden/view/dom'
 import { installChrome } from '../src/chrome.ts'
-import type { Fetch, Session } from '../src/main.ts'
+import { type Fetch, installNavigation, type Session } from '../src/main.ts'
 
 const fakeRuntime = () => {
   const dispatched: Event[] = []
@@ -24,6 +24,29 @@ const fakeRuntime = () => {
     for (const listener of listeners) listener(event)
   }
   return { runtime, dispatched, emit }
+}
+
+/** A runtime that actually tracks the mounted instance, so installNavigation
+ *  can find it through instances() the way the real one does. */
+const fakeNavigableRuntime = () => {
+  const listeners = new Set<(e: Event) => void>()
+  let current: Instance | undefined
+  const runtime: Runtime = {
+    async mount(region, iri, hint) {
+      current = { id: 'i', iri, hint, region, dependencies: new Set(), dispose() {} }
+      return current
+    },
+    async dispatch() {},
+    instances: () => (current ? [current] : []),
+    listen(listener) {
+      listeners.add(listener)
+      return () => listeners.delete(listener)
+    }
+  }
+  const emit = (event: Event) => {
+    for (const listener of listeners) listener(event)
+  }
+  return { runtime, emit }
 }
 
 const fakeSession = (webId?: string, fetch: Fetch = async () => new Response('')) => {
@@ -123,5 +146,22 @@ describe('installChrome', () => {
     await new Promise((r) => setTimeout(r, 0))
     expect(logins).toEqual([])
     expect(form.querySelector('p.error')?.textContent).toContain('no solid:oidcIssuer')
+  })
+
+  test('installed after installNavigation, the chrome shows the resource navigation mounts', async () => {
+    const { runtime, emit } = fakeNavigableRuntime()
+    const root = document.createElement('div')
+    await runtime.mount(root, 'https://pod.example/notes/a.md')
+    installNavigation(runtime, root)
+    installChrome(host, fakeSession().session, undefined, runtime)
+
+    emit({
+      type: AS.View,
+      object: 'https://pod.example/notes/b.md',
+      target: 'https://pod.example/notes/b.md#Intro'
+    })
+    await new Promise((r) => setTimeout(r, 0))
+
+    expect(host.querySelector('.showing .iri')?.textContent).toBe('https://pod.example/notes/b.md')
   })
 })

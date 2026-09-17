@@ -74,6 +74,7 @@ export async function issuerOf(fetch: Fetch, webId: string): Promise<string> {
   const profile = new URL(webId)
   profile.hash = ''
   const response = await fetch(profile.href, { headers: { accept: 'text/turtle' } })
+  if (!response.ok) throw new Error(`${response.status} ${webId}`)
   const graph = parseTurtle(await response.text(), profile.href)
   const issuer = objects(graph, webId, SOLID_OIDC_ISSUER)[0]
   if (!issuer) throw new Error(`no solid:oidcIssuer in ${webId}`)
