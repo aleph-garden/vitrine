@@ -137,6 +137,38 @@ describe('linkEvents', () => {
   })
 })
 
+describe('writeHtml under Trusted Types', () => {
+  // A fresh module instance (cache-busting query), so this test's stub of
+  // `globalThis.trustedTypes` is in place before that module's own `aleph`
+  // policy resolves. The shared instance other tests use may have already
+  // resolved its policy against a run with no Trusted Types, and that
+  // resolution never runs twice.
+  test('creates the aleph policy and lets DOMPurify create its own', async () => {
+    const original = (globalThis as { trustedTypes?: unknown }).trustedTypes
+    const names: string[] = []
+    ;(globalThis as { trustedTypes?: unknown }).trustedTypes = {
+      createPolicy(name: string, rules: { createHTML?: (html: string) => string }) {
+        names.push(name)
+        return { createHTML: (html: string) => rules.createHTML?.(html) ?? html }
+      }
+    }
+    try {
+      const fresh: { writeHtml: typeof writeHtml } = await import(
+        `../src/dom.ts?trusted-types-test=${Date.now()}`
+      )
+      const el = region()
+      fresh.writeHtml(el, '<b>ok</b>')
+      expect(names).toContain('aleph')
+      // DOMPurify creates `dompurify` lazily on its first sanitize call; assert
+      // it when it happens, but nothing here forbids it either way.
+      if (names.length > 1) expect(names).toContain('dompurify')
+      expect(el.innerHTML).toContain('<b>ok</b>')
+    } finally {
+      ;(globalThis as { trustedTypes?: unknown }).trustedTypes = original
+    }
+  })
+})
+
 describe('writeHtml', () => {
   test('drops a script element and keeps the markup around it', () => {
     const el = region()

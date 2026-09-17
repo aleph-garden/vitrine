@@ -74,17 +74,15 @@ export function linkEvents(region: Element, emit: (event: Event) => void): () =>
 // DOMPurify's default and must stay allowed, since `data-slot` is the patch
 // protocol.
 //
-// `TRUSTED_TYPES_POLICY: null` keeps DOMPurify from creating a Trusted Types
-// policy of its own, named `dompurify`, which a CSP that admits `aleph` alone
-// refuses with a console warning and a violation report. The `aleph` policy is
-// the one producer of TrustedHTML here and calls this sanitizer, so DOMPurify
-// itself needs none; passing the `aleph` policy back to it instead would be
-// circular and DOMPurify rejects that.
+// `aleph` is the one policy that produces the TrustedHTML the document
+// receives; its `createHTML` is this sanitizer. DOMPurify creates its own
+// `dompurify` policy to label the string it parses internally, and that parse
+// result is sanitized before any of it leaves `createHTML`. Both names sit in
+// the CSP's `trusted-types` directive.
 const ALLOWLIST = {
   USE_PROFILES: { html: true, svg: true, svgFilters: true, mathMl: true },
   ADD_ATTR: ['target', 'download'],
-  ADD_TAGS: ['semantics', 'annotation'],
-  TRUSTED_TYPES_POLICY: null
+  ADD_TAGS: ['semantics', 'annotation']
 } satisfies Config
 
 // The slice of the Trusted Types API the runtime uses. `createHTML` answers a
