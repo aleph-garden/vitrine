@@ -47,12 +47,12 @@ beforeEach(() => {
 describe('createSession', () => {
   test('puts the restored URL in the address bar', async () => {
     restored = WANTED_URL
-    await createSession('https://pod.example/')
+    await createSession()
     expect(location.href).toBe(WANTED_URL)
   })
 
   test('leaves the address alone without a restore', async () => {
-    await createSession('https://pod.example/')
+    await createSession()
     expect(location.href).toBe(LOGIN_URL)
   })
 })
@@ -60,7 +60,7 @@ describe('createSession', () => {
 describe('boot', () => {
   test('mounts the resource the restored URL names', async () => {
     restored = `${WANTED_URL}#Intro`
-    await boot(document.createElement('div'))
+    await boot(document.createElement('header'), document.createElement('div'))
     expect(fetched).toContain(WANTED_URL)
     expect(fetched).not.toContain(LOGIN_URL)
   })
