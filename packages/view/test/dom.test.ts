@@ -150,6 +150,9 @@ describe('writeHtml', () => {
   test('keeps SVG, which the diagrams emit', () => {
     const el = region()
     writeHtml(el, '<svg><circle r="1"/></svg>')
+    const svg = el.querySelector('svg')!
+    expect(svg).not.toBeNull()
+    expect(svg.namespaceURI).toBe('http://www.w3.org/2000/svg')
     expect(el.querySelector('circle')).not.toBeNull()
   })
 
@@ -160,6 +163,19 @@ describe('writeHtml', () => {
     const el = region()
     writeHtml(el, '<math><mi>x</mi></math>')
     expect(el.querySelector('mi')).not.toBeNull()
+  })
+
+  // Same happy-dom namespace defect as the test above: the sanitizer rejects
+  // the whole `<math>` root before ADD_TAGS ever gets to decide about
+  // `semantics`/`annotation`. Only observable in a browser.
+  test.skip('keeps the semantics and annotation wrappers KaTeX emits', () => {
+    const el = region()
+    writeHtml(
+      el,
+      '<math><semantics><mi>x</mi><annotation encoding="application/x-tex">x</annotation></semantics></math>'
+    )
+    expect(el.querySelector('semantics')).not.toBeNull()
+    expect(el.querySelector('annotation')).not.toBeNull()
   })
 })
 

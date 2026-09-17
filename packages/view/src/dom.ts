@@ -2,7 +2,7 @@
 // hydrate returned, and the IRIs the instance resolved. Every browser host
 // runs the re-render protocol from here.
 
-import DOMPurify from 'dompurify'
+import DOMPurify, { type Config } from 'dompurify'
 import {
   AS,
   type Context,
@@ -51,7 +51,7 @@ export function linkEvents(region: Element, emit: (event: Event) => void): () =>
     const anchor = (e.target as Element | null)?.closest?.('a[href]')
     if (!anchor || !region.contains(anchor)) return
     if (anchor.hasAttribute('target') || anchor.hasAttribute('download')) return
-    if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button !== 0) return
+    if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button > 0) return
     const url = new URL(anchor.getAttribute('href')!, region.ownerDocument.baseURI)
     if (url.origin !== location.origin) return
     e.preventDefault()
@@ -66,12 +66,17 @@ export function linkEvents(region: Element, emit: (event: Event) => void): () =>
 // The allowlist view HTML passes through: the profiles the views emit, plus
 // the two attributes DOMPurify strips although a view needs them (the
 // landing view's docs links carry `target`, the fallback view's offer of a
-// binary carries `download`). `data-*` is allowed by DOMPurify's default and
-// must stay allowed, since `data-slot` is the patch protocol.
+// binary carries `download`), plus the two MathML wrapper elements the
+// `mathMl` profile itself excludes (KaTeX emits a formula's TeX source inside
+// `<semantics><annotation>`, and without them the sanitizer strips the
+// wrappers and leaves the TeX as visible text). `data-*` is allowed by
+// DOMPurify's default and must stay allowed, since `data-slot` is the patch
+// protocol.
 const ALLOWLIST = {
   USE_PROFILES: { html: true, svg: true, svgFilters: true, mathMl: true },
-  ADD_ATTR: ['target', 'download']
-}
+  ADD_ATTR: ['target', 'download'],
+  ADD_TAGS: ['semantics', 'annotation']
+} satisfies Config
 
 // The slice of the Trusted Types API the runtime uses. `createHTML` answers a
 // TrustedHTML, which the innerHTML sink takes in place of a string; typing it
@@ -82,9 +87,10 @@ type TrustedTypes = { createPolicy(name: string, rules: HtmlPolicy): HtmlPolicy 
 let policy: HtmlPolicy | undefined
 let policyResolved = false
 
-/** The one `aleph` policy, created on the first write. A page whose CSP omits
- *  the policy name throws on createPolicy; writes then carry the sanitized
- *  string without a policy. */
+/** The one `aleph` policy, created on the first write. On a page whose
+ *  `require-trusted-types-for 'script'` CSP omits the policy name,
+ *  `createPolicy` fails and the write then fails too; on a page without
+ *  Trusted Types the write uses the sanitized string directly. */
 function trustedPolicy(): HtmlPolicy | undefined {
   if (policyResolved) return policy
   policyResolved = true
