@@ -226,6 +226,11 @@ By hand:
   view that does anything and guards nothing once one is let in. It is
   the fallback view's property, and the reason stage one suffices for it,
   never the design.
+- **An Electron or WebEngine application.** Regions inside one window are
+  the browser shell with the multi-region layout of slice 2: one document,
+  one runtime, no bridge. Packaging and a tray icon are all such an
+  application would add. Regions on the desktop are a layer-shell matter,
+  which is the Quickshell host under "Deferred".
 - **A separate render domain instead of the sandboxed iframe.** The same
   boundary at the cost of a second deployment and DNS; the iframe's
   opaque origin gives it in one document.
@@ -247,6 +252,17 @@ By hand:
 - A view for `text/html` that shows the page in a sandboxed iframe of its
   own, for a link into the web at large. Without a session and subject to
   the page's framing policy, which is what a visitor expects there.
+- A bridge for the bus across document boundaries: the runtime's
+  `listen` and `dispatch` over a message channel, so that a region in a
+  document of its own takes part in the same events and the same
+  `resolve`. Two transports, one module: postMessage for the sandboxed
+  region (stage two above), QWebChannel for the Quickshell host below.
+- A Quickshell host: layer-shell surfaces on the desktop, each a
+  WebEngineView running the shell with a host document of its own, the
+  layout as a resource in the pod, the pod's notification channel as the
+  `as:Update` source. Example: stickers on the screen, one surface per
+  emoji that arrives in the Solid inbox. Needs Quickshell built with
+  QtWebEngine; to be checked in nixpkgs first.
 - The apex move for `aleph.garden` from alvin to Pages, and removing the
   vhost there. A DNS change, done when the deploy from this repository
   stands.
