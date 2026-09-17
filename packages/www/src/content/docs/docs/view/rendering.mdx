@@ -52,12 +52,12 @@ sequenceDiagram
 
 `mount` rejects when `resolve` rejects, so the host can act on a `401`.
 
-`writeHtml` is the one place view HTML enters the document. It sanitizes
-against a fixed allowlist and, where the browser has Trusted Types, produces
-the `TrustedHTML` the sink takes. A view returns a string and never writes
-its region; a view that writes DOM in `hydrate` calls `writeHtml` for the
-same allowlist. [Foreign content](/docs/view/hosts/#foreign-content) has the
-rest of the reasoning.
+Mount and every patch go through `writeHtml`, the one place view HTML
+enters the document. It sanitizes against a fixed allowlist and, where the
+browser has Trusted Types, produces the `TrustedHTML` the sink takes. A
+view's own writes in `hydrate` are the view's, and that is why the Markdown
+view stays off aleph.garden until the sandboxed region exists. [Foreign
+content](/docs/view/hosts/#foreign-content) has the rest of the reasoning.
 
 ## Two paths to a re-render
 
@@ -122,12 +122,12 @@ flowchart LR
   D --> I2[instance 2]
 ```
 
-Inside a region, the runtime turns a click on a same-origin link into an
-`as:View` with the link's IRI as `object` and the full URL as `target`. One
-declarative rule says which clicks stay with the browser: an anchor carrying
-a `target` or `download` attribute, and a click made with a modifier key or a
-non-primary button. A view marks the links the browser should follow by
-writing those attributes and needs no code for it.
+Inside a region, the runtime turns a click on an `http` or `https` link
+into an `as:View`, whatever its origin, with the link's IRI as `object` and
+the full URL as `target`. The rule is declarative: an anchor carrying a
+`target` or `download` attribute, or a click made with a modifier key or a
+non-primary button, stays with the browser. A view marks the links the
+browser should follow by writing those attributes and needs no code for it.
 
 Navigation to another resource is the host's business: it sees the
 `as:View` through `listen` and calls `mount`. `dispatch` never replaces an

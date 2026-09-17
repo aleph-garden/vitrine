@@ -63,7 +63,7 @@ The shell reads the IRI it shows from `location` alone, in one of two forms:
 
 | Location | IRI on show |
 |---|---|
-| `https://pod.toph.so/notes/a.md` | the location itself |
+| `https://pod.toph.so/notes/a.md` | the location, without query or fragment (those become the hint) |
 | `https://aleph.garden/https://pod.toph.so/notes/a.md` | `https://pod.toph.so/notes/a.md` |
 
 A path that begins with `https://` or `http://` is the IRI; every other
@@ -74,9 +74,11 @@ The direction back, from an IRI to the location that shows it, goes by
 origin. An IRI on the shell's origin keeps its URL, and the shell reads that
 URL the way it reads the address bar, so a shell location someone pasted
 resolves to the resource it names. An IRI on another origin is shown at
-`<shell origin>/<iri>`. On a pod that leaves every link the pod's own
-resources carry as it is; on aleph.garden everything the site does not serve
-itself takes the prefixed form, what the IRI field opens included.
+`<shell origin>/<iri>`. The runtime turns every click on an `http` or
+`https` link into an `as:View`, whatever origin it names, and the host maps
+that IRI to a location by the rule above: bare on the shell's own origin,
+prefixed otherwise. So a pod link inside a region on aleph.garden stays in
+the shell, at the prefixed location.
 
 Static files win over the shell: `/docs/view/` is served as the page it is,
 since the path names no IRI.
@@ -149,10 +151,10 @@ region, on every host. Session belongs to the host, so no view renders
 these, and credentials are typed at the issuer.
 
 - The host name and the IRI of the resource on show, kept current from the
-  runtime's events and mirrored into `document.title`. A visitor at
-  `https://aleph.garden/https://bank.example/` reads that the content is
-  bank.example's and the frame around it is Aleph Garden's, the way a
-  reader mode or a translation proxy says it.
+  runtime's events; `document.title` becomes `<iri> · Aleph Garden`. A
+  visitor at `https://aleph.garden/https://bank.example/` reads that the
+  content is bank.example's and the frame around it is Aleph Garden's, the
+  way a reader mode or a translation proxy says it.
 - A field that takes an IRI and dispatches an `as:View` through the runtime,
   which navigation then follows.
 - The login control: a button to the issuer the host document names, or,
@@ -176,11 +178,12 @@ Isolation comes in two stages, and the browser provides both.
 
 **In the document, on every host.** This stage stands today.
 
-- One chokepoint. The runtime is the only code that writes a view's HTML
-  into the document, on mount and on every patch, and it writes through a
-  sanitizer whose allowlist admits what the views emit: the HTML, SVG and
-  MathML profiles, `data-slot` for patches, `target` and `download` on
-  links. A view emits a string and never touches the region itself.
+- One chokepoint. Mount and every patch go through `writeHtml`, the only
+  code that writes a view's HTML into the document, through a sanitizer
+  whose allowlist admits what the views emit: the HTML, SVG and MathML
+  profiles, `data-slot` for patches, `target` and `download` on links. A
+  view's own writes in `hydrate` are the view's, and that is why the
+  Markdown view stays off aleph.garden until the sandboxed region exists.
 - A Content Security Policy on the shell document: scripts from the bundle's
   origin, no inline script, no `object`, no `base`. A string that slipped
   past the sanitizer still runs nothing. aleph.garden sets it on the shell's
@@ -191,24 +194,25 @@ Isolation comes in two stages, and the browser provides both.
   the sanitizer, so a DOM sink anywhere in the bundle refuses a plain
   string.
 
-A policy narrows what a bug can do and draws no boundary. The origin is the
-one boundary the browser has, and aleph.garden's origin holds the session.
+A policy narrows what a bug can do. The origin is the one boundary the
+browser has, and aleph.garden's origin holds the session.
 
-**Across an origin, on aleph.garden.** The region becomes a sandboxed iframe
-with an opaque origin. A view's `render` and `hydrate` run inside it without
-cookies, storage, or the session; the shell outside holds the session and
-the chrome and answers `resolve` over a message channel, which also lets it
-decide which IRIs a view reaches with the visitor's credentials. A bug in a
-renderer then yields script in an origin that owns nothing. The contracts
-were shaped for that crossing: `render` returns a string, events go in,
-patches come out, and `resolve` is the one call back.
+**Across an origin, on aleph.garden.** This stage is to come. The region
+becomes a sandboxed iframe with an opaque origin. A view's `render` and
+`hydrate` run inside it without cookies, storage, or the session; the shell
+outside holds the session and the chrome and answers `resolve` over a
+message channel, which also lets it decide which IRIs a view reaches with
+the visitor's credentials. A bug in a renderer then yields script in an
+origin that owns nothing. The contracts were shaped for that crossing:
+`render` returns a string, events go in, patches come out, and `resolve` is
+the one call back.
 
-This stage is the precondition for any view beyond the fallback view on
-aleph.garden. The two views registered there today live under the first
-stage: the landing view renders fixed HTML, and the fallback view escapes
-everything it shows and has no `hydrate`. The Markdown view joins once the
-second stage stands. A pod stays at the first stage, where the content is
-the owner's and shares the origin anyway.
+The sandboxed region precedes any view with a `hydrate` on aleph.garden. The
+two views registered there today, landing and fallback, have none: the
+landing view renders fixed HTML, and the fallback view escapes everything
+it shows. The Markdown view joins once the second stage stands. A pod stays
+at the first stage, where the content is the owner's and shares the origin
+anyway.
 
 ## Server-side host
 
