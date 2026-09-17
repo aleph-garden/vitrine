@@ -58,6 +58,14 @@ describe('readConfig', () => {
     expect(readConfig(document)).toEqual({})
   })
 
+  test('reads session only when it is a boolean', () => {
+    embed(JSON.stringify({ '@type': 'Host', session: false }))
+    expect(readConfig(document)).toEqual({ session: false })
+    for (const script of document.head.querySelectorAll('script')) script.remove()
+    embed(JSON.stringify({ '@type': 'Host', session: 'no' }))
+    expect(readConfig(document)).toEqual({})
+  })
+
   test('skips a node of another type and takes the first Host', () => {
     embed(JSON.stringify({ '@type': 'WebSite', issuer: 'https://wrong.example/' }))
     embed(JSON.stringify({ '@type': 'Host', issuer: 'https://first.example/' }))

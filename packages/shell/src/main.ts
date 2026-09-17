@@ -40,8 +40,9 @@ export type Session = {
   webId: string | undefined
   /** fetch with the Solid-OIDC token attached when logged in. */
   fetch: Fetch
-  /** Redirects to the issuer; the page comes back with a session. */
-  login(issuer: string): Promise<never>
+  /** Redirects to the issuer; the page comes back with a session. Absent on
+   *  a host without a session: the chrome then shows no login. */
+  login?(issuer: string): Promise<never>
 }
 
 /** Handles the incoming redirect; the issuer is login's argument. */
@@ -66,6 +67,12 @@ export async function createSession(): Promise<Session> {
       return new Promise<never>(() => {})
     }
   }
+}
+
+/** The session of a host document with `session: false`: no WebID, bare
+ *  fetch, no login. Every origin is then reached anonymously. */
+export function anonymousSession(): Session {
+  return { webId: undefined, fetch: (input, init) => globalThis.fetch(input, init) }
 }
 
 const SOLID_OIDC_ISSUER = 'http://www.w3.org/ns/solid/terms#oidcIssuer'
@@ -232,7 +239,7 @@ function plain(term: {
  *  A 401 without a session says so in the region; login is the chrome's. */
 export async function boot(chrome: Element, root: Element): Promise<void> {
   const config = readConfig(document)
-  const session = await createSession()
+  const session = config.session === false ? anonymousSession() : await createSession()
   const { iri, hint } = addressOf(location.href)
   void applySnippets(session.fetch)
 
@@ -281,7 +288,7 @@ type Host = {
 }
 
 /** Mounts the resource into the region and puts a failure there: a 401
- *  without a session asks for the login the chrome offers, a 401 on an origin
+ *  without a session says so and offers the source, a 401 on an origin
  *  the session does not reach says so and offers the source, anything else
  *  shows the message with a link to the resource itself, which a foreign
  *  https resource needs when CORS refuses the shell and the browser can
@@ -299,7 +306,7 @@ async function mountInto(
     const status = (e as { status?: number }).status
     const link = `<a href="${escapeAttr(iri)}" target="_top">Open at source</a>`
     if (status === 401 && !host.session.webId) {
-      writeHtml(root, '<p class="login-needed">This resource needs a login.</p>')
+      writeHtml(root, `<p class="login-needed">This resource needs a login. ${link}</p>`)
       return
     }
     if (status === 401 && !host.credentialed(new URL(iri).origin)) {

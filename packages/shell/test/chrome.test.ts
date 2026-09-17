@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { AS, type Event } from '@aleph-garden/view'
 import type { Instance, Runtime } from '@aleph-garden/view/dom'
 import { installChrome } from '../src/chrome.ts'
-import { type Fetch, installNavigation, type Session } from '../src/main.ts'
+import { anonymousSession, type Fetch, installNavigation, type Session } from '../src/main.ts'
 
 const fakeRuntime = () => {
   const dispatched: Event[] = []
@@ -168,6 +168,24 @@ describe('installChrome', () => {
     const { runtime } = fakeRuntime()
     installChrome(host, fakeSession().session, undefined, runtime, () => false)
     expect(host.querySelector('.anonymous')).toBeNull()
+  })
+
+  test('a host without a session shows no login control and no WebID', () => {
+    const { runtime } = fakeRuntime()
+    installChrome(host, anonymousSession(), 'https://pod.example/', runtime, everywhere)
+    expect(host.querySelector('.login')).toBeNull()
+    expect(host.querySelector('.webid')).toBeNull()
+    expect(host.querySelector('.anonymous')).toBeNull()
+  })
+
+  test('a host without a session keeps what is on show and the IRI field', () => {
+    const { runtime, dispatched } = fakeRuntime()
+    installChrome(host, anonymousSession(), undefined, runtime, everywhere)
+    expect(host.querySelector('.showing .origin')?.textContent).toBe('pod.example')
+    expect(host.querySelector('.showing .iri')?.textContent).toBe('https://pod.example/notes/a.md')
+    const form = host.querySelector<HTMLFormElement>('form.open')!
+    expect(submit(form, 'https://pod.toph.so/public/')).toBe(false)
+    expect(dispatched).toEqual([{ type: AS.View, object: 'https://pod.toph.so/public/' }])
   })
 
   test('installed after installNavigation, the chrome shows the resource navigation mounts', async () => {

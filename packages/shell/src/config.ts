@@ -7,6 +7,10 @@ import type { Rule } from '@aleph-garden/view'
 export type Config = {
   issuer?: string
   sparqlEndpoint?: string
+  /** `false` when the shell holds no session for the visitor: no login
+   *  control, every fetch anonymous, a private resource says it needs a login
+   *  and offers the source. Absent: `true`. */
+  session?: boolean
   /** What the shell opens in place: `any` every IRI, `self` the resources of
    *  its own origin, with every other link handed to the browser. Absent:
    *  `self`. */
@@ -32,6 +36,7 @@ export function readConfig(doc: Document): Config {
     const config: Config = {}
     if (node.issuer !== undefined) config.issuer = node.issuer
     if (node.sparqlEndpoint !== undefined) config.sparqlEndpoint = node.sparqlEndpoint
+    if (typeof node.session === 'boolean') config.session = node.session
     if (node.opens === 'any' || node.opens === 'self') config.opens = node.opens
     if (node.views !== undefined) config.views = node.views
     if (node.rules !== undefined) config.rules = node.rules

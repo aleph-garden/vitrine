@@ -23,7 +23,6 @@ let profileStatus: number
 const fetched: string[] = []
 /** What the stubbed global fetch saw; these carry no credentials. */
 const anonymous: string[] = []
-let realFetch: typeof globalThis.fetch
 
 class FakeSession {
   // Constructed inside createSession, so this reads whatever the test set.
@@ -61,7 +60,6 @@ beforeEach(() => {
   fetched.length = 0
   anonymous.length = 0
   sessionStorage.clear()
-  realFetch = globalThis.fetch
   globalThis.fetch = (async (input: string | URL | Request) => {
     const url = String(input)
     anonymous.push(url)
@@ -77,7 +75,9 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  globalThis.fetch = realFetch
+  // The stub stays in place: a boot leaves a popstate listener on the window,
+  // and a later test's popstate reaches the runtime it installed, which would
+  // fetch for real.
   for (const script of document.head.querySelectorAll('script[type="application/ld+json"]')) {
     script.remove()
   }
@@ -180,6 +180,14 @@ describe('boot and the host document', () => {
     await boot(document.createElement('header'), root)
     expect(root.querySelector('pre.raw')).not.toBeNull()
     expect(root.querySelector('.markdown-preview-view')).toBeNull()
+  })
+
+  test('a document with session false fetches everything without the session', async () => {
+    hostDocument({ '@type': 'Host', session: false })
+    history.replaceState(null, '', WANTED_URL)
+    await boot(document.createElement('header'), document.createElement('div'))
+    expect(anonymous).toContain(WANTED_URL)
+    expect(fetched).toHaveLength(0)
   })
 
   test('registers the whole bundle when the document names no views', async () => {

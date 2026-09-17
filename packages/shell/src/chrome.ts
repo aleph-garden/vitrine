@@ -10,8 +10,9 @@ import { issuerOf, type Session } from './main.ts'
 /** Renders into `host`: the origin and IRI of the resource on show (kept
  *  current from the runtime's instances, mirrored into document.title),
  *  the IRI field, which dispatches an as:View through the runtime, and
- *  the login control. Login goes to `issuer` when given, else asks for a
- *  WebID and resolves it through issuerOf. `credentialed` says whether the
+ *  the login control, which a session with a login has. Login goes to
+ *  `issuer` when given, else asks for a WebID and resolves it through
+ *  issuerOf. `credentialed` says whether the
  *  session reaches an origin; next to the WebID the chrome marks the resource
  *  on show anonymous while it does not. */
 export function installChrome(
@@ -29,7 +30,7 @@ export function installChrome(
   const login = loginControl(session, issuer)
   const anonymous = element('span', 'anonymous')
   anonymous.textContent = 'anonymous here'
-  host.replaceChildren(showing, openForm(runtime), login)
+  host.replaceChildren(showing, openForm(runtime), ...(login ? [login] : []))
 
   const show = () => {
     const address = addressOf(location.href)
@@ -38,7 +39,7 @@ export function installChrome(
     document.title = `${address.iri} · Aleph Garden`
     // A visitor without a session is anonymous everywhere, which the login
     // control already says.
-    if (session.webId !== undefined && !credentialed(new URL(address.iri).origin)) {
+    if (login && session.webId !== undefined && !credentialed(new URL(address.iri).origin)) {
       login.after(anonymous)
     } else {
       anonymous.remove()
@@ -64,17 +65,20 @@ function openForm(runtime: Runtime): HTMLFormElement {
   return form
 }
 
-function loginControl(session: Session, issuer: string | undefined): Element {
+/** Nothing on a host whose session has no login: the visitor stays anonymous
+ *  there and has nowhere to log in. */
+function loginControl(session: Session, issuer: string | undefined): Element | undefined {
   if (session.webId !== undefined) {
     const webId = element('span', 'webid')
     webId.textContent = session.webId
     return webId
   }
+  if (session.login === undefined) return undefined
   if (issuer !== undefined) {
     const button = element('button', 'login')
     button.type = 'button'
     button.textContent = 'Log in'
-    button.addEventListener('click', () => void session.login(issuer))
+    button.addEventListener('click', () => void session.login?.(issuer))
     return button
   }
   const form = element('form', 'login')
@@ -92,7 +96,7 @@ function loginControl(session: Session, issuer: string | undefined): Element {
 async function loginAs(form: HTMLFormElement, session: Session, webId: string): Promise<void> {
   form.querySelector('.error')?.remove()
   try {
-    await session.login(await issuerOf(session.fetch, webId))
+    await session.login?.(await issuerOf(session.fetch, webId))
   } catch (e) {
     const error = element('p', 'error')
     error.textContent = e instanceof Error ? e.message : String(e)

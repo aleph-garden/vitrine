@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { AS, type Event, isContainer, objects, typesOf } from '@aleph-garden/view'
 import type { Instance, Runtime } from '@aleph-garden/view/dom'
 import {
+  anonymousSession,
   type Fetch,
   fetchResource,
   installNavigation,
@@ -355,7 +356,11 @@ describe('installNavigation', () => {
       target: 'https://pod.example/private.md'
     })
     await new Promise((r) => setTimeout(r, 0))
-    expect(root.querySelector('.login-needed')?.textContent).toBe('This resource needs a login.')
+    const needed = root.querySelector('.login-needed')
+    expect(needed?.textContent).toBe('This resource needs a login. Open at source')
+    const link = needed?.querySelector('a')
+    expect(link?.getAttribute('href')).toBe('https://pod.example/private.md')
+    expect(link?.getAttribute('target')).toBe('_top')
   })
 
   test('a 401 under a session names the origin the session does not reach', async () => {
@@ -419,5 +424,29 @@ describe('installNavigation', () => {
     expect(link?.getAttribute('href')).toBe('https://other.example/a.md')
     expect(link?.getAttribute('target')).toBe('_top')
     expect(link?.textContent).toBe('Open at source')
+  })
+})
+
+describe('anonymousSession', () => {
+  test('has no WebID and no login', () => {
+    const session = anonymousSession()
+    expect(session.webId).toBeUndefined()
+    expect(session.login).toBeUndefined()
+  })
+
+  test('fetches without credentials', async () => {
+    const realFetch = globalThis.fetch
+    const seen: string[] = []
+    globalThis.fetch = (async (input: string | URL | Request) => {
+      seen.push(String(input))
+      return new Response('# a', { headers: { 'content-type': 'text/markdown' } })
+    }) as typeof globalThis.fetch
+    try {
+      const resource = await fetchResource(anonymousSession().fetch, 'https://pod.example/a.md')
+      expect(resource.body).toBe('# a')
+      expect(seen).toEqual(['https://pod.example/a.md'])
+    } finally {
+      globalThis.fetch = realFetch
+    }
   })
 })
