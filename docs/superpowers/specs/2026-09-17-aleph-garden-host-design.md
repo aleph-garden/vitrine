@@ -54,8 +54,10 @@ serve itself, the landing page's IRI field included.
 
 A view marks a link the browser should follow with a `target` attribute;
 the runtime turns every other click on an `http` or `https` link into an
-`as:View`, whatever its origin, and the address rule above decides the
-location. That is one rule for every view and needs no code in the view.
+`as:View`, whatever its origin. That is one rule for every view and needs
+no code in the view. The host then decides what it opens in place: on
+aleph.garden every IRI, on a pod its own resources, and a link elsewhere
+is handed to the browser. The host document says which (`opens`, below).
 
 Static files win over the fallback: `/docs/…` is served by Pages as the
 page it is, since the path names no IRI.
@@ -74,6 +76,7 @@ pod as the rule list slice 1 deferred.
 {
   "@context": "https://w3id.org/aleph/ns/view",
   "@type": "Host",
+  "opens": "any",
   "views": [
     "https://w3id.org/aleph/ns/view#Landing",
     "https://w3id.org/aleph/ns/view#Fallback"
@@ -101,6 +104,10 @@ endpoint and leaves `views` out:
   profile.
 - `sparqlEndpoint`: where the Markdown view sends `sparql` blocks. Absent
   means the blocks render as code.
+- `opens`: `"any"` when the shell opens every IRI in place, which is
+  aleph.garden's purpose; `"self"` when it opens its own origin's
+  resources and hands every other link to the browser, which is what a
+  pod's visitors expect. Absent means `"self"`.
 - `views`: the ids of the bundle's views to register, in that order.
   Absent means every view the bundle has. A hint naming a view that is
   not registered is ignored, as slice 1 fixes, so a deployment that

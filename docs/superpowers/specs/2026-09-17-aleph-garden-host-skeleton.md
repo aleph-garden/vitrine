@@ -63,6 +63,7 @@ finds it by script type and `@type` and reads the keys as they are.
 export type Config = {
   issuer?: string
   sparqlEndpoint?: string
+  opens?: 'any' | 'self'     // what the shell opens in place; absent: 'self'
   views?: string[]           // ids to register, in order; absent: all
   rules?: Rule[]             // JSON, so `iri` and `contentType` are strings here
 }
@@ -79,6 +80,7 @@ The two documents that exist:
   "@context": "https://w3id.org/aleph/ns/view",
   "@id": "https://aleph.garden/",
   "@type": "Host",
+  "opens": "any",
   "views": [
     "https://w3id.org/aleph/ns/view#Landing",
     "https://w3id.org/aleph/ns/view#Fallback"
@@ -175,8 +177,11 @@ On a pod, a link to another origin now stays inside the shell as well, as
 `https://pod.toph.so/https://…`; the pod serves the shell for that path
 like for any other.
 
-`installNavigation` keeps its signature: `pushState(a.href)`,
-`mount(root, a.iri, a.hint)`, and "same resource" is `a.iri === current.iri`.
+`installNavigation(runtime, root, opens)` takes the host document's
+`opens`. An `as:View` whose IRI is on another origin under `'self'` is
+`location.assign(url)`, and the browser takes over. Otherwise:
+`pushState(a.href)`, `mount(root, a.iri, a.hint)`, and "same resource" is
+`a.iri === current.iri`.
 
 ## Session
 
