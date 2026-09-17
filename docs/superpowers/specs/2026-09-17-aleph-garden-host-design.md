@@ -257,12 +257,29 @@ By hand:
   document of its own takes part in the same events and the same
   `resolve`. Two transports, one module: postMessage for the sandboxed
   region (stage two above), QWebChannel for the Quickshell host below.
-- A Quickshell host: layer-shell surfaces on the desktop, each a
-  WebEngineView running the shell with a host document of its own, the
-  layout as a resource in the pod, the pod's notification channel as the
-  `as:Update` source. Example: stickers on the screen, one surface per
-  emoji that arrives in the Solid inbox. Needs Quickshell built with
-  QtWebEngine; to be checked in nixpkgs first.
+- A Quickshell host, sketched: a QML module `AlephHost` reads a layout
+  resource from the pod (JSON-LD with a fixed frame, since QML reads JSON
+  and no Turtle), spawns one layer-shell surface per entry, each a
+  WebEngineView running the shell with a host document of its own, and
+  writes position and size back, debounced. Surfaces talk to the host
+  over the bridge above (QWebChannel). A hidden control surface runs the
+  shell with `views: []` and holds the one Solid-OIDC session; every
+  WebEngineView shares the profile, so every region is logged in, and the
+  host does its own pod reads and writes (layout, inbox) through that
+  surface's bridge, which grows `resolve`, `put` and `subscribe` for it.
+  The host itself never holds a token: DPoP in QML would mean crypto
+  without WebCrypto. A headless alternative is a sidecar with client
+  credentials from agenix. The pod's notification channel, subscribed
+  from the control surface, is the `as:Update` source. Example: stickers
+  on the screen, one surface per emoji that arrives in the Solid inbox.
+  Needs Quickshell built with QtWebEngine; to be checked in nixpkgs first.
+- A long-lived session in the browser shell: a client identifier document
+  at `https://aleph.garden/clientid.jsonld` in place of dynamic client
+  registration, so the client is one stable identity whose consent the
+  issuer remembers, and `offline_access` at login, so the library refreshes
+  the access token from a refresh token without a visit to the issuer.
+  DPoP proofs are per request and automatic; what expires is the access
+  token, and this is what makes that invisible.
 - The apex move for `aleph.garden` from alvin to Pages, and removing the
   vhost there. A DNS change, done when the deploy from this repository
   stands.
