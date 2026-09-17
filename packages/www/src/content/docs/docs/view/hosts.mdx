@@ -56,8 +56,8 @@ sequenceDiagram
 The fetch is a second request for the same resource. The slot that serves
 the shell is a constant document, so it cannot carry the representation
 along; a server-side host removes that round trip. The session rides on
-that fetch for three origins: the shell's own, the WebID's and the
-issuer's. Every other IRI is fetched without credentials.
+that fetch for the origins it stands on, which the credential rule under
+Foreign content lists. Every other IRI is fetched without credentials.
 
 ### Addresses
 
@@ -220,10 +220,14 @@ A policy narrows what a bug can do. The origin is the one boundary the
 browser has, and aleph.garden's origin holds the session.
 
 Credentials follow that line. The shell fetches with the session on its own
-origin, the WebID's origin and the issuer's origin, and reaches every other
-IRI without them, since a DPoP token names the visitor and their issuer to
-whoever receives it. A private resource elsewhere therefore asks for a login
-the shell cannot give it, and the region says so.
+origin, the WebID's origin, the issuer's origin, and the origins the WebID's
+profile names as `solid:oidcIssuer` and `pim:storage`, so a visitor reaches
+their own pod through aleph.garden. That profile is read once a tab. Every
+other IRI is fetched without credentials, since a DPoP token names the
+visitor and their issuer to whoever receives it. Where the session stops,
+the chrome marks the resource on show `anonymous here` next to the WebID,
+and a `401` there leaves a sentence in the region that names the host and
+offers the resource at its own origin, where the login can happen.
 
 **Across an origin, on aleph.garden.** This stage is to come. The region
 becomes a sandboxed iframe with an opaque origin. A view's `render` and
