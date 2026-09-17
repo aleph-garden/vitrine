@@ -1,12 +1,18 @@
 {
   "name": "aleph-view-workspace",
   "private": true,
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "bun test"
+    "test": "bun test",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "check": "biome check --write . && bun run typecheck && bun test"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.14",
     "@happy-dom/global-registrator": "^20.14.5",
     "@types/bun": "^1.4.2",
     "typescript": "^7.0.2"
