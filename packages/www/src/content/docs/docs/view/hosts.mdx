@@ -79,8 +79,11 @@ resolves to the resource it names. An IRI on another origin is shown at
 `<shell origin>/<iri>`. The runtime turns every click on an `http` or
 `https` link into an `as:View`, whatever origin it names, and the host maps
 that IRI to a location by the rule above: bare on the shell's own origin,
-prefixed otherwise. So a pod link inside a region on aleph.garden stays in
-the shell, at the prefixed location.
+prefixed otherwise. Which of those the host opens in place is `opens` in the
+host document below. On aleph.garden it is every IRI, so a pod link inside a
+region stays in the shell, at the prefixed location. On a pod, under the
+default, a link to another origin is the browser's and the visitor leaves the
+shell for it.
 
 Static files win over the shell: `/docs/view/` is served as the page it is,
 since the path names no IRI.
@@ -98,17 +101,19 @@ user's own rule list.
 |---|---|
 | `issuer` | the Solid-OIDC issuer the login control goes to. Absent: the chrome asks for a WebID and reads `solid:oidcIssuer` from that profile |
 | `sparqlEndpoint` | where the Markdown view sends `sparql` blocks. Absent: those blocks render as code |
+| `opens` | what the shell opens in place. `any`: every IRI, which is aleph.garden's purpose. `self`: the resources of its own origin, with every other link handed to the browser. Absent: `self` |
 | `views` | the ids of the bundle's views to register, in that order. Absent: every view the bundle has |
 | `rules` | the registry's override rules, as [Selection](/docs/view/selection/) reads them |
 
-aleph.garden's document registers two views and pins the landing view to the
-site's own IRI:
+aleph.garden's document opens every IRI, registers two views and pins the
+landing view to the site's own IRI:
 
 ```json
 {
   "@context": "https://w3id.org/aleph/ns/view",
   "@id": "https://aleph.garden/",
   "@type": "Host",
+  "opens": "any",
   "views": ["https://w3id.org/aleph/ns/view#Landing", "https://w3id.org/aleph/ns/view#Fallback"],
   "rules": [
     {
