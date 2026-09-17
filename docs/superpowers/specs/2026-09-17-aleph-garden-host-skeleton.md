@@ -249,8 +249,11 @@ export function installChrome(
   host: Element,
   session: Session,
   issuer: string | undefined,
-  runtime: Runtime
+  runtime: Runtime,
+  credentialed: (origin: string) => boolean
 ): void
+// `credentialed` says whether the session reaches an origin; the chrome
+// marks the resource on show "anonymous here" when it does not.
 ```
 
 A 401 without a session shows a sentence in the region; the login control

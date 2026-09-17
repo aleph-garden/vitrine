@@ -168,10 +168,14 @@ contracts were shaped for the crossing: `render` returns a string, events
 go in, patches come out, and `resolve` is the one call back.
 
 Credentials follow the same line. The shell fetches with the session only
-from its own origin, the WebID's origin and the issuer's origin; every
-other IRI is fetched without them, since a DPoP token names the visitor
-and their issuer to whoever receives it. A private resource elsewhere
-therefore asks for a login it cannot get; the region says so.
+from the origins the session stands on: its own, the WebID's, the
+issuer's, and those the WebID's profile names as `solid:oidcIssuer` and
+`pim:storage`. Every other IRI is fetched without them, since a DPoP token
+names the visitor and their issuer to whoever receives it. The boundary
+is the browser's own, the way a cookie goes to its site alone, so it needs
+no explanation; its state does, where it gets in the way: the chrome marks
+a resource the session does not reach as anonymous, and a 401 there says
+that the session does not apply to that origin and offers the source.
 
 aleph.garden starts with the landing view and the fallback view under the
 first stage. The fallback view escapes everything and has no `hydrate`,
