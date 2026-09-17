@@ -1,7 +1,13 @@
 import { describe, expect, test } from 'bun:test'
 import { AS, type Event, isContainer, objects, typesOf } from '@aleph-garden/view'
 import type { Instance, Runtime } from '@aleph-garden/view/dom'
-import { type Fetch, fetchResource, installNavigation, turtleParser } from '../src/main.ts'
+import {
+  type Fetch,
+  fetchResource,
+  installNavigation,
+  issuerOf,
+  turtleParser
+} from '../src/main.ts'
 
 const LDP_CONTAINS = 'http://www.w3.org/ns/ldp#contains'
 const DC_MODIFIED = 'http://purl.org/dc/terms/modified'
@@ -123,6 +129,34 @@ describe('turtleParser', () => {
   })
 })
 
+describe('issuerOf', () => {
+  const WEBID = 'https://me.example/profile/card#me'
+
+  test('reads solid:oidcIssuer from the profile document', async () => {
+    const seen: { url?: string; accept?: string } = {}
+    const profile = `@prefix solid: <http://www.w3.org/ns/solid/terms#> .
+      <${WEBID}> solid:oidcIssuer <https://issuer.example/> .`
+    const issuer = await issuerOf(
+      fetchOf(response(profile, { 'content-type': 'text/turtle' }), seen),
+      WEBID
+    )
+    expect(seen.url).toBe('https://me.example/profile/card')
+    expect(seen.accept).toBe('text/turtle')
+    expect(issuer).toBe('https://issuer.example/')
+  })
+
+  test('rejects when the profile names none', async () => {
+    await expect(
+      issuerOf(
+        fetchOf(
+          response('<#me> a <https://schema.org/Person> .', { 'content-type': 'text/turtle' })
+        ),
+        WEBID
+      )
+    ).rejects.toThrow(`no solid:oidcIssuer in ${WEBID}`)
+  })
+})
+
 describe('installNavigation', () => {
   const fakeRuntime = () => {
     const mounted: { iri: string; hint?: unknown }[] = []
@@ -163,6 +197,25 @@ describe('installNavigation', () => {
     await new Promise((r) => setTimeout(r, 0))
     expect(mounted.at(-1)).toEqual({ iri: 'https://pod.example/b.md', hint: { fragment: 'Intro' } })
     expect(location.href).toBe('https://pod.example/b.md#Intro')
+  })
+
+  test('an as:View for another origin pushes the IRI behind the shell origin', async () => {
+    const { runtime, mounted, emit } = fakeRuntime()
+    const root = document.createElement('div')
+    history.replaceState(null, '', 'https://pod.example/x')
+    await runtime.mount(root, 'https://pod.example/x')
+    installNavigation(runtime, root)
+    emit({
+      type: AS.View,
+      object: 'https://other.example/a.md',
+      target: 'https://other.example/a.md#Intro'
+    })
+    await new Promise((r) => setTimeout(r, 0))
+    expect(location.href).toBe('https://pod.example/https://other.example/a.md#Intro')
+    expect(mounted.at(-1)).toEqual({
+      iri: 'https://other.example/a.md',
+      hint: { fragment: 'Intro' }
+    })
   })
 
   test('an as:View for the same resource only replaces the hash; the runtime re-renders', async () => {

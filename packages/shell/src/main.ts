@@ -1,21 +1,27 @@
-// The browser host. Served by the pod under the IRI of whatever resource
-// was requested; owns session, fetching, navigation, and the one region.
+// The browser host. Served by a pod under the IRI of whatever resource was
+// requested, and by aleph.garden for any IRI; owns session, fetching,
+// navigation, and the one region.
 
 import {
   AS,
   containerView,
   createRenderer,
   fallbackView,
-  type Hint,
+  objects,
   type Parser,
   type Quad,
   type Resource,
-  type Term
+  type Term,
+  type View
 } from '@aleph-garden/view'
-import { createRuntime, type Runtime } from '@aleph-garden/view/dom'
+import { createRuntime, type Runtime, writeHtml } from '@aleph-garden/view/dom'
 import { markdownView } from '@aleph-garden/view-markdown'
 import { EVENTS, Session as OidcSession } from '@inrupt/solid-client-authn-browser'
 import { Parser as N3Parser } from 'n3'
+import { addressFor, addressOf } from './address.ts'
+import { installChrome } from './chrome.ts'
+import { readConfig } from './config.ts'
+import { landingView } from './landing.ts'
 
 const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'
 const LDP_CONTAINER = 'http://www.w3.org/ns/ldp#Container'
@@ -34,10 +40,11 @@ export type Session = {
   /** fetch with the Solid-OIDC token attached when logged in. */
   fetch: Fetch
   /** Redirects to the issuer; the page comes back with a session. */
-  login(): Promise<never>
+  login(issuer: string): Promise<never>
 }
 
-export async function createSession(issuer: string): Promise<Session> {
+/** Handles the incoming redirect; the issuer is login's argument. */
+export async function createSession(): Promise<Session> {
   const session = new OidcSession()
   // A restored session goes through a silent re-login that lands back on the
   // redirectUrl of the login, which is whichever resource the user was on
@@ -49,7 +56,7 @@ export async function createSession(issuer: string): Promise<Session> {
   return {
     webId: session.info.webId,
     fetch: session.fetch,
-    async login() {
+    async login(issuer) {
       await session.login({
         oidcIssuer: issuer,
         redirectUrl: location.href,
@@ -58,6 +65,19 @@ export async function createSession(issuer: string): Promise<Session> {
       return new Promise<never>(() => {})
     }
   }
+}
+
+const SOLID_OIDC_ISSUER = 'http://www.w3.org/ns/solid/terms#oidcIssuer'
+
+/** solid:oidcIssuer from the WebID's profile document. */
+export async function issuerOf(fetch: Fetch, webId: string): Promise<string> {
+  const profile = new URL(webId)
+  profile.hash = ''
+  const response = await fetch(profile.href, { headers: { accept: 'text/turtle' } })
+  const graph = parseTurtle(await response.text(), profile.href)
+  const issuer = objects(graph, webId, SOLID_OIDC_ISSUER)[0]
+  if (!issuer) throw new Error(`no solid:oidcIssuer in ${webId}`)
+  return issuer.value
 }
 
 // ------------------------------------------------------------ fetching
@@ -177,42 +197,43 @@ function plain(term: {
 
 // ---------------------------------------------------------------- boot
 
-/** Reads location, opens the session, mounts the resource into `root`,
- *  installs navigation. Shows the login control instead on a 401 without
- *  a session. */
-export async function boot(root: Element): Promise<void> {
-  const session = await createSession(new URL('/', location.href).href)
-  const { iri, hint } = split(location.href)
+/** Reads the host document and the location, opens the session, registers
+ *  the bundle's views, filtered and ordered by the document's `views`,
+ *  mounts the resource into `root`, installs navigation and the chrome.
+ *  A 401 without a session says so in the region; login is the chrome's. */
+export async function boot(chrome: Element, root: Element): Promise<void> {
+  const config = readConfig(document)
+  const session = await createSession()
+  const { iri, hint } = addressOf(location.href)
   void applySnippets(session.fetch)
 
+  const bundle: View[] = [
+    markdownView({ sparqlEndpoint: config.sparqlEndpoint, webId: session.webId ?? '' }),
+    containerView,
+    fallbackView,
+    landingView
+  ]
+  const byId = new Map(bundle.map((view) => [view.id, view]))
   const renderer = createRenderer({
     parsers: [turtleParser()],
-    views: [
-      markdownView({
-        sparqlEndpoint:
-          import.meta.env?.VITE_SPARQL_ENDPOINT ?? new URL('/sparql', location.href).href,
-        webId: session.webId ?? ''
-      }),
-      containerView,
-      fallbackView
-    ]
+    views: config.views ? config.views.flatMap((id) => byId.get(id) ?? []) : bundle,
+    rules: config.rules
   })
   const runtime = createRuntime(renderer, (target) => fetchResource(session.fetch, target))
   installNavigation(runtime, root)
+  installChrome(chrome, session, config.issuer, runtime)
 
   try {
     await runtime.mount(root, iri, hint)
   } catch (e) {
     const status = (e as { status?: number }).status
-    if (status === 401 && !session.webId) return showLogin(root, session)
+    if (status === 401 && !session.webId) {
+      writeHtml(root, '<p class="login-needed">This resource needs a login.</p>')
+      return
+    }
     const message = e instanceof Error ? e.message : String(e)
-    root.innerHTML = `<p class="error">${escapeText(message)}</p>`
+    writeHtml(root, `<p class="error">${escapeText(message)}</p>`)
   }
-}
-
-function showLogin(root: Element, session: Session): void {
-  root.innerHTML = '<div class="login"><button type="button">Log in</button></div>'
-  root.querySelector('button')?.addEventListener('click', () => void session.login())
 }
 
 // The vault's own CSS snippets, from the pod: Obsidian's appearance.json
@@ -243,36 +264,23 @@ export function installNavigation(runtime: Runtime, root: Element): void {
   runtime.listen((event) => {
     if (event.type !== AS.View || typeof event.object !== 'string') return
     const url = typeof event.target === 'string' ? event.target : event.object
-    const { iri, hint } = split(url)
-    if (current()?.iri === iri) {
-      history.replaceState(null, '', url)
+    const address = addressFor(url)
+    if (current()?.iri === address.iri) {
+      history.replaceState(null, '', address.href)
       return
     }
-    history.pushState(null, '', url)
-    void runtime.mount(root, iri, hint)
+    history.pushState(null, '', address.href)
+    void runtime.mount(root, address.iri, address.hint)
   })
 
   window.addEventListener('popstate', () => {
-    const { iri, hint } = split(location.href)
+    const { iri, hint } = addressOf(location.href)
     if (current()?.iri === iri) {
       void runtime.dispatch({ type: AS.View, object: iri, target: location.href })
     } else {
       void runtime.mount(root, iri, hint)
     }
   })
-}
-
-/** The resource IRI (no query, no fragment) and the hint a URL carries. */
-function split(href: string): { iri: string; hint: Hint | undefined } {
-  const url = new URL(href)
-  const view = url.searchParams.get('view') ?? undefined
-  const fragment = url.hash ? decodeURIComponent(url.hash.slice(1)) : undefined
-  url.search = ''
-  url.hash = ''
-  const hint: Hint = {}
-  if (view !== undefined) hint.view = view
-  if (fragment !== undefined) hint.fragment = fragment
-  return { iri: url.href, hint: view === undefined && fragment === undefined ? undefined : hint }
 }
 
 function escapeText(text: string): string {

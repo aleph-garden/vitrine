@@ -84,19 +84,10 @@ a:hover {
   text-decoration: underline;
 }
 
-.login,
+.login-needed,
 .error {
   padding: 4rem 0;
   text-align: center;
-}
-.login button {
-  background: var(--interactive-accent);
-  color: var(--text-on-accent);
-  border: 0;
-  border-radius: var(--radius-s);
-  padding: 0.6em 1.4em;
-  font: inherit;
-  cursor: pointer;
 }
 .error {
   color: var(--text-error);
@@ -274,4 +265,63 @@ a:hover {
 }
 .raw {
   white-space: pre-wrap;
+}
+
+/* The shell's chrome: what is on show, the IRI field, login. */
+#chrome {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--background-modifier-border);
+  font-size: 0.85em;
+}
+#chrome .showing {
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#chrome .origin {
+  color: var(--text-normal);
+}
+#chrome form {
+  display: flex;
+  gap: 0.4rem;
+}
+#chrome .open {
+  margin-left: auto;
+}
+#chrome input {
+  background: var(--background-modifier-form-field);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  color: var(--text-normal);
+  font: inherit;
+  padding: 0.2em 0.5em;
+}
+#chrome button {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border: 0;
+  border-radius: var(--radius-s);
+  padding: 0.3em 1em;
+  font: inherit;
+  cursor: pointer;
+}
+#chrome .error {
+  color: var(--text-error);
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+
+.landing h1 {
+  margin-top: 0;
+}
+.landing p {
+  max-width: 34em;
+}
+.landing p:last-child {
+  color: var(--text-muted);
 }

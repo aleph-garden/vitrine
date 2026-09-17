@@ -4,12 +4,24 @@
 {
   lib,
   stdenvNoCC,
+  writeText,
   bun,
   src,
-  # Where `sparql` code blocks are sent; baked into the bundle.
-  sparqlEndpoint ? "https://sparql.toph.so",
+  # The deployment's Host node: the issuer to log in at, the SPARQL endpoint,
+  # and optionally the views and rules to register. Embedded into index.html.
+  host ? {
+    issuer = "https://pod.toph.so/";
+    sparqlEndpoint = "https://sparql.toph.so";
+  },
 }: let
   version = "0.0.0";
+
+  hostDocument =
+    writeText "host.jsonld" (builtins.toJSON (host
+      // {
+        "@context" = "https://w3id.org/aleph/ns/view";
+        "@type" = "Host";
+      }));
 
   node_modules = stdenvNoCC.mkDerivation {
     pname = "aleph-view-node-modules";
@@ -38,7 +50,7 @@
 
     outputHashAlgo = "sha256";
     outputHashMode = "recursive";
-    outputHash = "sha256-X+wzNVMV9bzPVsrODYwc1QtTyqngOm5TXv7cKphYU0Y=";
+    outputHash = "sha256-xTz0m9IUcohWx6Om3m8qjQpXhXaBOulC14gfTHup5ZE=";
   };
 in
   stdenvNoCC.mkDerivation {
@@ -58,8 +70,7 @@ in
       chmod -R u+w node_modules packages
       (
         cd packages/shell
-        VITE_SPARQL_ENDPOINT=${lib.escapeShellArg sparqlEndpoint} \
-          bun --bun node_modules/vite/bin/vite.js build
+        ALEPH_HOST=${hostDocument} bun --bun node_modules/vite/bin/vite.js build
       )
     '';
 
