@@ -1,0 +1,124 @@
+---
+title: Rendering and re-render
+description: What happens between a mount and the next event, and who decides when a view is rebuilt.
+---
+
+A DOM host keeps, per view instance, its region element, the handle
+`hydrate` returned, and the set of IRIs the instance resolved. The core
+ships this bookkeeping as a runtime, so every browser host runs the same
+protocol.
+
+```ts
+type Runtime = {
+  mount(region: Element, iri: string, hint?: Hint): Promise<Instance>
+  dispatch(event: Event): Promise<void>
+  instances(): Instance[]
+  listen(listener: (event: Event) => void): () => void
+}
+
+type Instance = {
+  id: string
+  iri: string
+  hint: Hint | undefined
+  region: Element
+  dependencies: ReadonlySet<string>   // IRIs resolved during the last render
+  dispose(): void
+}
+```
+
+## Mount
+
+```mermaid
+sequenceDiagram
+  participant Host
+  participant Runtime
+  participant Renderer
+  participant View
+  Host->>Runtime: mount(region, iri, hint)
+  Runtime->>Runtime: dispose the instance that held region
+  Runtime->>Host: resolve(iri)
+  Host-->>Runtime: Resource
+  Runtime->>Renderer: render(resource, ctx, hint)
+  Renderer->>Renderer: parse, select
+  Renderer->>View: render(resource, ctx, hint)
+  View->>Runtime: ctx.resolve(other)   (recorded as a dependency)
+  View-->>Renderer: Rendered
+  Renderer-->>Runtime: Rendered
+  Runtime->>Runtime: region.innerHTML = html
+  Runtime->>View: hydrate(region, ctx)
+  View-->>Runtime: Handle
+  Runtime-->>Host: Instance
+```
+
+`mount` rejects when `resolve` rejects, so the host can act on a `401`.
+
+## Two paths to a re-render
+
+An instance is on one of two paths, decided by whether its handle has
+`update`. There is no mixed case.
+
+**Host-driven.** The `Context` given to a view instance records every IRI
+that instance resolves. The host re-renders the instance whenever one of its
+inputs changes: an `as:Update` naming a resolved IRI or the instance's own,
+or an `as:View` on the same resource with a different view or fragment.
+
+```mermaid
+sequenceDiagram
+  participant Bus as dispatch
+  participant Runtime
+  participant View
+  Bus->>Runtime: as:Update { object: X }
+  alt X is the instance's IRI or a dependency
+    Runtime->>View: dispose previous handle
+    Runtime->>Runtime: resolve(iri) again, render, replace region, hydrate
+  else
+    Runtime->>Runtime: nothing
+  end
+```
+
+**Self-managed.** A handle with `update` receives every event and answers
+with a `Patch` or with nothing. The host does not re-render such an instance
+on its own; the instance decides.
+
+```mermaid
+sequenceDiagram
+  participant Bus as dispatch
+  participant Runtime
+  participant Handle
+  Bus->>Runtime: any event
+  Runtime->>Handle: update(event)
+  alt returns { slot, html }
+    Runtime->>Runtime: region.querySelector('[data-slot=slot]').innerHTML = html
+  else returns { html }
+    Runtime->>Runtime: region.innerHTML = html
+  else returns nothing
+    Runtime->>Runtime: nothing
+  end
+```
+
+## Every event takes the same path
+
+`dispatch` hands an event to the host's listeners first, then to every
+instance. A click in one view, a reload control, a fragment change, and
+later a server notification all arrive as events and go through the same
+two paths above.
+
+```mermaid
+flowchart LR
+  L[link click in a region] --> E[as:View]
+  C[reload control] --> U[as:Update]
+  N[server notification] --> U
+  V[view emits] --> A[any type]
+  E & U & A --> D[dispatch]
+  D --> LS[host listeners]
+  D --> I1[instance 1]
+  D --> I2[instance 2]
+```
+
+Inside a region, the runtime turns a click on a same-origin link into an
+`as:View` with the link's IRI as `object` and the full URL as `target`. A
+view with other link semantics stops the click in its own `hydrate`.
+
+Navigation to another resource is the host's business: it sees the
+`as:View` through `listen` and calls `mount`. `dispatch` never replaces an
+instance with a different resource.

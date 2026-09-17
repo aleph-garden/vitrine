@@ -1,0 +1,28 @@
+name: Deploy aleph.garden
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      # No frozen lockfile: the platform binding rolldown needs on the runner
+      # is an optional dependency bun resolves at install time.
+      - run: bun install
+      - run: bun run check
+      - run: bun run --cwd packages/www check
+      - run: bun run build:site
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy packages/www/dist --project-name=aleph-garden --branch=main

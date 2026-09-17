@@ -1,0 +1,6 @@
+# Cloudflare Pages project for aleph.garden. The project name must match the
+# one created in Cloudflare (`wrangler pages project create aleph-garden
+# --production-branch=main`). Output lives in dist/.
+name = "aleph-garden"
+compatibility_date = "2026-09-01"
+pages_build_output_dir = "dist"

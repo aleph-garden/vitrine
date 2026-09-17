@@ -1,0 +1,12 @@
+{
+  "@context": "https://w3id.org/aleph/ns/view",
+  "@id": "https://aleph.garden/",
+  "@type": "Host",
+  "views": ["https://w3id.org/aleph/ns/view#Landing", "https://w3id.org/aleph/ns/view#Fallback"],
+  "rules": [
+    {
+      "view": "https://w3id.org/aleph/ns/view#Landing",
+      "when": [{ "iri": "https://aleph.garden/" }]
+    }
+  ]
+}

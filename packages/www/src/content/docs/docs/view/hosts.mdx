@@ -1,0 +1,78 @@
+---
+title: Hosts
+description: What a host owes the library, and the three hosts the contract is cut for.
+---
+
+A host implements `resolve`, owns session, navigation, and layout, and calls
+the runtime. Views know nothing about which host runs them.
+
+```mermaid
+flowchart TB
+  subgraph lib [library]
+    R[renderer]
+    RT[DOM runtime]
+    V1[Markdown view]
+    V2[container view]
+    V3[fallback view]
+  end
+  B[browser shell<br/>resolve = fetch with session] --> RT
+  S[server-side converter<br/>resolve = the server's own store] -.-> R
+  W[WASM view adapter<br/>resolve as an async import] -.-> V1
+  RT --> R
+  R --> V1 & V2 & V3
+```
+
+Solid lines exist today; dotted ones are the adapters the contract is cut
+for.
+
+## The browser shell
+
+A single HTML page with one bundle. A Community Solid Server serves it as
+the `text/html` representation of every resource, including on a `401`, so
+the page loads at the resource's own URL and the address bar is the
+resource.
+
+```mermaid
+sequenceDiagram
+  participant P as person
+  participant Sh as shell
+  participant CSS as pod
+  P->>CSS: GET /notes/a.md (Accept: text/html)
+  CSS-->>P: 200 or 401, body = the shell
+  Sh->>Sh: restore Solid-OIDC session
+  Sh->>CSS: GET /notes/a.md (Accept: text/markdown, text/turtle, …)
+  alt 401 and no session
+    Sh->>P: log-in control
+    P->>CSS: Solid-OIDC login, redirect back
+  else 200
+    CSS-->>Sh: representation + headers
+    Sh->>Sh: Resource from body, Content-Type, Link rel=type, Last-Modified, WAC-Allow
+    Sh->>Sh: runtime.mount(root, iri, hint)
+  end
+```
+
+The fetch is a second request for the same resource. The slot that serves
+the shell is a constant document, so it cannot carry the representation
+along; a server-side host removes that round trip.
+
+### Navigation
+
+The shell listens for `as:View`. Another resource is a fresh `mount` into
+the region; the same resource with a new fragment is a `dispatch` and no
+refetch. The address follows either, and `popstate` runs the same two
+branches in reverse. A `view` query parameter on the URL becomes
+`hint.view`, the hash becomes `hint.fragment`.
+
+## Server-side host
+
+A representation converter inside the pod server calling the same
+renderer. `Rendered.html` is all it needs. It can embed the representation
+in the document it serves, so a shell hydrates without a second request.
+
+## WASM views
+
+A view implemented as a WebAssembly component: `resolve` as an async
+import, `render` as an export, wrapped by an adapter that implements `View`.
+Interactivity through an event stream in and patches out, which is what
+`Handle.update` already is. Nothing in `Resource` has a prototype, which is
+what lets it cross that boundary as data.
