@@ -63,6 +63,7 @@ finds it by script type and `@type` and reads the keys as they are.
 export type Config = {
   issuer?: string
   sparqlEndpoint?: string
+  session?: boolean          // false: no session, no login control; absent: true
   opens?: 'any' | 'self'     // what the shell opens in place; absent: 'self'
   views?: string[]           // ids to register, in order; absent: all
   rules?: Rule[]             // JSON, so `iri` and `contentType` are strings here
@@ -80,6 +81,7 @@ The two documents that exist:
   "@context": "https://w3id.org/aleph/ns/view",
   "@id": "https://aleph.garden/",
   "@type": "Host",
+  "session": false,
   "opens": "any",
   "views": [
     "https://w3id.org/aleph/ns/view#Landing",
@@ -202,12 +204,16 @@ login-needed sentence, anything else the error with a link to the source.
 export type Session = {
   webId: string | undefined
   fetch: Fetch
-  /** Redirects to the issuer; the page comes back with a session. */
-  login(issuer: string): Promise<never>
+  /** Redirects to the issuer; the page comes back with a session. Absent
+   *  on a host without a session: the chrome then shows no login. */
+  login?(issuer: string): Promise<never>
 }
 
 /** Handles the incoming redirect; the issuer is login's argument now. */
 export async function createSession(): Promise<Session>
+/** The session of a host document with `session: false`: no WebID, bare
+ *  fetch, no login. */
+export function anonymousSession(): Session
 
 /** solid:oidcIssuer from the WebID's profile document. */
 export async function issuerOf(fetch: Fetch, webId: string): Promise<string>

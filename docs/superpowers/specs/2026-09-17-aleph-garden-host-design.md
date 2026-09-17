@@ -76,6 +76,7 @@ pod as the rule list slice 1 deferred.
 {
   "@context": "https://w3id.org/aleph/ns/view",
   "@type": "Host",
+  "session": false,
   "opens": "any",
   "views": [
     "https://w3id.org/aleph/ns/view#Landing",
@@ -100,11 +101,16 @@ endpoint and leaves `views` out:
 }
 ```
 
-- `issuer`: the Solid-OIDC issuer to log in at. Absent on aleph.garden;
-  the shell then asks for a WebID and reads `solid:oidcIssuer` from the
+- `issuer`: the Solid-OIDC issuer to log in at. Absent with a session
+  means the shell asks for a WebID and reads `solid:oidcIssuer` from the
   profile.
 - `sparqlEndpoint`: where the Markdown view sends `sparql` blocks. Absent
   means the blocks render as code.
+- `session`: `false` when the shell holds no session for the visitor: no
+  login control, every fetch anonymous, a private resource says it needs
+  a login and offers the source. Absent means `true`. aleph.garden runs
+  without a session until the sandboxed region stands (see "Deferred"),
+  so no token of a visitor's exists there to reach any origin.
 - `opens`: `"any"` when the shell opens every IRI in place, which is
   aleph.garden's purpose; `"self"` when it opens its own origin's
   resources and hands every other link to the browser, which is what a
@@ -231,9 +237,9 @@ Unit:
 By hand:
 
 - `https://aleph.garden/` greets; `https://aleph.garden/https://pod.toph.so/public/`
-  lists the container through the container view without a session, with
-  `pod.toph.so` named in the chrome; a private note there
-  asks for a WebID, logs in at the pod, and shows its text
+  lists the container through the container view, with `pod.toph.so`
+  named in the chrome; a private note there says it needs a login and
+  offers the source, since aleph.garden holds no session
 - `https://pod.toph.so/notes/…` behaves as in slice 1
 - `https://aleph.garden/docs/view/` is the docs page
 
@@ -303,6 +309,9 @@ By hand:
   the access token from a refresh token without a visit to the issuer.
   DPoP proofs are per request and automatic; what expires is the access
   token, and this is what makes that invisible.
+- A session on aleph.garden. The WebID path is in the shell and the host
+  document keeps it off; it turns on with the sandboxed region, when a
+  visitor's token beside foreign content is contained.
 - The landing page on any origin. The rule names `https://aleph.garden/`
   by exact match, so a preview deploy or the dev server shows the shell
   document through the fallback view at `/`. A condition for "the shell's
