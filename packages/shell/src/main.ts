@@ -14,7 +14,7 @@ import {
 } from '@aleph-garden/view'
 import { createRuntime, type Runtime } from '@aleph-garden/view/dom'
 import { markdownView } from '@aleph-garden/view-markdown'
-import { Session as OidcSession } from '@inrupt/solid-client-authn-browser'
+import { EVENTS, Session as OidcSession } from '@inrupt/solid-client-authn-browser'
 import { Parser as N3Parser } from 'n3'
 
 const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'
@@ -39,6 +39,12 @@ export type Session = {
 
 export async function createSession(issuer: string): Promise<Session> {
   const session = new OidcSession()
+  // A restored session goes through a silent re-login that lands back on the
+  // redirectUrl of the login, which is whichever resource the user was on
+  // then. The URL wanted now comes back with this event; the app has to put
+  // it in the address itself. Emitted inside handleIncomingRedirect, so the
+  // address is right once the await below resolves.
+  session.events.on(EVENTS.SESSION_RESTORED, (url) => history.replaceState(null, '', url))
   await session.handleIncomingRedirect({ restorePreviousSession: true, url: location.href })
   return {
     webId: session.info.webId,
@@ -175,8 +181,8 @@ function plain(term: {
  *  installs navigation. Shows the login control instead on a 401 without
  *  a session. */
 export async function boot(root: Element): Promise<void> {
-  const { iri, hint } = split(location.href)
   const session = await createSession(new URL('/', location.href).href)
+  const { iri, hint } = split(location.href)
   void applySnippets(session.fetch)
 
   const renderer = createRenderer({
