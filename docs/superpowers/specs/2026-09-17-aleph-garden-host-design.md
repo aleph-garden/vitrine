@@ -53,8 +53,9 @@ aleph.garden it is the prefixed form for everything the site does not
 serve itself, the landing page's IRI field included.
 
 A view marks a link the browser should follow with a `target` attribute;
-the runtime turns every other same-origin click into an `as:View`. That
-is one rule for every view and needs no code in the view.
+the runtime turns every other click on an `http` or `https` link into an
+`as:View`, whatever its origin, and the address rule above decides the
+location. That is one rule for every view and needs no code in the view.
 
 Static files win over the fallback: `/docs/…` is served by Pages as the
 page it is, since the path names no IRI.

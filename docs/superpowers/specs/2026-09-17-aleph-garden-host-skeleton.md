@@ -20,7 +20,10 @@ export type Condition =
 
 The runtime's link rule becomes the one every view uses: an anchor with
 a `target` or `download` attribute, or a click with a modifier key, is
-the browser's; every other same-origin click is an `as:View`.
+the browser's; every other click on an `http` or `https` link is an
+`as:View`, whatever the link's origin. The host's address rule decides
+the location, so a pod link inside a region on aleph.garden stays in the
+shell.
 
 ```ts
 // packages/view/src/dom.ts, unchanged signature
