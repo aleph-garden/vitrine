@@ -30,6 +30,7 @@ In scope for the library:
 - parsing a body into quads, by content type
 - selecting a view, by rule and by user hint
 - rendering, hydration, and the re-render protocol
+- the instance bookkeeping a DOM host needs: region, handle, dependencies
 
 In scope for slice 1:
 
@@ -44,7 +45,7 @@ search, layout. Those belong to a host.
 
 Out of slice 1, with the door held open (see "Deferred"): server-side
 rendering, WASM views, Fresnel, Bases, server notifications, multi-region
-layout.
+layout, a graph for Markdown resources.
 
 ## The pipeline
 
@@ -65,7 +66,7 @@ type Resource = {
   contentType: string;
   body: string | Uint8Array;
   graph?: Quad[];   // filled by a parser when the body carries RDF
-  meta: Quad[];     // statements about the resource itself
+  meta: Quad[];     // statements the server makes about the resource
   allow: Mode[];    // "read" | "write" | "append" | "control"
 };
 
@@ -75,8 +76,9 @@ type Quad = {
 type Term = {
   termType: "NamedNode" | "BlankNode" | "Literal";
   value: string;
-  language?: string;
-  datatype?: string;
+  datatype?: string;    // every Literal has one
+  language?: string;    // present iff datatype is rdf:langString
+  direction?: "ltr" | "rtl";   // RDF 1.2 base direction, with language
 };
 ```
 
@@ -85,10 +87,16 @@ objects, no methods, no store. A view that wants a store loads them into
 one. This is the constraint that keeps a WASM view possible: everything
 in `Resource` crosses an ABI boundary as data.
 
-`meta` holds what the server says about the resource: `rdf:type
-ldp:Container`, `ldp:contains`, `dcterms:modified`, the content type as a
-statement. A browser host derives it from response headers and, for a
-container, from the body. A server-side host has it in hand.
+`meta` holds what the server asserts about the resource for every
+requester: `rdf:type ldp:Container`, `ldp:contains`, `dcterms:modified`,
+the content type as a statement. A browser host derives it from response
+headers and, for a container, from the body. A server-side host has it in
+hand.
+
+`allow` stays outside `meta` because it is a fact about this request,
+never about the resource: the same resource answers a different
+`WAC-Allow` to every agent. Putting it in `meta` would let a cached
+`Resource` carry one agent's permissions to another.
 
 ### Context
 
@@ -98,32 +106,52 @@ type Context = {
   emit(event: Event): void;
   events: AsyncIterable<Event>;
 };
-
-type Event = {
-  type: string;        // "navigate" | "changed" | "select" | view-defined
-  iri?: string;
-  source?: string;     // id of the emitting view instance
-  data?: unknown;
-};
 ```
 
 `resolve` is the only way a view reaches anything beyond the resource it
-was handed. The host implements it; a view never fetches. A SPARQL query
-is a GET on an endpoint IRI with the query in the query string, so it
-goes through `resolve` like everything else.
+was handed. The host implements it; a view never fetches.
 
-Events carry meaning, never DOM detail. A view emits `select`, not
+A SPARQL query is a GET on an endpoint IRI with the query in the query
+string, so it goes through `resolve` like everything else. Whether the
+host answers that IRI over the network or from a store it holds in
+memory is the host's business. A host that keeps one Oxigraph for the
+whole page provides SPARQL to every view once, by answering its own
+endpoint IRI inside `resolve`.
+
+### Event
+
+An event is an ActivityStreams 2.0 activity as a plain object: the same
+shape the pod's notification channels emit, so a server notification
+enters the bus without translation.
+
+```ts
+type Event = {
+  type: string;        // an IRI; AS2 types where one fits
+  object?: string;     // the IRI the activity is about
+  actor?: string;      // the view instance that emitted it
+  target?: string;
+  [key: string]: unknown;
+};
+```
+
+Types in slice 1: `as:Update` (a resource changed), `as:View` (navigate
+to a resource), and `aleph:Select` (a view marked a resource; AS2 has no
+type for it). A view may emit further types under its own namespace. An
+event can be serialized as JSON-LD under the AS2 context with no
+transformation.
+
+Events carry meaning, never DOM detail. A view emits `aleph:Select`, not
 `click`.
 
 ### View
 
 ```ts
 type View = {
-  id: string;
+  id: string;          // an IRI
   render(resource: Resource, ctx: Context, hint?: Hint): Promise<Rendered>;
 };
 
-type Hint = { view?: string };
+type Hint = { view?: string };   // a View id
 
 type Rendered = {
   html: string;
@@ -135,11 +163,31 @@ type Handle = {
   dispose?(): void;
 };
 
-type Patch = { html: string };   // replaces the view's region
+type Patch = {
+  slot?: string;   // a data-slot value inside the view's region
+  html: string;    // replaces that slot, or the whole region when absent
+};
 ```
 
 `render` produces a string, so a view needs no DOM to exist. `hydrate` is
 where a view attaches behavior after the host has placed the HTML.
+
+A view that wants partial updates marks elements in its own HTML with
+`data-slot` and patches by name. The host resolves the slot inside the
+instance's region and replaces that element's content.
+
+### Hint
+
+The host sets the hint; a view never does. Three sources feed it:
+
+- a control in the shell, where the user picks a view for the current
+  resource
+- a `view` query parameter on the resource URL, so a link can carry a
+  choice
+- an `as:View` event whose emitter names a view for the target
+
+A hint naming a view that is not registered is ignored and the rules
+decide.
 
 ### Parser
 
@@ -151,24 +199,45 @@ type Parser = {
 ```
 
 Runs before selection so that selection can look at `rdf:type`. Slice 1
-ships an MD-LD parser (Markdown with `{..}` annotations, the format the
-vault notes use) and a Turtle parser.
+ships a Turtle parser. Markdown gets no parser in slice 1: its graph is
+`undefined` and selection reaches it by content type. Which annotation
+format a note's graph comes from is open (see "Rejected" on MD-LD).
 
 ### Selection
 
 ```ts
 type Rule = {
-  view: string;
-  contentType?: string | RegExp;
-  container?: boolean;
-  rdfType?: string;
+  view: string;         // a View id
+  when: Condition[];    // every condition must hold
 };
+
+type Condition =
+  | { contentType: string | RegExp }
+  | { container: boolean }
+  | { type: string }
+  | { ask: string };
 ```
 
-Rules are an ordered list. The first rule whose every stated condition
-holds selects its view. `hint.view` overrides the rules when that view
-exists. A rule stating nothing matches everything, which is how the
-fallback view is registered last.
+Rules are an ordered list. Selection walks it and picks the first rule
+whose every condition holds. `hint.view` overrides the rules when that
+view exists. A rule with an empty `when` matches everything, which is
+how the fallback view is registered last.
+
+What each condition means:
+
+- `contentType`: the resource's media type, parameters stripped, equals
+  the string or matches the regular expression.
+- `container`: `true` holds when `meta` contains `<iri> rdf:type
+  ldp:Container`; `false` holds when it does not.
+- `type`: `graph` contains `<iri> rdf:type <type>`. Never holds when
+  `graph` is absent.
+- `ask`: a SPARQL ASK query evaluated over `graph` and `meta` together.
+  This is the condition a Fresnel lens with an instance domain becomes,
+  where the lens applies to resources of a certain shape, whatever their
+  class. The core cannot evaluate it, since it has no RDF
+  engine; a host registers an evaluator for it the way it registers
+  parsers, and a rule that uses `ask` on a host without one never holds.
+  Deferred.
 
 Order is explicit and nothing else decides. This replaces SolidOS's
 "first pane whose `label()` returns non-null", where registration order
@@ -177,14 +246,22 @@ is behavior nobody wrote down.
 The rule list is code in slice 1. Its shape is plain data so that it can
 become a pod resource the user edits, later.
 
+### Instances
+
+A DOM host keeps, per view instance: its region element, the handle
+`hydrate` returned, and the set of IRIs the instance resolved. The core
+ships this bookkeeping as a DOM module, so that every browser host runs
+the same re-render protocol. The shell in slice 1 has one region and
+already uses it; a multi-region layout adds regions and nothing else.
+
 ### Re-render
 
 Two paths, and the first needs no code in the view.
 
 **Dependency tracking.** The `Context` given to a view instance records
-every IRI that instance resolves. When a `changed` event names one of
-them, the host calls `render` again, replaces the region, and calls
-`hydrate` again.
+every IRI that instance resolves. When an `as:Update` names one of them,
+the host calls `render` again, replaces the region, and calls `hydrate`
+again.
 
 **Self-managed.** A `Handle` with `update` receives every event and
 answers with a `Patch` or with nothing. The host does not re-render such
@@ -226,16 +303,32 @@ Rendered:
 - `sparql` code blocks are executed through `resolve` against an
   endpoint IRI the view is configured with, and the result table is
   rendered. Slice 1 supports SELECT; other forms render the raw result.
-- MD-LD `{..}` annotations become the same `◈` markers the VitePress
-  plugin uses, with the produced triples on hover.
 
 The emitted DOM uses Obsidian's class names (`markdown-preview-view`,
 `internal-link`, `tag`, `callout`, `task-list-item`, `metadata-container`
 and so on) and the shell defines Obsidian's CSS custom properties with
 defaults. The vault's own `noctalia.css` snippet then applies unchanged.
 
-Engine: markdown-it. The MD-LD parser and the VitePress plugin are built
-on it, so one engine carries both the graph and the HTML.
+Engine: markdown-it. Synchronous, one plugin per syntax, and the choice
+is local to this view; swapping it touches no contract.
+
+**Wikilink index.** Obsidian resolves `[[Name]]` by basename across the
+whole vault, so the view needs a map from basename to IRI. This is the
+view's concern, built through `resolve`, and the shell knows nothing of
+it.
+
+Where to look comes from the pod, in the Solid way: the WebID's
+`solid:privateTypeIndex` lists `solid:TypeRegistration`s, and the ones
+whose `solid:forClass` is the note class name their
+`solid:instanceContainer`s. The view walks those containers through
+`ldp:contains`, recursively, and maps each `.md` basename to its IRI.
+No configured roots exist. Slice 1 registers `schema:NoteDigitalDocument`
+for the containers that hold notes.
+
+When: on the first render that contains a wikilink, once per page
+lifetime, held in the view module's memory. An `as:Update` naming an
+indexed container drops it. Frontmatter aliases are deferred, since they
+need one request per note.
 
 ### Container
 
@@ -263,7 +356,8 @@ own URL, and the address bar is the resource.
 
 Boot:
 
-1. The IRI is `location.href` without fragment.
+1. The IRI is `location.href` without fragment; a `view` query parameter
+   becomes the hint.
 2. Session through Solid-OIDC against the pod's own issuer, with dynamic
    client registration. No session and a `401` show a login button and
    nothing else.
@@ -273,20 +367,18 @@ Boot:
    `Link rel="type"`, `Last-Modified`, `WAC-Allow`).
 4. Run the pipeline into the single region.
 
+The fetch in step 3 is a second request for the same resource. The slot
+that serves the shell is a constant document, so it cannot carry the
+representation along. The server-side host removes the round trip (see
+"Deferred"); a private resource needs the fetch after login either way.
+
 Navigation: the shell intercepts clicks on same-origin links, pushes
-history, emits `navigate`, and renders the target. Views do not handle
+history, emits `as:View`, and renders the target. Views do not handle
 link clicks.
 
-Wikilink index: built on first need by walking a configured list of
-containers through `resolve` (`ldp:contains`, recursively), mapping each
-`.md` basename to its IRI. Default roots are `/notes/` and `/weltbild/`.
-Kept in memory and in `sessionStorage`; a `changed` event on an indexed
-container drops it. Frontmatter aliases are deferred, since they need one
-request per note.
-
-Re-render: the shell wraps `Context` with dependency tracking and runs
-the protocol above. A reload control emits `changed` for the current
-IRI; that is the only event source in slice 1.
+Re-render: the shell uses the core's instance bookkeeping and runs the
+protocol above. A reload control emits `as:Update` for the current IRI;
+that is the only event source in slice 1.
 
 ## Delivery on pod.toph.so
 
@@ -310,8 +402,8 @@ view's dependencies never reach the core:
 
 | Package | Holds |
 |---|---|
-| `@aleph-garden/view` | contracts, pipeline, selection, tracking context |
-| `@aleph-garden/view-markdown` | the Markdown view and the MD-LD parser |
+| `@aleph-garden/view` | contracts, pipeline, selection, instance bookkeeping |
+| `@aleph-garden/view-markdown` | the Markdown view |
 | `@aleph-garden/shell` | the browser host |
 
 TypeScript, bun workspaces, `bun test`, vite for the shell bundle. No UI
@@ -321,14 +413,15 @@ framework anywhere; a view that wants one uses it inside `hydrate`.
 
 Unit, in the repository:
 
-- selection picks by order, honors `hint`, falls through to the last
-  rule
-- the tracking context re-renders on `changed` for a resolved IRI and
-  leaves a handle with `update` alone
+- selection picks by order, evaluates each condition as defined above,
+  honors `hint`, falls through to the last rule
+- the instance bookkeeping re-renders on `as:Update` for a resolved IRI,
+  leaves a handle with `update` alone, and applies a slot patch to the
+  named element only
 - the Markdown view renders fixture notes copied from the vault, one per
   feature above, to the expected DOM
-- the MD-LD parser yields the same quads for a fixture as
-  `obsidian-pod-sparql` indexes for it
+- the wikilink index is built from a fixture type index and two fixture
+  containers, and resolves all four link forms
 
 Against `pod.toph.so`, by hand, after deployment:
 
@@ -348,9 +441,14 @@ Against `pod.toph.so`, by hand, after deployment:
 - **Perlite, Quartz, the Digital Garden plugin.** Each is a second reader
   of the same bytes with its own access model, beside a pod whose
   contents are 99.96 % private and whose one enforcement point is WAC.
+- **MD-LD as the note annotation format.** `mdld-parse` ships without a
+  license, so nothing here may depend on it. The 28 `{..}` annotations
+  in the vault render as the text they are.
 - **A store in the API.** SolidOS panes read from a shared rdflib store,
   which binds every pane to rdflib and to the browser. `resolve` is the
   whole surface.
+- **Configured index roots.** The type index already says where notes
+  live.
 - **Implicit selection.** See "Selection".
 - **A framework in the core.** It would decide for every view.
 - **A model that covers every case up front.** See "Purpose".
@@ -361,15 +459,21 @@ Each of these is an addition under the contracts above and changes none
 of them:
 
 - **Server-side host.** A CSS representation converter calling the same
-  pipeline; `Rendered.html` is all it needs.
+  pipeline. It embeds the representation in the document it serves, so
+  the shell hydrates without a second request.
 - **WASM views.** A WIT world with `resolve` as an async import and
   `render` as an export, transpiled by jco, wrapped by an adapter that
   implements `View`. Interactivity through an event stream in and patches
   out, which is what `Handle.update` already is.
-- **Server notifications** as a `changed` source. The pod already serves
-  the notification channels; this is a subscription in the shell.
-- **Fresnel view**, selecting by `rdfType`, reading lenses through
+- **Server notifications** as an `as:Update` source. The pod already
+  serves the notification channels and they speak AS2; this is a
+  subscription in the shell.
+- **`ask` conditions**, with an evaluator the host registers. The
+  Fresnel path.
+- **Fresnel view**, selecting by `type` or `ask`, reading lenses through
   `resolve`.
+- **A graph for Markdown resources**, once an annotation format with a
+  license is chosen. Frontmatter to RDF is the candidate.
 - **Bases and `.rq` resources** as query views.
 - **Multi-region layout**, where inter-view events start to matter.
 - **Rule list as a pod resource.**
