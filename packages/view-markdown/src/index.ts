@@ -1,6 +1,7 @@
 // Obsidian-flavored Markdown as a View.
 
 import type { Context, View } from '@aleph-garden/view'
+import { parse as parseYaml } from 'yaml'
 
 export type MarkdownOptions = {
   /** Where `sparql` code blocks are sent: an endpoint IRI the host's
@@ -47,12 +48,34 @@ export type Wikilink = {
   embed: boolean
 }
 
+const WIKILINK = /^(!?)\[\[([^\]|#]+)(?:#(\^?)([^\]|]*))?(?:\|([^\]]*))?\]\]$/
+
 export function parseWikilink(source: string): Wikilink | undefined {
-  throw new Error('unimplemented')
+  const m = WIKILINK.exec(source)
+  if (!m) return undefined
+  const [, bang, name, caret, anchor, alias] = m
+  const link: Wikilink = { name: name!.trim(), embed: bang === '!' }
+  if (anchor) {
+    if (caret) link.block = anchor
+    else link.heading = anchor
+  }
+  if (alias !== undefined) link.alias = alias
+  return link
 }
 
 export type Frontmatter = Record<string, unknown>
 
+const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/
+
 export function splitFrontmatter(markdown: string): { frontmatter: Frontmatter; body: string } {
-  throw new Error('unimplemented')
+  const m = FRONTMATTER.exec(markdown)
+  if (!m) return { frontmatter: {}, body: markdown }
+  const body = markdown.slice(m[0].length)
+  try {
+    const parsed: unknown = parseYaml(m[1]!)
+    const frontmatter = parsed && typeof parsed === 'object' ? (parsed as Frontmatter) : {}
+    return { frontmatter, body }
+  } catch {
+    return { frontmatter: {}, body }
+  }
 }
