@@ -73,10 +73,18 @@ export function linkEvents(region: Element, emit: (event: Event) => void): () =>
 // wrappers and leaves the TeX as visible text). `data-*` is allowed by
 // DOMPurify's default and must stay allowed, since `data-slot` is the patch
 // protocol.
+//
+// `TRUSTED_TYPES_POLICY: null` keeps DOMPurify from creating a Trusted Types
+// policy of its own, named `dompurify`, which a CSP that admits `aleph` alone
+// refuses with a console warning and a violation report. The `aleph` policy is
+// the one producer of TrustedHTML here and calls this sanitizer, so DOMPurify
+// itself needs none; passing the `aleph` policy back to it instead would be
+// circular and DOMPurify rejects that.
 const ALLOWLIST = {
   USE_PROFILES: { html: true, svg: true, svgFilters: true, mathMl: true },
   ADD_ATTR: ['target', 'download'],
-  ADD_TAGS: ['semantics', 'annotation']
+  ADD_TAGS: ['semantics', 'annotation'],
+  TRUSTED_TYPES_POLICY: null
 } satisfies Config
 
 // The slice of the Trusted Types API the runtime uses. `createHTML` answers a
@@ -90,7 +98,7 @@ let policyResolved = false
 
 /** The one `aleph` policy, created on the first write. On a page whose
  *  `require-trusted-types-for 'script'` CSP omits the policy name,
- *  `createPolicy` fails and the write then fails too; on a page without
+ *  `createPolicy` fails and the write then fails too. On a page without
  *  Trusted Types the write uses the sanitized string directly. */
 function trustedPolicy(): HtmlPolicy | undefined {
   if (policyResolved) return policy
