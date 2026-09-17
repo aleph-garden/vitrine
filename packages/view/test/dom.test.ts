@@ -229,7 +229,7 @@ describe('createRuntime', () => {
     const emitter: View = {
       id: 'urn:e',
       when: [{ contentType: 'text/markdown' }],
-      render: async (r, ctx) => ({
+      render: async (r) => ({
         html: '',
         hydrate: (_root, c) => {
           if (r.iri === 'a') c.emit({ type: 'urn:ping', object: 'a' })

@@ -240,7 +240,7 @@ function graphHtml(graph: Quad[]): string {
     const key = quad.subject.value
     bySubject.set(key, [...(bySubject.get(key) ?? []), quad])
   }
-  const groups = [...bySubject.entries()].map(([subject, quads]) => {
+  const groups = [...bySubject.entries()].map(([, quads]) => {
     const rows = quads
       .map((q) => `<tr><td>${termHtml(q.predicate)}</td><td>${termHtml(q.object)}</td></tr>`)
       .join('')
