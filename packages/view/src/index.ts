@@ -55,6 +55,19 @@ export type Context = {
   events: AsyncIterable<Event>;
 };
 
+// ----------------------------------------------------------- selection
+
+export type Condition =
+  | { contentType: string | RegExp }
+  | { container: boolean }
+  | { type: string }
+  | { ask: string };
+
+export type Rule = {
+  view: string;
+  when: Condition[];
+};
+
 // ---------------------------------------------------------------- view
 
 export type Hint = {
@@ -79,6 +92,8 @@ export type Rendered = {
 
 export type View = {
   id: string;
+  /** Where this view applies by default; a registry rule overrides. */
+  when?: Condition[];
   render(resource: Resource, ctx: Context, hint?: Hint): Promise<Rendered>;
 };
 
@@ -89,37 +104,26 @@ export type Parser = {
   parse(resource: Resource): Promise<Quad[]>;
 };
 
-// ----------------------------------------------------------- selection
-
-export type Condition =
-  | { contentType: string | RegExp }
-  | { container: boolean }
-  | { type: string }
-  | { ask: string };
-
-export type Rule = {
-  view: string;
-  when: Condition[];
-};
-
-// ------------------------------------------------------------ pipeline
+// ------------------------------------------------------------ renderer
 
 export type Registry = {
   parsers: Parser[];
   views: View[];
-  rules: Rule[];
+  /** User overrides, consulted before the views' own `when`. */
+  rules?: Rule[];
 };
 
-export type Pipeline = {
+export type Renderer = {
   /** Fills `graph` through the first parser whose contentType matches. */
   parse(resource: Resource): Promise<Resource>;
-  /** The view the hint or the first holding rule names; undefined when none. */
+  /** Hint first, then registry rules in order, then each view's `when`
+   *  in registration order; undefined when nothing holds. */
   select(resource: Resource, hint?: Hint): View | undefined;
   /** parse, select, render. Rejects when no view applies. */
   render(resource: Resource, ctx: Context, hint?: Hint): Promise<Rendered>;
 };
 
-export function createPipeline(registry: Registry): Pipeline {
+export function createRenderer(registry: Registry): Renderer {
   throw new Error("unimplemented");
 }
 
@@ -149,6 +153,7 @@ export function typesOf(resource: Resource): string[] {
 
 export const containerView: View = {
   id: "https://aleph.garden/ns/view#Container",
+  when: [{ container: true }],
   render(resource, ctx, hint) {
     throw new Error("unimplemented");
   },
@@ -156,6 +161,7 @@ export const containerView: View = {
 
 export const fallbackView: View = {
   id: "https://aleph.garden/ns/view#Fallback",
+  when: [],
   render(resource, ctx, hint) {
     throw new Error("unimplemented");
   },

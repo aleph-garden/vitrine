@@ -2,6 +2,7 @@
 // was requested; owns session, fetching, navigation, and the one region.
 
 import type { Parser, Resource } from "@aleph-garden/view";
+import type { Runtime } from "@aleph-garden/view/dom";
 
 // ------------------------------------------------------------- session
 
@@ -40,9 +41,9 @@ export function boot(root: Element): Promise<void> {
   throw new Error("unimplemented");
 }
 
-/** Same-origin link clicks and popstate become as:View events; the
- *  address follows. A fragment change on the same resource emits without
- *  a refetch. */
-export function installNavigation(root: Element, navigate: (iri: string) => Promise<void>): void {
+/** as:View events from the runtime and popstate drive the address and
+ *  the region: another resource is a `mount`, the same resource with a
+ *  different fragment is a `dispatch` and no refetch. */
+export function installNavigation(runtime: Runtime, root: Element): void {
   throw new Error("unimplemented");
 }

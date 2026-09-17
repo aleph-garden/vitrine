@@ -2,7 +2,7 @@
 // hydrate returned, and the IRIs the instance resolved. Every browser host
 // runs the re-render protocol from here.
 
-import type { Context, Event, Hint, Pipeline, Resource } from "./index.ts";
+import type { Context, Event, Hint, Renderer, Resource } from "./index.ts";
 
 export type Instance = {
   id: string;
@@ -15,22 +15,32 @@ export type Instance = {
 };
 
 export type Runtime = {
-  /** Resolves `iri`, renders it into `region`, hydrates. Rejects when the
-   *  resolve rejects, so the host can act on a 401. */
+  /** Resolves `iri`, renders it into `region`, hydrates. Disposes the
+   *  instance that held the region before. Rejects when the resolve
+   *  rejects, so the host can act on a 401. */
   mount(region: Element, iri: string, hint?: Hint): Promise<Instance>;
   /** Delivers the event to every instance. A handle with `update` answers
    *  with a patch or nothing; an instance without one is re-rendered when
    *  the event names a dependency (as:Update) or changes its hint on the
-   *  same resource (as:View). */
+   *  same resource (as:View). Navigation to another resource is the
+   *  host's: it calls `mount`. */
   dispatch(event: Event): Promise<void>;
   instances(): Instance[];
 };
+
+/** Inside a region, a click on a same-origin `<a href>` becomes an as:View
+ *  event with the link's IRI as object and its fragment in the hint. The
+ *  runtime installs this on every region it mounts; a view that wants
+ *  other link semantics stops propagation in its own hydrate. */
+export function linkEvents(region: Element, emit: (event: Event) => void): () => void {
+  throw new Error("unimplemented");
+}
 
 export type Resolve = (iri: string) => Promise<Resource>;
 
 /** `resolve` is the host's; the runtime wraps it per instance to track
  *  dependencies and provides `emit` and `events` on top. */
-export function createRuntime(pipeline: Pipeline, resolve: Resolve): Runtime {
+export function createRuntime(renderer: Renderer, resolve: Resolve): Runtime {
   throw new Error("unimplemented");
 }
 

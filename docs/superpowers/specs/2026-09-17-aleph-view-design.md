@@ -214,6 +214,8 @@ format a note's graph comes from is open (see "Rejected" on MD-LD).
 ### Selection
 
 ```ts
+type View = { id: string; when?: Condition[]; render(…) };   // see "View"
+
 type Rule = {
   view: string;         // a View id
   when: Condition[];    // every condition must hold
@@ -226,10 +228,13 @@ type Condition =
   | { ask: string };
 ```
 
-Rules are an ordered list. Selection walks it and picks the first rule
-whose every condition holds. `hint.view` overrides the rules when that
-view exists. A rule with an empty `when` matches everything, which is
-how the fallback view is registered last.
+A view carries its own `when`, the conditions under which it applies by
+default. The registry's rules are the user's overrides, consulted first.
+Selection, in order: `hint.view` when that view exists; the first
+registry rule whose every condition holds; the first view, in
+registration order, whose own `when` holds. An empty `when` holds for
+everything, which is how the fallback view is registered last. A
+registry with no rules is the common case.
 
 What each condition means:
 
@@ -391,9 +396,12 @@ and the server hands static assets out with a one-day expiry, so a full
 page load after the first costs the document and the representation.
 Client-side navigation loads neither.
 
-Navigation: the shell intercepts clicks on same-origin links, pushes
-history, emits `as:View`, and renders the target. Views do not handle
-link clicks.
+Navigation: the runtime turns a click on a same-origin link inside a
+region into an `as:View` event; a view with other link semantics stops
+the click in its own `hydrate`. The shell handles `as:View` and nothing
+below it: another resource is a fresh mount into the region, the same
+resource with a new fragment is a dispatch without a refetch. The
+address follows either.
 
 Re-render: the shell uses the core's instance bookkeeping and runs the
 protocol above. A reload control emits `as:Update` for the current IRI;
@@ -421,7 +429,7 @@ view's dependencies never reach the core:
 
 | Package | Holds |
 |---|---|
-| `@aleph-garden/view` | contracts, pipeline, selection, instance bookkeeping |
+| `@aleph-garden/view` | contracts, renderer, selection, instance bookkeeping |
 | `@aleph-garden/view-markdown` | the Markdown view |
 | `@aleph-garden/shell` | the browser host |
 
@@ -432,8 +440,8 @@ framework anywhere; a view that wants one uses it inside `hydrate`.
 
 Unit, in the repository:
 
-- selection picks by order, evaluates each condition as defined above,
-  honors `hint`, falls through to the last rule
+- selection honors `hint`, then registry rules, then each view's own
+  `when` in order, evaluating each condition as defined above
 - the instance bookkeeping re-renders on `as:Update` for a resolved IRI
   and on a hint change, leaves a handle with `update` alone, and applies
   a slot patch to the named element only
