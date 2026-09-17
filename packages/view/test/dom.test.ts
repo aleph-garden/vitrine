@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { createRuntime, instanceContext, linkEvents } from '../src/dom.ts'
+import { createRuntime, instanceContext, linkEvents, writeHtml } from '../src/dom.ts'
 import { AS, createRenderer, type Event, type Resource, type View } from '../src/index.ts'
 
 const resource = (iri: string, body = ''): Resource => ({
@@ -74,6 +74,39 @@ describe('linkEvents', () => {
     expect(events).toEqual([])
   })
 
+  test('leaves a link with target to the browser', () => {
+    const el = region()
+    el.innerHTML = `<a id="l" href="/docs/" target="_top">d</a>`
+    const events: Event[] = []
+    linkEvents(el, (e) => events.push(e))
+    const click = new MouseEvent('click', { bubbles: true, cancelable: true })
+    el.querySelector('#l')!.dispatchEvent(click)
+    expect(click.defaultPrevented).toBe(false)
+    expect(events).toEqual([])
+  })
+
+  test('leaves a download link to the browser', () => {
+    const el = region()
+    el.innerHTML = `<a id="l" href="/x" download>x</a>`
+    const events: Event[] = []
+    linkEvents(el, (e) => events.push(e))
+    const click = new MouseEvent('click', { bubbles: true, cancelable: true })
+    el.querySelector('#l')!.dispatchEvent(click)
+    expect(click.defaultPrevented).toBe(false)
+    expect(events).toEqual([])
+  })
+
+  test('leaves a modified click to the browser', () => {
+    const el = region()
+    el.innerHTML = `<a id="l" href="${location.origin}/x">x</a>`
+    const events: Event[] = []
+    linkEvents(el, (e) => events.push(e))
+    const click = new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true })
+    el.querySelector('#l')!.dispatchEvent(click)
+    expect(click.defaultPrevented).toBe(false)
+    expect(events).toEqual([])
+  })
+
   test('the returned function removes the listener', () => {
     const el = region()
     el.innerHTML = `<a id="l" href="${location.origin}/x">x</a>`
@@ -84,6 +117,49 @@ describe('linkEvents', () => {
       new MouseEvent('click', { bubbles: true, cancelable: true })
     )
     expect(events).toEqual([])
+  })
+})
+
+describe('writeHtml', () => {
+  test('drops a script element and keeps the markup around it', () => {
+    const el = region()
+    writeHtml(el, '<p>a</p><script>x()</script>')
+    expect(el.innerHTML).toContain('<p>a</p>')
+    expect(el.querySelector('script')).toBeNull()
+  })
+
+  test('drops an event handler attribute', () => {
+    const el = region()
+    writeHtml(el, '<img src=x onerror="x()">')
+    const img = el.querySelector('img')!
+    expect(img.hasAttribute('onerror')).toBe(false)
+  })
+
+  test('keeps data-slot, the patch protocol', () => {
+    const el = region()
+    writeHtml(el, '<p data-slot="n">1</p>')
+    expect(el.querySelector('[data-slot="n"]')!.textContent).toBe('1')
+  })
+
+  test('keeps target on an anchor', () => {
+    const el = region()
+    writeHtml(el, '<a href="/docs/" target="_top">d</a>')
+    expect(el.querySelector('a')!.getAttribute('target')).toBe('_top')
+  })
+
+  test('keeps SVG, which the diagrams emit', () => {
+    const el = region()
+    writeHtml(el, '<svg><circle r="1"/></svg>')
+    expect(el.querySelector('circle')).not.toBeNull()
+  })
+
+  // happy-dom parses `<math>` into the XHTML namespace instead of the MathML
+  // one, and the sanitizer drops an element whose namespace contradicts its
+  // tag name. The MathML profile is only observable in a browser.
+  test.skip('keeps MathML, which the formulas emit', () => {
+    const el = region()
+    writeHtml(el, '<math><mi>x</mi></math>')
+    expect(el.querySelector('mi')).not.toBeNull()
   })
 })
 
@@ -113,6 +189,20 @@ describe('createRuntime', () => {
     expect([...instance.dependencies]).toEqual(['dep'])
     expect(calls).toEqual(['a', 'dep'])
     expect(runtime.instances()).toHaveLength(1)
+  })
+
+  test('mount writes the rendered HTML through the sanitizer', async () => {
+    const view: View = {
+      id: 'urn:s',
+      when: [{ contentType: 'text/markdown' }],
+      render: async () => ({ html: '<b>ok</b><script>bad()</script>' })
+    }
+    const { resolve } = store({ a: '' })
+    const runtime = createRuntime(createRenderer({ parsers: [], views: [view] }), resolve)
+    const el = region()
+    await runtime.mount(el, 'a')
+    expect(el.innerHTML).toContain('<b>ok</b>')
+    expect(el.querySelector('script')).toBeNull()
   })
 
   test('mount rejects with the resolve error so the host can act on it', async () => {

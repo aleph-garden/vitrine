@@ -5,5 +5,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./dom": "./src/dom.ts"
+  },
+  "dependencies": {
+    "dompurify": "^3.4.15"
   }
 }

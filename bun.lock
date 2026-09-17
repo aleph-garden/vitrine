@@ -29,6 +29,9 @@
     "packages/view": {
       "name": "@aleph-garden/view",
       "version": "0.0.0",
+      "dependencies": {
+        "dompurify": "^3.4.15",
+      },
     },
     "packages/view-markdown": {
       "name": "@aleph-garden/view-markdown",

@@ -74,6 +74,16 @@ describe('quad helpers', () => {
 })
 
 describe('holds', () => {
+  test('iri compares the resource IRI exactly', () => {
+    expect(holds({ iri: 'https://pod.example/notes/a.md' }, resource())).toBe(true)
+    expect(holds({ iri: 'https://pod.example/notes/b.md' }, resource())).toBe(false)
+  })
+
+  test('iri accepts a regular expression', () => {
+    expect(holds({ iri: /\/notes\/[^/]+\.md$/ }, resource())).toBe(true)
+    expect(holds({ iri: /^https:\/\/other\.example\// }, resource())).toBe(false)
+  })
+
   test('contentType compares the media type with parameters stripped', () => {
     const r = resource({ contentType: 'text/markdown; charset=utf-8' })
     expect(holds({ contentType: 'text/markdown' }, r)).toBe(true)
@@ -120,6 +130,17 @@ describe('select', () => {
       rules: [{ view: 'urn:fallback', when: [{ contentType: 'text/markdown' }] }]
     })
     expect(r.select(resource())?.id).toBe('urn:fallback')
+  })
+
+  test('an iri rule reaches a view that has no conditions of its own', () => {
+    const landing = view('urn:landing')
+    const r = createRenderer({
+      parsers: [],
+      views: [landing, markdown],
+      rules: [{ view: 'urn:landing', when: [{ iri: 'https://pod.example/' }] }]
+    })
+    expect(r.select(resource({ iri: 'https://pod.example/' }))?.id).toBe('urn:landing')
+    expect(r.select(resource())?.id).toBe('urn:md')
   })
 
   test('hint wins when it names a registered view, is ignored otherwise', () => {

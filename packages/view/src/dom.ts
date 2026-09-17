@@ -2,6 +2,7 @@
 // hydrate returned, and the IRIs the instance resolved. Every browser host
 // runs the re-render protocol from here.
 
+import DOMPurify from 'dompurify'
 import {
   AS,
   type Context,
@@ -40,12 +41,17 @@ export type Runtime = {
 
 /** Inside a region, a click on a same-origin `<a href>` becomes an as:View
  *  event with the link's IRI as object and its fragment in the hint. The
- *  runtime installs this on every region it mounts; a view that wants
- *  other link semantics stops propagation in its own hydrate. */
+ *  runtime installs this on every region it mounts. A view marks a link the
+ *  browser should follow with `target` or `download`, and a click carrying a
+ *  modifier key or a non-primary button belongs to the browser too; the
+ *  runtime lets those through untouched. */
 export function linkEvents(region: Element, emit: (event: Event) => void): () => void {
-  const onClick = (e: globalThis.Event) => {
+  const onClick = (event: globalThis.Event) => {
+    const e = event as MouseEvent
     const anchor = (e.target as Element | null)?.closest?.('a[href]')
     if (!anchor || !region.contains(anchor)) return
+    if (anchor.hasAttribute('target') || anchor.hasAttribute('download')) return
+    if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button !== 0) return
     const url = new URL(anchor.getAttribute('href')!, region.ownerDocument.baseURI)
     if (url.origin !== location.origin) return
     e.preventDefault()
@@ -55,6 +61,51 @@ export function linkEvents(region: Element, emit: (event: Event) => void): () =>
   }
   region.addEventListener('click', onClick)
   return () => region.removeEventListener('click', onClick)
+}
+
+// The allowlist view HTML passes through: the profiles the views emit, plus
+// the two attributes DOMPurify strips although a view needs them (the
+// landing view's docs links carry `target`, the fallback view's offer of a
+// binary carries `download`). `data-*` is allowed by DOMPurify's default and
+// must stay allowed, since `data-slot` is the patch protocol.
+const ALLOWLIST = {
+  USE_PROFILES: { html: true, svg: true, svgFilters: true, mathMl: true },
+  ADD_ATTR: ['target', 'download']
+}
+
+// The slice of the Trusted Types API the runtime uses. `createHTML` answers a
+// TrustedHTML, which the innerHTML sink takes in place of a string; typing it
+// as a string keeps the assignment in writeHtml cast-free.
+type HtmlPolicy = { createHTML(html: string): string }
+type TrustedTypes = { createPolicy(name: string, rules: HtmlPolicy): HtmlPolicy }
+
+let policy: HtmlPolicy | undefined
+let policyResolved = false
+
+/** The one `aleph` policy, created on the first write. A page whose CSP omits
+ *  the policy name throws on createPolicy; writes then carry the sanitized
+ *  string without a policy. */
+function trustedPolicy(): HtmlPolicy | undefined {
+  if (policyResolved) return policy
+  policyResolved = true
+  const api = (globalThis as { trustedTypes?: TrustedTypes }).trustedTypes
+  if (!api?.createPolicy) return undefined
+  try {
+    policy = api.createPolicy('aleph', {
+      createHTML: (html) => DOMPurify.sanitize(html, ALLOWLIST)
+    })
+  } catch {
+    policy = undefined
+  }
+  return policy
+}
+
+/** Writes view HTML into `target` through the sanitizer. Every mount and
+ *  every patch goes through here; views never write the region. Exported
+ *  so that a view's own DOM writes in hydrate can use the same allowlist. */
+export function writeHtml(target: Element, html: string): void {
+  const active = trustedPolicy()
+  target.innerHTML = active ? active.createHTML(html) : DOMPurify.sanitize(html, ALLOWLIST)
 }
 
 export type Resolve = (iri: string) => Promise<Resource>
@@ -84,7 +135,7 @@ export function createRuntime(renderer: Renderer, resolve: Resolve): Runtime {
           patch.slot === undefined
             ? inst.region
             : inst.region.querySelector(`[data-slot="${patch.slot}"]`)
-        if (slot) slot.innerHTML = patch.html
+        if (slot) writeHtml(slot, patch.html)
         continue
       }
       if (event.type === AS.Update && event.object !== undefined) {
@@ -105,7 +156,7 @@ export function createRuntime(renderer: Renderer, resolve: Resolve): Runtime {
     inst.hint = hint
     const resource = await resolve(inst.iri)
     const rendered = await renderer.render(resource, inst.ctx, hint)
-    inst.region.innerHTML = rendered.html
+    writeHtml(inst.region, rendered.html)
     inst.off = linkEvents(inst.region, inst.ctx.emit)
     inst.handle = rendered.hydrate?.(inst.region, inst.ctx)
   }
@@ -140,7 +191,7 @@ export function createRuntime(renderer: Renderer, resolve: Resolve): Runtime {
     } satisfies Live
     const resource = await resolve(iri)
     const rendered = await renderer.render(resource, ctx, hint)
-    region.innerHTML = rendered.html
+    writeHtml(region, rendered.html)
     live.set(id, inst)
     inst.off = linkEvents(region, ctx.emit)
     inst.handle = rendered.hydrate?.(region, ctx)

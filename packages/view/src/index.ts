@@ -58,6 +58,7 @@ export type Context = {
 // ----------------------------------------------------------- selection
 
 export type Condition =
+  | { iri: string | RegExp }
   | { contentType: string | RegExp }
   | { container: boolean }
   | { type: string }
@@ -153,8 +154,13 @@ export function createRenderer(registry: Registry): Renderer {
   return { parse, select, render }
 }
 
-/** The condition holds for the resource. `ask` never holds here. */
+/** The condition holds for the resource. `iri` equals the resource IRI or,
+ *  as a RegExp, tests true against it. `ask` never holds here. */
 export function holds(condition: Condition, resource: Resource): boolean {
+  if ('iri' in condition)
+    return typeof condition.iri === 'string'
+      ? condition.iri === resource.iri
+      : condition.iri.test(resource.iri)
   if ('contentType' in condition) return matchesType(condition.contentType, resource.contentType)
   if ('container' in condition) return isContainer(resource) === condition.container
   if ('type' in condition) return typesOf(resource).includes(condition.type)
