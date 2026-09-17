@@ -267,3 +267,26 @@ describe('createRuntime', () => {
     expect(runtime.instances()).toEqual([])
   })
 })
+
+describe('listen', () => {
+  test('a host listener sees every event, including ones emitted by views', async () => {
+    const view: View = {
+      id: 'urn:l',
+      when: [{ contentType: 'text/markdown' }],
+      render: async () => ({ html: '', hydrate: (_r, ctx) => void ctx.emit({ type: 'urn:hello' }) })
+    }
+    const runtime = createRuntime(
+      createRenderer({ parsers: [], views: [view] }),
+      store({ a: '' }).resolve
+    )
+    const seen: Event[] = []
+    const off = runtime.listen((e) => void seen.push(e))
+    await runtime.mount(region(), 'a')
+    await new Promise((r) => setTimeout(r, 0))
+    await runtime.dispatch({ type: AS.Update, object: 'x' })
+    expect(seen.map((e) => e.type)).toEqual(['urn:hello', AS.Update])
+    off()
+    await runtime.dispatch({ type: AS.Update, object: 'y' })
+    expect(seen).toHaveLength(2)
+  })
+})

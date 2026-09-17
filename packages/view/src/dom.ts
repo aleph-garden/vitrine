@@ -34,6 +34,8 @@ export type Runtime = {
    *  host's: it calls `mount`. */
   dispatch(event: Event): Promise<void>
   instances(): Instance[]
+  /** A host listener sees every event before the instances do. */
+  listen(listener: (event: Event) => void): () => void
 }
 
 /** Inside a region, a click on a same-origin `<a href>` becomes an as:View
@@ -68,9 +70,11 @@ export function createRuntime(renderer: Renderer, resolve: Resolve): Runtime {
     push: (e: Event) => void
   }
   const live = new Map<string, Live>()
+  const listeners = new Set<(event: Event) => void>()
   let counter = 0
 
   const dispatch = async (event: Event): Promise<void> => {
+    for (const listener of [...listeners]) listener(event)
     for (const inst of [...live.values()]) {
       inst.push(event)
       if (inst.handle?.update) {
@@ -143,7 +147,15 @@ export function createRuntime(renderer: Renderer, resolve: Resolve): Runtime {
     return inst
   }
 
-  return { mount, dispatch, instances: () => [...live.values()] }
+  return {
+    mount,
+    dispatch,
+    instances: () => [...live.values()],
+    listen(listener) {
+      listeners.add(listener)
+      return () => listeners.delete(listener)
+    }
+  }
 }
 
 function hintFrom(event: Event, previous: Hint | undefined): Hint {

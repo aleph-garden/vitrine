@@ -1,0 +1,277 @@
+/* Obsidian's custom properties with plain defaults. A vault snippet such as
+   noctalia.css overrides them under .theme-dark / .theme-light. */
+.theme-dark {
+  --background-primary: #1e1e1e;
+  --background-primary-alt: #252525;
+  --background-secondary: #262626;
+  --background-secondary-alt: #2e2e2e;
+  --background-modifier-border: #3a3a3a;
+  --background-modifier-form-field: #1b1b1b;
+  --background-modifier-error: #b04a4a;
+  --background-modifier-success: #4a8a5a;
+  --text-normal: #dcddde;
+  --text-muted: #999;
+  --text-faint: #666;
+  --text-accent: #7f6df2;
+  --text-on-accent: #fff;
+  --text-error: #ff6b6b;
+  --text-highlight-bg: rgba(255, 208, 0, 0.4);
+  --text-selection: rgba(127, 109, 242, 0.3);
+  --interactive-normal: #2a2a2a;
+  --interactive-hover: #353535;
+  --interactive-accent: #7f6df2;
+  --interactive-accent-hover: #8875ff;
+  --scrollbar-bg: #1e1e1e;
+  --scrollbar-thumb-bg: #444;
+}
+
+.theme-light {
+  --background-primary: #fff;
+  --background-primary-alt: #f5f5f5;
+  --background-secondary: #f2f3f5;
+  --background-secondary-alt: #e3e5e8;
+  --background-modifier-border: #ddd;
+  --background-modifier-form-field: #fff;
+  --background-modifier-error: #e05252;
+  --background-modifier-success: #4a8a5a;
+  --text-normal: #2e3338;
+  --text-muted: #666;
+  --text-faint: #999;
+  --text-accent: #705dcf;
+  --text-on-accent: #fff;
+  --text-error: #c0392b;
+  --text-highlight-bg: rgba(255, 208, 0, 0.4);
+  --text-selection: rgba(112, 93, 207, 0.2);
+  --interactive-normal: #f2f3f5;
+  --interactive-hover: #e9e9e9;
+  --interactive-accent: #705dcf;
+  --interactive-accent-hover: #7a6ad8;
+  --scrollbar-bg: #fff;
+  --scrollbar-thumb-bg: #ccc;
+}
+
+:root {
+  --font-text: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --font-monospace: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-text-size: 16px;
+  --line-height: 1.6;
+  --file-line-width: 700px;
+  --radius-s: 4px;
+  --radius-m: 8px;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-family: var(--font-text);
+  font-size: var(--font-text-size);
+  line-height: var(--line-height);
+}
+
+#root {
+  max-width: var(--file-line-width);
+  margin: 0 auto;
+  padding: 2rem 1.5rem 6rem;
+}
+
+a {
+  color: var(--text-accent);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+.login,
+.error {
+  padding: 4rem 0;
+  text-align: center;
+}
+.login button {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border: 0;
+  border-radius: var(--radius-s);
+  padding: 0.6em 1.4em;
+  font: inherit;
+  cursor: pointer;
+}
+.error {
+  color: var(--text-error);
+}
+
+/* Markdown */
+.markdown-preview-view h1,
+.markdown-preview-view h2,
+.markdown-preview-view h3 {
+  line-height: 1.25;
+  margin: 1.5em 0 0.5em;
+}
+.markdown-preview-view h1 {
+  font-size: 1.8em;
+}
+.markdown-preview-view h2 {
+  font-size: 1.45em;
+}
+.markdown-preview-view h3 {
+  font-size: 1.2em;
+}
+.markdown-preview-view pre {
+  background: var(--background-primary-alt);
+  border-radius: var(--radius-s);
+  padding: 0.8em 1em;
+  overflow-x: auto;
+  font-family: var(--font-monospace);
+  font-size: 0.9em;
+}
+.markdown-preview-view code {
+  font-family: var(--font-monospace);
+  font-size: 0.9em;
+  background: var(--background-primary-alt);
+  border-radius: var(--radius-s);
+  padding: 0.1em 0.3em;
+}
+.markdown-preview-view pre code {
+  background: none;
+  padding: 0;
+}
+.markdown-preview-view blockquote {
+  border-left: 3px solid var(--interactive-accent);
+  color: var(--text-muted);
+  margin: 1em 0;
+  padding: 0 1em;
+}
+.markdown-preview-view table {
+  border-collapse: collapse;
+  margin: 1em 0;
+}
+.markdown-preview-view th,
+.markdown-preview-view td {
+  border: 1px solid var(--background-modifier-border);
+  padding: 0.3em 0.7em;
+  text-align: left;
+}
+.markdown-preview-view img {
+  max-width: 100%;
+}
+
+.is-flashing {
+  animation: flash 1.5s ease-out;
+}
+@keyframes flash {
+  from {
+    background: var(--text-highlight-bg);
+  }
+  to {
+    background: transparent;
+  }
+}
+
+.internal-link.is-unresolved {
+  color: var(--text-muted);
+  text-decoration: underline dotted;
+}
+
+.tag {
+  display: inline-block;
+  background: var(--interactive-normal);
+  color: var(--text-accent);
+  border-radius: 1em;
+  padding: 0 0.6em;
+  font-size: 0.85em;
+}
+
+.task-list-item {
+  list-style: none;
+  margin-left: -1.2em;
+}
+.task-list-item input {
+  margin-right: 0.4em;
+}
+.task-list-item.is-checked {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.callout {
+  background: var(--background-secondary);
+  border-left: 3px solid var(--interactive-accent);
+  border-radius: var(--radius-s);
+  margin: 1em 0;
+  padding: 0.6em 1em;
+}
+.callout-title {
+  font-weight: 600;
+  margin-bottom: 0.3em;
+}
+.callout[data-callout="warning"],
+.callout[data-callout="danger"],
+.callout[data-callout="error"] {
+  border-left-color: var(--text-error);
+}
+
+.metadata-container {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  padding: 0.5em 1em;
+  margin-bottom: 1.5em;
+  font-size: 0.9em;
+}
+.metadata-property {
+  display: flex;
+  gap: 1em;
+  padding: 0.15em 0;
+}
+.metadata-property-key {
+  color: var(--text-muted);
+  min-width: 8em;
+}
+
+.markdown-embed {
+  border-left: 2px solid var(--background-modifier-border);
+  padding-left: 1em;
+  margin: 1em 0;
+}
+
+/* Container listing and statement table */
+.container-listing {
+  list-style: none;
+  padding: 0;
+}
+.container-listing .child {
+  padding: 0.3em 0;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+.container-listing .is-container a::before {
+  content: "▸ ";
+  color: var(--text-muted);
+}
+.container-listing time {
+  float: right;
+  color: var(--text-faint);
+  font-size: 0.85em;
+}
+
+.statements {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.9em;
+}
+.statements th {
+  text-align: left;
+  padding: 0.6em 0.5em 0.2em;
+}
+.statements td {
+  padding: 0.15em 0.5em;
+  vertical-align: top;
+  word-break: break-all;
+}
+.statements .lang {
+  color: var(--text-faint);
+  margin-left: 0.3em;
+}
+.raw {
+  white-space: pre-wrap;
+}
