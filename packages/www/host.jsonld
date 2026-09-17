@@ -2,6 +2,7 @@
   "@context": "https://w3id.org/aleph/ns/view",
   "@id": "https://aleph.garden/",
   "@type": "Host",
+  "session": false,
   "opens": "any",
   "views": [
     "https://w3id.org/aleph/ns/view#Landing",

@@ -101,18 +101,20 @@ user's own rule list.
 |---|---|
 | `issuer` | the Solid-OIDC issuer the login control goes to. Absent: the chrome asks for a WebID and reads `solid:oidcIssuer` from that profile |
 | `sparqlEndpoint` | where the Markdown view sends `sparql` blocks. Absent: those blocks render as code |
+| `session` | `false`: the shell holds no session. No login control, every fetch anonymous, and a private resource says it needs a login and offers the source. Absent: `true` |
 | `opens` | what the shell opens in place. `any`: every IRI, which is aleph.garden's purpose. `self`: the resources of its own origin, with every other link handed to the browser. Absent: `self` |
 | `views` | the ids of the bundle's views to register, in that order. Absent: every view the bundle has |
 | `rules` | the registry's override rules, as [Selection](/docs/view/selection/) reads them |
 
-aleph.garden's document opens every IRI, registers two views and pins the
-landing view to the site's own IRI:
+aleph.garden's document holds no session, opens every IRI, registers three
+views and pins the landing view to the site's own IRI:
 
 ```json
 {
   "@context": "https://w3id.org/aleph/ns/view",
   "@id": "https://aleph.garden/",
   "@type": "Host",
+  "session": false,
   "opens": "any",
   "views": [
     "https://w3id.org/aleph/ns/view#Landing",
@@ -169,13 +171,14 @@ these, and credentials are typed at the issuer.
   way a reader mode or a translation proxy says it.
 - A field that takes an IRI and dispatches an `as:View` through the runtime,
   which navigation then follows.
-- The login control: a button to the issuer the host document names, or,
-  where the document names none, a field that takes a WebID and resolves the
-  issuer from its profile.
+- The login control, where the host holds a session: a button to the issuer
+  the host document names, or, where the document names none, a field that
+  takes a WebID and resolves the issuer from its profile. A host with
+  `session: false` shows none of it.
 
-A `401` without a session leaves one sentence in the region. The way back in
-is the chrome's control. Any other failed mount leaves the message and a
-link that opens the resource at its own origin, which a foreign resource
+A `401` without a session leaves one sentence in the region and a link that
+opens the resource at its own origin, where the login can happen. Any other
+failed mount leaves the message and the same link, which a foreign resource
 often needs when CORS refuses the shell.
 
 ### Foreign content
@@ -223,15 +226,22 @@ content views.
 A policy narrows what a bug can do. The origin is the one boundary the
 browser has, and aleph.garden's origin holds the session.
 
-Credentials follow that line. The shell fetches with the session on its own
-origin, the WebID's origin, the issuer's origin, and the origins the WebID's
-profile names as `solid:oidcIssuer` and `pim:storage`, so a visitor reaches
-their own pod through aleph.garden. That profile is read once a tab. Every
-other IRI is fetched without credentials, since a DPoP token names the
-visitor and their issuer to whoever receives it. Where the session stops,
-the chrome marks the resource on show `anonymous here` next to the WebID,
-and a `401` there leaves a sentence in the region that names the host and
-offers the resource at its own origin, where the login can happen.
+Credentials follow that line. Where the shell holds a session, it fetches
+with it on its own origin, the WebID's origin, the issuer's origin, and the
+origins the WebID's profile names as `solid:oidcIssuer` and `pim:storage`, so
+a visitor reaches their own pod. That profile is read once a tab. Every other
+IRI is fetched without credentials, since a DPoP token names the visitor and
+their issuer to whoever receives it. Where the session stops, the chrome
+marks the resource on show `anonymous here` next to the WebID, and a `401`
+there leaves a sentence in the region that names the host and offers the
+resource at its own origin, where the login can happen.
+
+aleph.garden holds no session today. Its host document carries
+`session: false`, so the chrome offers no login there and every fetch is
+anonymous; a private resource says it needs a login and offers the source, to
+open at the pod that serves it. A session on aleph.garden waits for the
+sandboxed region below, which contains a visitor's token beside foreign
+content.
 
 **Across an origin, on aleph.garden.** This stage is to come. The region
 becomes a sandboxed iframe with an opaque origin. A view's `render` and
