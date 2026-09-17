@@ -113,7 +113,7 @@ ALEPH_HOST=packages/www/host.jsonld vite build
 ```nix
 # nix/shell.nix: an attribute set in place of the sparqlEndpoint string.
 # Written to a file with builtins.toJSON and passed as ALEPH_HOST; the
-# build adds @context, @id and @type.
+# build adds @context and @type; @id is the attrset's to give.
 { host ? { issuer = "https://pod.toph.so/"; sparqlEndpoint = "https://sparql.toph.so"; } }
 ```
 
