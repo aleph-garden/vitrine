@@ -268,6 +268,42 @@ describe('installNavigation', () => {
     expect(location.href).toBe('https://pod.example/x')
   })
 
+  test('under opens self, an as:View for a non-http(s) object navigates nowhere', async () => {
+    const { runtime, mounted, emit } = fakeRuntime()
+    const root = document.createElement('div')
+    history.replaceState(null, '', 'https://pod.example/x')
+    await runtime.mount(root, 'https://pod.example/x')
+    const before = mounted.length
+    const assigned: string[] = []
+    const assign = location.assign
+    location.assign = (url: string | URL) => {
+      assigned.push(String(url))
+    }
+    try {
+      installNavigation(runtime, root, host('self'))
+      emit({ type: AS.View, object: 'javascript:alert(1)' })
+      await new Promise((r) => setTimeout(r, 0))
+    } finally {
+      location.assign = assign
+    }
+    expect(assigned).toEqual([])
+    expect(mounted.length).toBe(before)
+    expect(location.href).toBe('https://pod.example/x')
+  })
+
+  test('an as:View with an unparsable object throws nothing and mounts nothing', async () => {
+    const { runtime, mounted, emit } = fakeRuntime()
+    const root = document.createElement('div')
+    history.replaceState(null, '', 'https://pod.example/x')
+    await runtime.mount(root, 'https://pod.example/x')
+    const before = mounted.length
+    installNavigation(runtime, root, host('self'))
+    emit({ type: AS.View, object: 'not a url' })
+    await new Promise((r) => setTimeout(r, 0))
+    expect(mounted.length).toBe(before)
+    expect(location.href).toBe('https://pod.example/x')
+  })
+
   test('an as:View for the same resource only replaces the hash; the runtime re-renders', async () => {
     const { runtime, mounted, dispatched, emit } = fakeRuntime()
     const root = document.createElement('div')

@@ -297,8 +297,17 @@ export function installNavigation(
   runtime.listen((event) => {
     if (event.type !== AS.View || typeof event.object !== 'string') return
     const url = typeof event.target === 'string' ? event.target : event.object
-    if (host.opens === 'self' && new URL(url).origin !== location.origin) {
-      location.assign(url)
+    let parsed: URL
+    try {
+      parsed = new URL(url)
+    } catch {
+      // The IRI field dispatches raw user input; an unparsable value stops here.
+      return
+    }
+    if (host.opens === 'self' && parsed.origin !== location.origin) {
+      // Only hand http(s) links to the browser; anything else (e.g. javascript:)
+      // would otherwise execute in the shell's own origin.
+      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') location.assign(url)
       return
     }
     const address = addressFor(url)
