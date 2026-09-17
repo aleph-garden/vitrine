@@ -7,10 +7,15 @@
     "@aleph-garden/view": "workspace:*",
     "@aleph-garden/view-markdown": "workspace:*",
     "@inrupt/solid-client-authn-browser": "^5.0.0",
+    "katex": "^0.18.7",
     "n3": "^2.7.12"
   },
   "devDependencies": {
     "@types/n3": "^1.26.4",
     "vite": "^8.3.0"
+  },
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite"
   }
 }
