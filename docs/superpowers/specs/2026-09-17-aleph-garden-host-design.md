@@ -156,6 +156,12 @@ owns nothing. This is the pattern user content is served under elsewhere
 contracts were shaped for the crossing: `render` returns a string, events
 go in, patches come out, and `resolve` is the one call back.
 
+Credentials follow the same line. The shell fetches with the session only
+from its own origin, the WebID's origin and the issuer's origin; every
+other IRI is fetched without them, since a DPoP token names the visitor
+and their issuer to whoever receives it. A private resource elsewhere
+therefore asks for a login it cannot get; the region says so.
+
 aleph.garden starts with the landing view and the fallback view under the
 first stage. The fallback view escapes everything and has no `hydrate`,
 so the first stage covers it. The Markdown view joins when the second
@@ -281,6 +287,14 @@ By hand:
   the access token from a refresh token without a visit to the issuer.
   DPoP proofs are per request and automatic; what expires is the access
   token, and this is what makes that invisible.
+- The landing page on any origin. The rule names `https://aleph.garden/`
+  by exact match, so a preview deploy or the dev server shows the shell
+  document through the fallback view at `/`. A condition for "the shell's
+  own root" that JSON can express, or a pattern form of `iri`, decides it.
+- A resource on a host without CORS headers cannot be read by the shell
+  on aleph.garden; the region shows the error and a link that opens the
+  resource at its source. The `text/html` view above, and a proxy for
+  RDF sources, are the two ways past this.
 - The apex move for `aleph.garden` from alvin to Pages, and removing the
   vhost there. A DNS change, done when the deploy from this repository
   stands.
