@@ -3,11 +3,19 @@
   "@id": "https://aleph.garden/",
   "@type": "Host",
   "opens": "any",
-  "views": ["https://w3id.org/aleph/ns/view#Landing", "https://w3id.org/aleph/ns/view#Fallback"],
+  "views": [
+    "https://w3id.org/aleph/ns/view#Landing",
+    "https://w3id.org/aleph/ns/view#Container",
+    "https://w3id.org/aleph/ns/view#Fallback"
+  ],
   "rules": [
     {
       "view": "https://w3id.org/aleph/ns/view#Landing",
-      "when": [{ "iri": "https://aleph.garden/" }]
+      "when": [
+        {
+          "iri": "https://aleph.garden/"
+        }
+      ]
     }
   ]
 }

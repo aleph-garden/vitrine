@@ -79,6 +79,7 @@ pod as the rule list slice 1 deferred.
   "opens": "any",
   "views": [
     "https://w3id.org/aleph/ns/view#Landing",
+    "https://w3id.org/aleph/ns/view#Container",
     "https://w3id.org/aleph/ns/view#Fallback"
   ],
   "rules": [
@@ -177,9 +178,9 @@ no explanation; its state does, where it gets in the way: the chrome marks
 a resource the session does not reach as anonymous, and a 401 there says
 that the session does not apply to that origin and offers the source.
 
-aleph.garden starts with the landing view and the fallback view under the
-first stage. The fallback view escapes everything and has no `hydrate`,
-so the first stage covers it. The Markdown view joins when the second
+aleph.garden starts with the landing view, the container view and the
+fallback view under the first stage. None of the three has a `hydrate`,
+and each escapes what it shows, so the first stage covers them. The Markdown view joins when the second
 stage stands.
 
 The pod stays at the first stage: the content there is the owner's and
@@ -230,8 +231,8 @@ Unit:
 By hand:
 
 - `https://aleph.garden/` greets; `https://aleph.garden/https://pod.toph.so/public/`
-  shows the container's statements through the fallback view without a
-  session, with `pod.toph.so` named in the chrome; a private note there
+  lists the container through the container view without a session, with
+  `pod.toph.so` named in the chrome; a private note there
   asks for a WebID, logs in at the pod, and shows its text
 - `https://pod.toph.so/notes/…` behaves as in slice 1
 - `https://aleph.garden/docs/view/` is the docs page

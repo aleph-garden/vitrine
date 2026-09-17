@@ -114,7 +114,11 @@ landing view to the site's own IRI:
   "@id": "https://aleph.garden/",
   "@type": "Host",
   "opens": "any",
-  "views": ["https://w3id.org/aleph/ns/view#Landing", "https://w3id.org/aleph/ns/view#Fallback"],
+  "views": [
+    "https://w3id.org/aleph/ns/view#Landing",
+    "https://w3id.org/aleph/ns/view#Container",
+    "https://w3id.org/aleph/ns/view#Fallback"
+  ],
   "rules": [
     {
       "view": "https://w3id.org/aleph/ns/view#Landing",
@@ -240,9 +244,9 @@ origin that owns nothing. The contracts were shaped for that crossing:
 the one call back.
 
 The sandboxed region precedes any view with a `hydrate` on aleph.garden. The
-two views registered there today, landing and fallback, have none: the
-landing view renders fixed HTML, and the fallback view escapes everything
-it shows. The Markdown view joins once the second stage stands. A pod stays
+three views registered there today, landing, container and fallback, have
+none: the landing view renders fixed HTML, the container view lists names
+it escapes, and the fallback view escapes everything it shows. The Markdown view joins once the second stage stands. A pod stays
 at the first stage, where the content is the owner's and shares the origin
 anyway.
 

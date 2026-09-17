@@ -83,6 +83,7 @@ The two documents that exist:
   "opens": "any",
   "views": [
     "https://w3id.org/aleph/ns/view#Landing",
+    "https://w3id.org/aleph/ns/view#Container",
     "https://w3id.org/aleph/ns/view#Fallback"
   ],
   "rules": [
