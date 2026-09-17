@@ -8,8 +8,9 @@
     "noUncheckedIndexedAccess": true,
     "noEmit": true,
     "skipLibCheck": true,
+    "types": ["bun"],
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true
   },
-  "include": ["packages/*/src/**/*.ts"]
+  "include": ["packages/*/src/**/*.ts", "packages/*/test/**/*.ts", "test-setup.ts"]
 }
