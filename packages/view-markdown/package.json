@@ -1,0 +1,7 @@
+{
+  "name": "@aleph-garden/view-markdown",
+  "version": "0.0.0",
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": { "@aleph-garden/view": "workspace:*" }
+}

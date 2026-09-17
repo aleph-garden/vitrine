@@ -1,0 +1,12 @@
+{
+  "name": "aleph-view-workspace",
+  "private": true,
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  }
+}

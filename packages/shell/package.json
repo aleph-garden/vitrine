@@ -1,0 +1,10 @@
+{
+  "name": "@aleph-garden/shell",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@aleph-garden/view": "workspace:*",
+    "@aleph-garden/view-markdown": "workspace:*"
+  }
+}
