@@ -186,9 +186,12 @@ Isolation comes in two stages, and the browser provides both.
   Markdown view stays off aleph.garden until the sandboxed region exists.
 - A Content Security Policy on the shell document: scripts from the bundle's
   origin, no inline script, no `object`, no `base`. A string that slipped
-  past the sanitizer still runs nothing. aleph.garden sets it on the shell's
-  paths and leaves the docs pages out, since Starlight's pages carry inline
-  scripts of their own. How the pod sets the header is open.
+  past the sanitizer still runs nothing. A small worker sits in front of
+  aleph.garden's static files: it serves the shell for `/` and for paths
+  that begin with `http://` or `https://` and carries the policy on those
+  responses, and serves the static files for everything else, so `/docs/…`
+  stays Starlight's own pages, with the inline scripts they carry, and an
+  unknown path still gets its 404. How the pod sets the header is open.
 - Trusted Types where the browser has them. One policy, named `aleph`,
   produces every `TrustedHTML` the bundle writes, and its `createHTML` is
   the sanitizer, so a DOM sink anywhere in the bundle refuses a plain

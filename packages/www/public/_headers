@@ -1,8 +1,0 @@
-/
-  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' https: 'unsafe-inline'; img-src https: data:; font-src 'self' data:; connect-src https:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; require-trusted-types-for 'script'; trusted-types aleph
-
-/https://*
-  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' https: 'unsafe-inline'; img-src https: data:; font-src 'self' data:; connect-src https:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; require-trusted-types-for 'script'; trusted-types aleph
-
-/http://*
-  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' https: 'unsafe-inline'; img-src https: data:; font-src 'self' data:; connect-src https:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; require-trusted-types-for 'script'; trusted-types aleph
