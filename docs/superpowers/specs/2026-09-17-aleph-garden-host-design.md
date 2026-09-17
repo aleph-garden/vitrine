@@ -146,6 +146,10 @@ Isolation comes in two stages, and the browser provides both.
 - Trusted Types where the browser has them: the policy names the
   sanitizer as the one producer of `TrustedHTML`, so that a DOM sink
   anywhere in the bundle, a dependency's included, refuses a plain string.
+  The sanitizer's own parse policy stands beside it, since Firefox counts
+  `DOMParser.parseFromString` among the sinks and the sanitizer has to
+  parse before it can sanitize; what that policy labels never reaches the
+  document unsanitized.
 
 A policy narrows what a bug can do; it is no boundary. The origin is the
 one boundary the browser has, and aleph.garden's origin holds the
