@@ -10,6 +10,7 @@
     "lint": "biome check .",
     "format": "biome format --write .",
     "check": "biome check --write . && bun run typecheck && bun test",
+    "check:ci": "biome check . && bun run typecheck && bun test",
     "build:site": "ALEPH_HOST=../www/host.jsonld bun run --cwd packages/shell build && bun run --cwd packages/www build && cp -R packages/shell/dist/. packages/www/dist/"
   },
   "devDependencies": {

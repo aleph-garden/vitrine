@@ -22,7 +22,7 @@ const IRI_PATH = /^\/https?:\/\//
 export default {
   async fetch(request, env) {
     const url = new URL(request.url)
-    if (url.pathname === '/' || IRI_PATH.test(url.pathname)) {
+    if (url.pathname === '/' || url.pathname === '/index.html' || IRI_PATH.test(url.pathname)) {
       const shell = await env.ASSETS.fetch(new Request(new URL('/', url.origin), request))
       const response = new Response(shell.body, shell)
       response.headers.set('content-security-policy', POLICY)
