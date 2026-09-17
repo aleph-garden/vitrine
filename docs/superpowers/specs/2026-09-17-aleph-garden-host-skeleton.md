@@ -338,7 +338,7 @@ runtime.dispatch({ type: AS.View, object: 'https://pod.toph.so/public/' })
 const a = addressFor('https://pod.toph.so/public/')
 history.pushState(null, '', a.href)   // "https://aleph.garden/https://pod.toph.so/public/"
 await runtime.mount(root, a.iri, a.hint)
-// → no rule holds, landingView has no `when`, fallbackView holds → statement table
+// → no rule holds, landingView has no `when`, containerView holds → listing
 // chrome: "pod.toph.so · https://pod.toph.so/public/"
 ```
 
