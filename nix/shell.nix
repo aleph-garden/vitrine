@@ -23,6 +23,10 @@
         "@type" = "Host";
       }));
 
+  # The install covers the whole workspace, the docs site in packages/www
+  # included, so a dependency bump there changes this hash as well and
+  # costs the fleet a fresh fetch. The upgrade path is a scoped install
+  # (`bun install --filter`) or a lockfile of the shell's own.
   node_modules = stdenvNoCC.mkDerivation {
     pname = "aleph-view-node-modules";
     inherit version src;
@@ -50,7 +54,7 @@
 
     outputHashAlgo = "sha256";
     outputHashMode = "recursive";
-    outputHash = "sha256-xTz0m9IUcohWx6Om3m8qjQpXhXaBOulC14gfTHup5ZE=";
+    outputHash = "sha256-zT1FjBg8Pg0p6Syfs15ZCXWEaihg28ArReQKtzutrAE=";
   };
 in
   stdenvNoCC.mkDerivation {
