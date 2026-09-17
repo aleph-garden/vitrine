@@ -6,6 +6,7 @@ import {
   fetchResource,
   installNavigation,
   issuerOf,
+  type Session,
   turtleParser
 } from '../src/main.ts'
 
@@ -192,11 +193,25 @@ describe('installNavigation', () => {
     return { runtime, mounted, dispatched, emit }
   }
 
+  const host = (
+    opens: 'any' | 'self' = 'self',
+    webId?: string
+  ): { opens: 'any' | 'self'; session: Session } => {
+    const session: Session = {
+      webId,
+      fetch: async () => new Response(''),
+      async login() {
+        return undefined as never
+      }
+    }
+    return { opens, session }
+  }
+
   test('an as:View for another resource mounts it and pushes history', async () => {
     const { runtime, mounted, emit } = fakeRuntime()
     const root = document.createElement('div')
     await runtime.mount(root, 'https://pod.example/a.md')
-    installNavigation(runtime, root)
+    installNavigation(runtime, root, host())
     emit({
       type: AS.View,
       object: 'https://pod.example/b.md',
@@ -207,12 +222,12 @@ describe('installNavigation', () => {
     expect(location.href).toBe('https://pod.example/b.md#Intro')
   })
 
-  test('an as:View for another origin pushes the IRI behind the shell origin', async () => {
+  test('under opens any, an as:View for another origin pushes the IRI behind the shell origin', async () => {
     const { runtime, mounted, emit } = fakeRuntime()
     const root = document.createElement('div')
     history.replaceState(null, '', 'https://pod.example/x')
     await runtime.mount(root, 'https://pod.example/x')
-    installNavigation(runtime, root)
+    installNavigation(runtime, root, host('any'))
     emit({
       type: AS.View,
       object: 'https://other.example/a.md',
@@ -226,11 +241,38 @@ describe('installNavigation', () => {
     })
   })
 
+  test('under opens self, an as:View for another origin goes to the browser', async () => {
+    const { runtime, mounted, emit } = fakeRuntime()
+    const root = document.createElement('div')
+    history.replaceState(null, '', 'https://pod.example/x')
+    await runtime.mount(root, 'https://pod.example/x')
+    const before = mounted.length
+    const assigned: string[] = []
+    const assign = location.assign
+    location.assign = (url: string | URL) => {
+      assigned.push(String(url))
+    }
+    try {
+      installNavigation(runtime, root, host('self'))
+      emit({
+        type: AS.View,
+        object: 'https://other.example/a.md',
+        target: 'https://other.example/a.md#Intro'
+      })
+      await new Promise((r) => setTimeout(r, 0))
+    } finally {
+      location.assign = assign
+    }
+    expect(assigned).toEqual(['https://other.example/a.md#Intro'])
+    expect(mounted.length).toBe(before)
+    expect(location.href).toBe('https://pod.example/x')
+  })
+
   test('an as:View for the same resource only replaces the hash; the runtime re-renders', async () => {
     const { runtime, mounted, dispatched, emit } = fakeRuntime()
     const root = document.createElement('div')
     await runtime.mount(root, 'https://pod.example/b.md')
-    installNavigation(runtime, root)
+    installNavigation(runtime, root, host())
     const before = mounted.length
     emit({
       type: AS.View,
@@ -248,7 +290,7 @@ describe('installNavigation', () => {
     const root = document.createElement('div')
     history.replaceState(null, '', 'https://pod.example/c.md')
     await runtime.mount(root, 'https://pod.example/c.md')
-    installNavigation(runtime, root)
+    installNavigation(runtime, root, host())
     history.replaceState(null, '', 'https://pod.example/c.md#Two')
     window.dispatchEvent(new PopStateEvent('popstate'))
     await new Promise((r) => setTimeout(r, 0))
@@ -269,7 +311,7 @@ describe('installNavigation', () => {
     })
     const { runtime, emit } = fakeRuntime(unauthorized)
     const root = document.createElement('div')
-    installNavigation(runtime, root)
+    installNavigation(runtime, root, host())
     emit({
       type: AS.View,
       object: 'https://pod.example/private.md',
@@ -282,7 +324,7 @@ describe('installNavigation', () => {
   test('any other failed mount shows the message and a link to the resource', async () => {
     const { runtime, emit } = fakeRuntime(new TypeError('Failed to fetch'))
     const root = document.createElement('div')
-    installNavigation(runtime, root)
+    installNavigation(runtime, root, host('any'))
     emit({
       type: AS.View,
       object: 'https://other.example/a.md',

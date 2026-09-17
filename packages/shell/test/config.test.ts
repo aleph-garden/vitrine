@@ -50,6 +50,14 @@ describe('readConfig', () => {
     })
   })
 
+  test('reads opens and drops a value that is neither any nor self', () => {
+    embed(JSON.stringify({ '@type': 'Host', opens: 'any' }))
+    expect(readConfig(document)).toEqual({ opens: 'any' })
+    for (const script of document.head.querySelectorAll('script')) script.remove()
+    embed(JSON.stringify({ '@type': 'Host', opens: 'everything' }))
+    expect(readConfig(document)).toEqual({})
+  })
+
   test('skips a node of another type and takes the first Host', () => {
     embed(JSON.stringify({ '@type': 'WebSite', issuer: 'https://wrong.example/' }))
     embed(JSON.stringify({ '@type': 'Host', issuer: 'https://first.example/' }))

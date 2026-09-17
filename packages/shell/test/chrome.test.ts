@@ -152,7 +152,7 @@ describe('installChrome', () => {
     const { runtime, emit } = fakeNavigableRuntime()
     const root = document.createElement('div')
     await runtime.mount(root, 'https://pod.example/notes/a.md')
-    installNavigation(runtime, root)
+    installNavigation(runtime, root, { opens: 'self', session: fakeSession().session })
     installChrome(host, fakeSession().session, undefined, runtime)
 
     emit({

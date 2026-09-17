@@ -232,16 +232,11 @@ export async function boot(chrome: Element, root: Element): Promise<void> {
   const runtime = createRuntime(renderer, (target) =>
     fetchResource(credentialed.has(new URL(target).origin) ? session.fetch : bare, target)
   )
-  sessions.set(runtime, session)
-  installNavigation(runtime, root)
+  installNavigation(runtime, root, { opens: config.opens ?? 'self', session })
   installChrome(chrome, session, config.issuer, runtime)
 
-  await mountInto(runtime, root, iri, hint)
+  await mountInto(runtime, root, iri, hint, session)
 }
-
-/** The session a runtime fetches with. A 401 is worth the login control only
- *  for a visitor without one, and every mount reports a failure alike. */
-const sessions = new WeakMap<Runtime, Session>()
 
 /** Mounts the resource into the region and puts a failure there: a 401
  *  without a session asks for the login the chrome offers, anything else
@@ -252,13 +247,14 @@ async function mountInto(
   runtime: Runtime,
   root: Element,
   iri: string,
-  hint: Hint | undefined
+  hint: Hint | undefined,
+  session: Session
 ): Promise<void> {
   try {
     await runtime.mount(root, iri, hint)
   } catch (e) {
     const status = (e as { status?: number }).status
-    if (status === 401 && !sessions.get(runtime)?.webId) {
+    if (status === 401 && !session.webId) {
       writeHtml(root, '<p class="login-needed">This resource needs a login.</p>')
       return
     }
@@ -289,20 +285,29 @@ async function applySnippets(fetch: Fetch): Promise<void> {
 
 /** as:View events from the runtime and popstate drive the address and
  *  the region: another resource is a `mount`, the same resource with a
- *  different fragment is a `dispatch` and no refetch. */
-export function installNavigation(runtime: Runtime, root: Element): void {
+ *  different fragment is a `dispatch` and no refetch. Under `opens: 'self'`
+ *  an IRI on another origin is the browser's, so the shell leaves the page. */
+export function installNavigation(
+  runtime: Runtime,
+  root: Element,
+  host: { opens: 'any' | 'self'; session: Session }
+): void {
   const current = () => runtime.instances().find((i) => i.region === root)
 
   runtime.listen((event) => {
     if (event.type !== AS.View || typeof event.object !== 'string') return
     const url = typeof event.target === 'string' ? event.target : event.object
+    if (host.opens === 'self' && new URL(url).origin !== location.origin) {
+      location.assign(url)
+      return
+    }
     const address = addressFor(url)
     if (current()?.iri === address.iri) {
       history.replaceState(null, '', address.href)
       return
     }
     history.pushState(null, '', address.href)
-    void mountInto(runtime, root, address.iri, address.hint)
+    void mountInto(runtime, root, address.iri, address.hint, host.session)
   })
 
   window.addEventListener('popstate', () => {
@@ -310,7 +315,7 @@ export function installNavigation(runtime: Runtime, root: Element): void {
     if (current()?.iri === iri) {
       void runtime.dispatch({ type: AS.View, object: iri, target: location.href })
     } else {
-      void mountInto(runtime, root, iri, hint)
+      void mountInto(runtime, root, iri, hint, host.session)
     }
   })
 }

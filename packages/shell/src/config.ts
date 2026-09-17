@@ -7,6 +7,10 @@ import type { Rule } from '@aleph-garden/view'
 export type Config = {
   issuer?: string
   sparqlEndpoint?: string
+  /** What the shell opens in place: `any` every IRI, `self` the resources of
+   *  its own origin, with every other link handed to the browser. Absent:
+   *  `self`. */
+  opens?: 'any' | 'self'
   /** View ids to register, in that order. Absent: every view of the bundle. */
   views?: string[]
   /** The registry's override rules; JSON, so `iri` and `contentType` are
@@ -28,6 +32,7 @@ export function readConfig(doc: Document): Config {
     const config: Config = {}
     if (node.issuer !== undefined) config.issuer = node.issuer
     if (node.sparqlEndpoint !== undefined) config.sparqlEndpoint = node.sparqlEndpoint
+    if (node.opens === 'any' || node.opens === 'self') config.opens = node.opens
     if (node.views !== undefined) config.views = node.views
     if (node.rules !== undefined) config.rules = node.rules
     return config
