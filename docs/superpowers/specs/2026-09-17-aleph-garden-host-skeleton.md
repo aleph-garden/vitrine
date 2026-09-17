@@ -278,7 +278,7 @@ fallback is the SPA mode (no `404.html`) with the policy on `/*`.
 One site build, from the workspace root:
 
 ```sh
-ALEPH_HOST=packages/www/host.jsonld bun run --cwd packages/shell build
+ALEPH_HOST=../www/host.jsonld bun run --cwd packages/shell build   # --cwd moves the process
 bun run --cwd packages/www build
 cp -R packages/shell/dist/. packages/www/dist/     # index.html + assets/ join docs/ + _astro/
 # deploy packages/www/dist to the Pages project aleph-garden
