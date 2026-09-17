@@ -231,6 +231,18 @@ describe('markdownView', () => {
     )
   })
 
+  test('renders a sparql block as code when no endpoint is configured', async () => {
+    const { ctx, calls } = ctxFor(pod())
+    const query = 'SELECT ?s WHERE { ?s ?p ?o } LIMIT 1'
+    const { html } = await markdownView({ webId: WEBID }).render(
+      note(`\`\`\`sparql\n${query}\n\`\`\`\n`),
+      ctx
+    )
+    expect(html).toContain('<pre><code class="language-sparql">')
+    expect(html).toContain('SELECT ?s WHERE')
+    expect(calls.filter((c) => c.includes('sparql'))).toEqual([])
+  })
+
   test('marks the fragment heading as flashing', async () => {
     const { ctx } = ctxFor(pod())
     const { html } = await view().render(note('# Top\n\n## Setup\n\nx\n'), ctx, {

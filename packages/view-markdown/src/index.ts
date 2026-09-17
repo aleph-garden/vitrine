@@ -22,8 +22,9 @@ import { parse as parseYaml } from 'yaml'
 
 export type MarkdownOptions = {
   /** Where `sparql` code blocks are sent: an endpoint IRI the host's
-   *  resolve answers, with the query appended as `?query=`. */
-  sparqlEndpoint: string
+   *  resolve answers, with the query appended as `?query=`. Absent: a
+   *  `sparql` block renders as a code block. */
+  sparqlEndpoint?: string
   /** Whose type index names the note containers. */
   webId: string
 }
@@ -62,7 +63,11 @@ export function markdownView(options: MarkdownOptions): View {
     for (const token of walk(tokens)) {
       if (token.type === 'wikilink' && linkOf(token).embed) {
         env.embeds.set(token, await renderEmbed(linkOf(token), resource, ctx, chain))
-      } else if (token.type === 'fence' && token.info.trim() === 'sparql') {
+      } else if (
+        token.type === 'fence' &&
+        token.info.trim() === 'sparql' &&
+        options.sparqlEndpoint !== undefined
+      ) {
         env.sparql.set(token, await runSparql(token.content, ctx, options.sparqlEndpoint))
       }
     }
@@ -155,7 +160,10 @@ function createMarkdownIt(): Md {
     const token = tokens[idx]!
     const info = token.info.trim()
     if (info === 'mermaid') return `<pre class="mermaid">${escapeHtml(token.content)}</pre>\n`
-    if (info === 'sparql') return (env as Env).sparql.get(token) ?? ''
+    if (info === 'sparql') {
+      const results = (env as Env).sparql.get(token)
+      if (results !== undefined) return results
+    }
     return fence(tokens, idx, options, env, self)
   }
 
