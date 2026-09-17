@@ -44,13 +44,20 @@ sequenceDiagram
   View->>Runtime: ctx.resolve(other)   (recorded as a dependency)
   View-->>Renderer: Rendered
   Renderer-->>Runtime: Rendered
-  Runtime->>Runtime: region.innerHTML = html
+  Runtime->>Runtime: writeHtml(region, html)
   Runtime->>View: hydrate(region, ctx)
   View-->>Runtime: Handle
   Runtime-->>Host: Instance
 ```
 
 `mount` rejects when `resolve` rejects, so the host can act on a `401`.
+
+`writeHtml` is the one place view HTML enters the document. It sanitizes
+against a fixed allowlist and, where the browser has Trusted Types, produces
+the `TrustedHTML` the sink takes. A view returns a string and never writes
+its region; a view that writes DOM in `hydrate` calls `writeHtml` for the
+same allowlist. [Foreign content](/docs/view/hosts/#foreign-content) has the
+rest of the reasoning.
 
 ## Two paths to a re-render
 
@@ -70,7 +77,7 @@ sequenceDiagram
   Bus->>Runtime: as:Update { object: X }
   alt X is the instance's IRI or a dependency
     Runtime->>View: dispose previous handle
-    Runtime->>Runtime: resolve(iri) again, render, replace region, hydrate
+    Runtime->>Runtime: resolve(iri) again, render, write region, hydrate
   else
     Runtime->>Runtime: nothing
   end
@@ -88,9 +95,9 @@ sequenceDiagram
   Bus->>Runtime: any event
   Runtime->>Handle: update(event)
   alt returns { slot, html }
-    Runtime->>Runtime: region.querySelector('[data-slot=slot]').innerHTML = html
+    Runtime->>Runtime: writeHtml(region.querySelector('[data-slot=slot]'), html)
   else returns { html }
-    Runtime->>Runtime: region.innerHTML = html
+    Runtime->>Runtime: writeHtml(region, html)
   else returns nothing
     Runtime->>Runtime: nothing
   end
@@ -116,8 +123,11 @@ flowchart LR
 ```
 
 Inside a region, the runtime turns a click on a same-origin link into an
-`as:View` with the link's IRI as `object` and the full URL as `target`. A
-view with other link semantics stops the click in its own `hydrate`.
+`as:View` with the link's IRI as `object` and the full URL as `target`. One
+declarative rule says which clicks stay with the browser: an anchor carrying
+a `target` or `download` attribute, and a click made with a modifier key or a
+non-primary button. A view marks the links the browser should follow by
+writing those attributes and needs no code for it.
 
 Navigation to another resource is the host's business: it sees the
 `as:View` through `listen` and calls `mount`. `dispatch` never replaces an

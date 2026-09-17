@@ -7,7 +7,9 @@ description: A rendering layer for resources on a Solid pod. One IRI in, HTML ou
 in, HTML comes out, and the piece that decides how is a plain rule table over
 a list of views. The first view renders Obsidian-flavored Markdown; the first
 host is a browser shell that a Community Solid Server hands out as the
-`text/html` representation of every resource.
+`text/html` representation of every resource. The same shell runs at
+`https://aleph.garden/`, where it renders its own landing view and opens any
+IRI written after the origin.
 
 This section is the public contract: the data that crosses the boundary,
 the selection rule, the re-render protocol, and what a host owes the
