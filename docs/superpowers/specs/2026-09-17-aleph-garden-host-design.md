@@ -310,6 +310,14 @@ By hand:
   on aleph.garden; the region shows the error and a link that opens the
   resource at its source. The `text/html` view above, and a proxy for
   RDF sources, are the two ways past this.
+- The chrome as a frame: the region inset, a slot in each corner, the
+  Aleph Garden icon at the top left as the one control that opens the
+  IRI field, the login and the WebID. Two things stay visible when it is
+  closed, since they are security state: the host name of the resource
+  on show beside the icon, and whether the session reaches it, as a badge
+  on the icon. The slots become regions of a layout resource later, so
+  the chrome is built the way everything else is. The icon doubles as the
+  site's favicon, which is missing today.
 - The apex move for `aleph.garden` from alvin to Pages, and removing the
   vhost there. A DNS change, done when the deploy from this repository
   stands.
