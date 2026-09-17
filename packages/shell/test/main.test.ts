@@ -164,7 +164,8 @@ describe('issuerOf', () => {
 })
 
 describe('installNavigation', () => {
-  const fakeRuntime = () => {
+  /** `fails`, when given, is what every mount rejects with. */
+  const fakeRuntime = (fails?: unknown) => {
     const mounted: { iri: string; hint?: unknown }[] = []
     const dispatched: Event[] = []
     const listeners = new Set<(e: Event) => void>()
@@ -172,6 +173,7 @@ describe('installNavigation', () => {
     const runtime: Runtime = {
       async mount(region, iri, hint) {
         mounted.push({ iri, hint })
+        if (fails !== undefined) throw fails
         current = { id: 'i', iri, hint, region, dependencies: new Set(), dispose() {} }
         return current
       },
@@ -259,5 +261,39 @@ describe('installNavigation', () => {
     window.dispatchEvent(new PopStateEvent('popstate'))
     await new Promise((r) => setTimeout(r, 0))
     expect(mounted.at(-1)).toEqual({ iri: 'https://pod.example/d.md', hint: { view: 'urn:x' } })
+  })
+
+  test('a mount that fails with a 401 asks for a login in the region', async () => {
+    const unauthorized = Object.assign(new Error('401 https://pod.example/private.md'), {
+      status: 401
+    })
+    const { runtime, emit } = fakeRuntime(unauthorized)
+    const root = document.createElement('div')
+    installNavigation(runtime, root)
+    emit({
+      type: AS.View,
+      object: 'https://pod.example/private.md',
+      target: 'https://pod.example/private.md'
+    })
+    await new Promise((r) => setTimeout(r, 0))
+    expect(root.querySelector('.login-needed')?.textContent).toBe('This resource needs a login.')
+  })
+
+  test('any other failed mount shows the message and a link to the resource', async () => {
+    const { runtime, emit } = fakeRuntime(new TypeError('Failed to fetch'))
+    const root = document.createElement('div')
+    installNavigation(runtime, root)
+    emit({
+      type: AS.View,
+      object: 'https://other.example/a.md',
+      target: 'https://other.example/a.md'
+    })
+    await new Promise((r) => setTimeout(r, 0))
+    const error = root.querySelector('.error')
+    expect(error?.textContent).toContain('Failed to fetch')
+    const link = error?.querySelector('a')
+    expect(link?.getAttribute('href')).toBe('https://other.example/a.md')
+    expect(link?.getAttribute('target')).toBe('_top')
+    expect(link?.textContent).toBe('Open at source')
   })
 })

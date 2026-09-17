@@ -7,6 +7,7 @@ import {
   containerView,
   createRenderer,
   fallbackView,
+  type Hint,
   objects,
   type Parser,
   type Quad,
@@ -220,20 +221,50 @@ export async function boot(chrome: Element, root: Element): Promise<void> {
     views: config.views ? config.views.flatMap((id) => byId.get(id) ?? []) : bundle,
     rules: config.rules
   })
-  const runtime = createRuntime(renderer, (target) => fetchResource(session.fetch, target))
+  // A DPoP token names the visitor and their issuer to whoever receives it,
+  // so it goes only to the origins the session already stands on: the shell's
+  // own, the WebID's and the issuer's. Every other IRI is fetched bare.
+  const credentialed = new Set([location.origin])
+  for (const source of [session.webId, config.issuer]) {
+    if (source) credentialed.add(new URL(source).origin)
+  }
+  const bare: Fetch = (input, init) => globalThis.fetch(input, init)
+  const runtime = createRuntime(renderer, (target) =>
+    fetchResource(credentialed.has(new URL(target).origin) ? session.fetch : bare, target)
+  )
+  sessions.set(runtime, session)
   installNavigation(runtime, root)
   installChrome(chrome, session, config.issuer, runtime)
 
+  await mountInto(runtime, root, iri, hint)
+}
+
+/** The session a runtime fetches with. A 401 is worth the login control only
+ *  for a visitor without one, and every mount reports a failure alike. */
+const sessions = new WeakMap<Runtime, Session>()
+
+/** Mounts the resource into the region and puts a failure there: a 401
+ *  without a session asks for the login the chrome offers, anything else
+ *  shows the message with a link to the resource itself, which a foreign
+ *  https resource needs when CORS refuses the shell and the browser can
+ *  still open it. */
+async function mountInto(
+  runtime: Runtime,
+  root: Element,
+  iri: string,
+  hint: Hint | undefined
+): Promise<void> {
   try {
     await runtime.mount(root, iri, hint)
   } catch (e) {
     const status = (e as { status?: number }).status
-    if (status === 401 && !session.webId) {
+    if (status === 401 && !sessions.get(runtime)?.webId) {
       writeHtml(root, '<p class="login-needed">This resource needs a login.</p>')
       return
     }
     const message = e instanceof Error ? e.message : String(e)
-    writeHtml(root, `<p class="error">${escapeText(message)}</p>`)
+    const link = `<a href="${escapeAttr(iri)}" target="_top">Open at source</a>`
+    writeHtml(root, `<p class="error">${escapeText(message)} ${link}</p>`)
   }
 }
 
@@ -271,7 +302,7 @@ export function installNavigation(runtime: Runtime, root: Element): void {
       return
     }
     history.pushState(null, '', address.href)
-    void runtime.mount(root, address.iri, address.hint)
+    void mountInto(runtime, root, address.iri, address.hint)
   })
 
   window.addEventListener('popstate', () => {
@@ -279,11 +310,15 @@ export function installNavigation(runtime: Runtime, root: Element): void {
     if (current()?.iri === iri) {
       void runtime.dispatch({ type: AS.View, object: iri, target: location.href })
     } else {
-      void runtime.mount(root, iri, hint)
+      void mountInto(runtime, root, iri, hint)
     }
   })
 }
 
 function escapeText(text: string): string {
   return text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+}
+
+function escapeAttr(value: string): string {
+  return escapeText(value).replaceAll('"', '&quot;')
 }
