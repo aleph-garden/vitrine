@@ -173,9 +173,10 @@ it started in". The two agree everywhere except at `https://aleph.garden/`
 itself: that location carries no prefix, so nothing in it says which
 scheme it started in, and the landing page's IRI field has to open
 `https://pod.toph.so/public/` as `https://aleph.garden/https://pod.toph.so/public/`.
-On a pod, a link to another origin now stays inside the shell as well, as
-`https://pod.toph.so/https://…`; the pod serves the shell for that path
-like for any other.
+`addressFor` maps a link to another origin on a pod to
+`https://pod.toph.so/https://…` as well, and the pod serves the shell for
+that path like for any other; whether the pod's shell opens it there or
+hands it to the browser is the host document's `opens`, below.
 
 ```ts
 export function installNavigation(
