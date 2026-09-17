@@ -177,11 +177,20 @@ On a pod, a link to another origin now stays inside the shell as well, as
 `https://pod.toph.so/https://…`; the pod serves the shell for that path
 like for any other.
 
-`installNavigation(runtime, root, opens)` takes the host document's
-`opens`. An `as:View` whose IRI is on another origin under `'self'` is
+```ts
+export function installNavigation(
+  runtime: Runtime,
+  root: Element,
+  host: { opens: 'any' | 'self'; session: Session }
+): void
+```
+
+An `as:View` whose IRI is on another origin under `'self'` is
 `location.assign(url)`, and the browser takes over. Otherwise:
 `pushState(a.href)`, `mount(root, a.iri, a.hint)`, and "same resource" is
-`a.iri === current.iri`.
+`a.iri === current.iri`. A rejected mount is handled here the way `boot`
+handles the first one: a 401 without `session.webId` writes the
+login-needed sentence, anything else the error with a link to the source.
 
 ## Session
 
