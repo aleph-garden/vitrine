@@ -63,9 +63,26 @@ describe('linkEvents', () => {
     ])
   })
 
-  test('leaves a foreign-origin link alone', () => {
+  test('turns a foreign-origin link into as:View', () => {
     const el = region()
-    el.innerHTML = `<a id="l" href="https://elsewhere.example/x">x</a>`
+    el.innerHTML = `<a id="l" href="https://elsewhere.example/x#Intro">x</a>`
+    const events: Event[] = []
+    linkEvents(el, (e) => events.push(e))
+    const click = new MouseEvent('click', { bubbles: true, cancelable: true })
+    el.querySelector('#l')!.dispatchEvent(click)
+    expect(click.defaultPrevented).toBe(true)
+    expect(events).toEqual([
+      {
+        type: AS.View,
+        object: 'https://elsewhere.example/x',
+        target: 'https://elsewhere.example/x#Intro'
+      }
+    ])
+  })
+
+  test('leaves a mailto link to the browser', () => {
+    const el = region()
+    el.innerHTML = `<a id="l" href="mailto:x@example.com">x</a>`
     const events: Event[] = []
     linkEvents(el, (e) => events.push(e))
     const click = new MouseEvent('click', { bubbles: true, cancelable: true })

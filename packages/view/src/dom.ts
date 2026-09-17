@@ -39,12 +39,13 @@ export type Runtime = {
   listen(listener: (event: Event) => void): () => void
 }
 
-/** Inside a region, a click on a same-origin `<a href>` becomes an as:View
- *  event with the link's IRI as object and its fragment in the hint. The
- *  runtime installs this on every region it mounts. A view marks a link the
- *  browser should follow with `target` or `download`, and a click carrying a
- *  modifier key or a non-primary button belongs to the browser too; the
- *  runtime lets those through untouched. */
+/** Inside a region, a click on an `<a href>` whose URL is `http:` or
+ *  `https:` becomes an as:View event, whatever its origin, with the link's
+ *  IRI as object and its fragment in the hint. The runtime installs this on
+ *  every region it mounts. A view marks a link the browser should follow
+ *  with `target` or `download`, a click carrying a modifier key or a
+ *  non-primary button belongs to the browser too, and so does a link with
+ *  any other protocol (`mailto:`, `tel:`, …). */
 export function linkEvents(region: Element, emit: (event: Event) => void): () => void {
   const onClick = (event: globalThis.Event) => {
     const e = event as MouseEvent
@@ -53,7 +54,7 @@ export function linkEvents(region: Element, emit: (event: Event) => void): () =>
     if (anchor.hasAttribute('target') || anchor.hasAttribute('download')) return
     if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button > 0) return
     const url = new URL(anchor.getAttribute('href')!, region.ownerDocument.baseURI)
-    if (url.origin !== location.origin) return
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return
     e.preventDefault()
     const target = url.href
     url.hash = ''
