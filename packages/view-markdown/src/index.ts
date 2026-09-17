@@ -28,7 +28,7 @@ export type MarkdownOptions = {
   webId: string
 }
 
-export const MARKDOWN_VIEW = 'https://aleph.garden/ns/view#Markdown'
+export const MARKDOWN_VIEW = 'https://w3id.org/aleph/ns/view#Markdown'
 
 const IMAGE = /\.(png|jpe?g|gif|svg|webp|avif)$/i
 const EMBED_DEPTH = 3

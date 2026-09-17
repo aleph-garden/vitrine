@@ -44,7 +44,7 @@ export const AS = {
 } as const
 
 export const ALEPH = {
-  Select: 'https://aleph.garden/ns/view#Select'
+  Select: 'https://w3id.org/aleph/ns/view#Select'
 } as const
 
 // ------------------------------------------------------------- context
@@ -209,7 +209,7 @@ function childName(parent: string, child: string): string {
 }
 
 export const containerView: View = {
-  id: 'https://aleph.garden/ns/view#Container',
+  id: 'https://w3id.org/aleph/ns/view#Container',
   when: [{ container: true }],
   async render(resource) {
     const items = objects(resource.meta, resource.iri, LDP_CONTAINS).map((child) => {
@@ -250,7 +250,7 @@ function graphHtml(graph: Quad[]): string {
 }
 
 export const fallbackView: View = {
-  id: 'https://aleph.garden/ns/view#Fallback',
+  id: 'https://w3id.org/aleph/ns/view#Fallback',
   when: [],
   async render(resource) {
     if (resource.graph) return { html: graphHtml(resource.graph) }
