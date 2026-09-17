@@ -14,7 +14,7 @@ const POLICY = [
   "base-uri 'none'",
   "frame-ancestors 'none'",
   "require-trusted-types-for 'script'",
-  'trusted-types aleph'
+  'trusted-types aleph dompurify'
 ].join('; ')
 
 const IRI_PATH = /^\/https?:\/\//

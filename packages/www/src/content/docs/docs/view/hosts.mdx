@@ -205,7 +205,10 @@ Isolation comes in two stages, and the browser provides both.
 - Trusted Types where the browser has them. One policy, named `aleph`,
   produces every `TrustedHTML` the bundle writes, and its `createHTML` is
   the sanitizer, so a DOM sink anywhere in the bundle refuses a plain
-  string.
+  string. The sanitizer's own `dompurify` policy labels the string it
+  parses internally, and the parse result is sanitized before `aleph`'s
+  `createHTML` returns it; both names sit in the CSP's `trusted-types`
+  directive.
 
 What the first stage leaves open: `style-src` admits inline styles and
 `img-src` any https host, so a style attribute inside content can still
