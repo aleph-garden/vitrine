@@ -56,6 +56,7 @@
   --font-text-size: 16px;
   --line-height: 1.6;
   --file-line-width: 700px;
+  --frame-inset: 3rem;
   --radius-s: 4px;
   --radius-m: 8px;
 }
@@ -73,7 +74,7 @@ body {
 #root {
   max-width: var(--file-line-width);
   margin: 0 auto;
-  padding: 2rem 1.5rem 6rem;
+  padding: var(--frame-inset) 1.5rem;
 }
 
 a {
@@ -267,36 +268,96 @@ a:hover {
   white-space: pre-wrap;
 }
 
-/* The shell's chrome: what is on show, the IRI field, login. */
+/* The shell's chrome: a frame of four corner slots over the region. Only the
+   top left is filled: the brand mark, the host name of the resource on show
+   and the dot, with the rest behind the mark in a panel. */
 #chrome {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+  font-size: 0.85rem;
+}
+#chrome .corner {
+  position: absolute;
   display: flex;
-  align-items: baseline;
-  gap: 1rem;
-  padding: 0.5rem 1rem;
-  border-bottom: 1px solid var(--background-modifier-border);
-  font-size: 0.85em;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  pointer-events: auto;
 }
-#chrome .showing {
+#chrome .top-left {
+  top: 0;
+  left: 0;
+}
+#chrome .top-right {
+  top: 0;
+  right: 0;
+}
+#chrome .bottom-left {
+  bottom: 0;
+  left: 0;
+}
+#chrome .bottom-right {
+  bottom: 0;
+  right: 0;
+}
+
+#chrome .icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+#chrome .icon img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+#chrome .host {
   color: var(--text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
-#chrome .origin {
-  color: var(--text-normal);
+#chrome .dot {
+  width: 0.5em;
+  height: 0.5em;
+  border-radius: 50%;
+  background: var(--text-faint);
 }
-#chrome .anonymous {
+#chrome .dot[data-state="reaches"] {
+  background: var(--interactive-accent);
+}
+
+#chrome .panel {
+  position: absolute;
+  top: 100%;
+  left: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 20rem;
+  max-width: min(32rem, calc(100vw - 2rem));
+  padding: 0.8rem;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+}
+#chrome .panel .iri {
   color: var(--text-muted);
-  font-size: 0.9em;
+  word-break: break-all;
+}
+#chrome .panel .webid {
+  color: var(--text-muted);
+  word-break: break-all;
 }
 #chrome form {
   display: flex;
   gap: 0.4rem;
 }
-#chrome .open {
-  margin-left: auto;
-}
 #chrome input {
+  flex: 1;
+  min-width: 0;
   background: var(--background-modifier-form-field);
   border: 1px solid var(--background-modifier-border);
   border-radius: var(--radius-s);
@@ -304,7 +365,8 @@ a:hover {
   font: inherit;
   padding: 0.2em 0.5em;
 }
-#chrome button {
+#chrome button[type="submit"],
+#chrome button.login {
   background: var(--interactive-accent);
   color: var(--text-on-accent);
   border: 0;

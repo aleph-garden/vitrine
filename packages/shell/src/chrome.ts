@@ -1,20 +1,25 @@
-// The shell's own controls, outside the region and on every host: what is on
-// show, the field that opens an IRI, and login. Session belongs to the host,
-// so no view ever renders these, and credentials are typed at the issuer.
+// The shell's own controls, outside the region and on every host. The frame's
+// top left keeps what a browser keeps in view: the brand mark and the host
+// name of the resource on show, with a dot for whether the session reaches it.
+// The mark opens a panel with the rest: the IRI on show, the field that opens
+// an IRI, and login. Session belongs to the host, so no view ever renders
+// these, and credentials are typed at the issuer.
 
 import { AS } from '@aleph-garden/view'
 import type { Runtime } from '@aleph-garden/view/dom'
 import { addressOf } from './address.ts'
 import { issuerOf, type Session } from './main.ts'
 
-/** Renders into `host`: the origin and IRI of the resource on show (kept
- *  current from the runtime's instances, mirrored into document.title),
- *  the IRI field, which dispatches an as:View through the runtime, and
- *  the login control, which a session with a login has. Login goes to
- *  `issuer` when given, else asks for a WebID and resolves it through
- *  issuerOf. `credentialed` says whether the
- *  session reaches an origin; next to the WebID the chrome marks the resource
- *  on show anonymous while it does not. */
+/** Renders into the top left corner of `host`, which is the frame carrying
+ *  the four `.corner` elements. Closed, the corner holds the icon, the host
+ *  name of the resource on show, and the dot, which a host whose session has
+ *  neither a WebID nor a login leaves out. `credentialed` says whether the
+ *  session reaches an origin, which is the dot's `reaches` state. The icon
+ *  opens the panel below it, and a second click or `Escape` closes it: the
+ *  IRI on show, the IRI field, which dispatches an as:View through the
+ *  runtime, and the login control, which a session with a login has. Login
+ *  goes to `issuer` when given, else asks for a WebID and resolves it through
+ *  issuerOf. The IRI on show is mirrored into document.title. */
 export function installChrome(
   host: Element,
   session: Session,
@@ -22,28 +27,40 @@ export function installChrome(
   runtime: Runtime,
   credentialed: (origin: string) => boolean
 ): void {
-  const origin = element('span', 'origin')
-  const iri = element('span', 'iri')
-  const showing = element('span', 'showing')
-  showing.append(origin, ' ', iri)
+  const corner = host.querySelector('.corner.top-left')!
+  const icon = brandMark()
+  const hostName = element('span', 'host')
+  const dot = element('span', 'dot')
+  // A session with neither is no session at all: the visitor is anonymous
+  // everywhere and the dot would say the same thing on every host.
+  const hasSession = session.login !== undefined || session.webId !== undefined
+  corner.replaceChildren(icon, hostName, ...(hasSession ? [dot] : []))
 
+  const iri = element('span', 'iri')
+  const panel = element('div', 'panel')
   const login = loginControl(session, issuer)
-  const anonymous = element('span', 'anonymous')
-  anonymous.textContent = 'anonymous here'
-  host.replaceChildren(showing, openForm(runtime), ...(login ? [login] : []))
+  panel.append(iri, openForm(runtime), ...(login ? [login] : []))
+
+  const close = () => {
+    panel.remove()
+    icon.setAttribute('aria-expanded', 'false')
+  }
+  icon.addEventListener('click', () => {
+    if (panel.isConnected) return close()
+    corner.append(panel)
+    icon.setAttribute('aria-expanded', 'true')
+  })
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') close()
+  })
 
   const show = () => {
     const address = addressOf(location.href)
-    origin.textContent = new URL(address.iri).hostname
+    const url = new URL(address.iri)
+    hostName.textContent = url.hostname
     iri.textContent = address.iri
+    dot.dataset.state = credentialed(url.origin) ? 'reaches' : 'anonymous'
     document.title = `${address.iri} · Aleph Garden`
-    // A visitor without a session is anonymous everywhere, which the login
-    // control already says.
-    if (login && session.webId !== undefined && !credentialed(new URL(address.iri).origin)) {
-      login.after(anonymous)
-    } else {
-      anonymous.remove()
-    }
   }
   show()
   // Navigation has updated the location by the time a host listener runs,
@@ -52,6 +69,20 @@ export function installChrome(
     if (event.type === AS.View) show()
   })
   window.addEventListener('popstate', show)
+}
+
+/** The brand mark as the button that opens the panel. The image carries no
+ *  alternative text: the button is labelled. */
+function brandMark(): HTMLButtonElement {
+  const button = element('button', 'icon')
+  button.type = 'button'
+  button.setAttribute('aria-label', 'Aleph Garden')
+  button.setAttribute('aria-expanded', 'false')
+  const mark = document.createElement('img')
+  mark.src = '/aleph.svg'
+  mark.alt = ''
+  button.append(mark)
+  return button
 }
 
 function openForm(runtime: Runtime): HTMLFormElement {

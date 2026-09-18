@@ -14,6 +14,18 @@ const PROFILE = `@prefix solid: <http://www.w3.org/ns/solid/terms#> .
   @prefix pim: <http://www.w3.org/ns/pim/space#> .
   <${PROFILE_WEBID}> solid:oidcIssuer <https://idp.example/> ; pim:storage <https://store.example/> .`
 
+/** The frame as index.html carries it; boot installs the chrome in a corner. */
+const frame = (): HTMLElement => {
+  const el = document.createElement('div')
+  el.className = 'frame'
+  for (const place of ['top-left', 'top-right', 'bottom-left', 'bottom-right']) {
+    const corner = document.createElement('div')
+    corner.className = `corner ${place}`
+    el.append(corner)
+  }
+  return el
+}
+
 /** The URL the silent re-login hands back, or undefined for no restore. */
 let restored: string | undefined
 /** The WebID the fake session reports, and the status its profile answers with. */
@@ -99,21 +111,21 @@ describe('createSession', () => {
 describe('boot', () => {
   test('mounts the resource the restored URL names', async () => {
     restored = `${WANTED_URL}#Intro`
-    await boot(document.createElement('header'), document.createElement('div'))
+    await boot(frame(), document.createElement('div'))
     expect(fetched).toContain(WANTED_URL)
     expect(fetched).not.toContain(LOGIN_URL)
   })
 
   test('reaches another origin without the session', async () => {
     history.replaceState(null, '', `https://pod.example/${FOREIGN_URL}`)
-    await boot(document.createElement('header'), document.createElement('div'))
+    await boot(frame(), document.createElement('div'))
     expect(anonymous).toContain(FOREIGN_URL)
     expect(fetched).not.toContain(FOREIGN_URL)
   })
 
   test("reaches the WebID's origin with the session", async () => {
     history.replaceState(null, '', WANTED_URL)
-    await boot(document.createElement('header'), document.createElement('div'))
+    await boot(frame(), document.createElement('div'))
     expect(fetched).toContain(WANTED_URL)
     expect(anonymous).not.toContain(WANTED_URL)
   })
@@ -123,7 +135,7 @@ describe('boot and the profile the WebID names', () => {
   const mount = async (iri: string): Promise<Element> => {
     history.replaceState(null, '', `https://pod.example/${iri}`)
     const root = document.createElement('div')
-    await boot(document.createElement('header'), root)
+    await boot(frame(), root)
     return root
   }
 
@@ -177,7 +189,7 @@ describe('boot and the host document', () => {
   test('registers only the views the document names', async () => {
     hostDocument({ '@type': 'Host', views: [FALLBACK_VIEW] })
     const root = document.createElement('div')
-    await boot(document.createElement('header'), root)
+    await boot(frame(), root)
     expect(root.querySelector('pre.raw')).not.toBeNull()
     expect(root.querySelector('.markdown-preview-view')).toBeNull()
   })
@@ -185,14 +197,14 @@ describe('boot and the host document', () => {
   test('a document with session false fetches everything without the session', async () => {
     hostDocument({ '@type': 'Host', session: false })
     history.replaceState(null, '', WANTED_URL)
-    await boot(document.createElement('header'), document.createElement('div'))
+    await boot(frame(), document.createElement('div'))
     expect(anonymous).toContain(WANTED_URL)
     expect(fetched).toHaveLength(0)
   })
 
   test('registers the whole bundle when the document names no views', async () => {
     const root = document.createElement('div')
-    await boot(document.createElement('header'), root)
+    await boot(frame(), root)
     expect(root.querySelector('.markdown-preview-view')).not.toBeNull()
   })
 })

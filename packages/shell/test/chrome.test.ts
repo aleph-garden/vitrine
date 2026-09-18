@@ -75,35 +75,119 @@ const submit = (form: HTMLFormElement, value: string): boolean => {
   return form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }))
 }
 
+/** The frame as index.html carries it: four corners, the chrome in the first. */
+const frame = (): HTMLElement => {
+  const el = document.createElement('div')
+  el.id = 'chrome'
+  el.className = 'frame'
+  for (const place of ['top-left', 'top-right', 'bottom-left', 'bottom-right']) {
+    const corner = document.createElement('div')
+    corner.className = `corner ${place}`
+    el.append(corner)
+  }
+  return el
+}
+
 describe('installChrome', () => {
   let host: HTMLElement
 
+  const icon = () => host.querySelector<HTMLButtonElement>('button.icon')!
+  const pressEscape = () =>
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+
   beforeEach(() => {
-    host = document.createElement('header')
+    host = frame()
     document.body.append(host)
     history.replaceState(null, '', 'https://pod.example/notes/a.md')
   })
 
   afterEach(() => host.remove())
 
-  test('names the origin and the IRI on show, and mirrors the IRI into the title', () => {
+  test('closed, the frame carries the icon and the host name and nothing else', () => {
+    const { runtime } = fakeRuntime()
+    installChrome(host, fakeSession().session, 'https://pod.example/', runtime, everywhere)
+    const corner = host.querySelector('.corner.top-left')!
+    expect(corner.querySelector('button.icon img')?.getAttribute('src')).toBe('/aleph.svg')
+    expect(icon().getAttribute('aria-expanded')).toBe('false')
+    expect(corner.querySelector('.host')?.textContent).toBe('pod.example')
+    expect(host.querySelector('.panel')).toBeNull()
+    expect(host.querySelector('form')).toBeNull()
+    expect(host.querySelector('.iri')).toBeNull()
+    expect(host.querySelector('.webid')).toBeNull()
+    expect(host.querySelector('.login')).toBeNull()
+  })
+
+  test('the dot says whether the session reaches the origin on show', () => {
+    history.replaceState(null, '', 'https://pod.example/https://other.example/a.md')
+    const { runtime, emit } = fakeRuntime()
+    const { session } = fakeSession('https://me.example/card#me')
+    installChrome(host, session, undefined, runtime, (o) => o === 'https://pod.example')
+    expect(host.querySelector('.dot')?.getAttribute('data-state')).toBe('anonymous')
+
+    history.replaceState(null, '', 'https://pod.example/notes/b.md')
+    emit({ type: AS.View, object: 'https://pod.example/notes/b.md' })
+    expect(host.querySelector('.dot')?.getAttribute('data-state')).toBe('reaches')
+  })
+
+  test('a host without a session shows no dot', () => {
+    const { runtime } = fakeRuntime()
+    installChrome(host, anonymousSession(), 'https://pod.example/', runtime, everywhere)
+    expect(host.querySelector('.dot')).toBeNull()
+  })
+
+  test('the icon opens the panel and a second click closes it', () => {
+    const { runtime } = fakeRuntime()
+    installChrome(host, fakeSession().session, 'https://pod.example/', runtime, everywhere)
+    icon().click()
+    const panel = host.querySelector('.corner.top-left > .panel')!
+    expect(icon().getAttribute('aria-expanded')).toBe('true')
+    expect(panel.querySelector('.iri')?.textContent).toBe('https://pod.example/notes/a.md')
+    expect(panel.querySelector('form.open')).not.toBeNull()
+    expect(panel.querySelector('button.login')).not.toBeNull()
+
+    icon().click()
+    expect(host.querySelector('.panel')).toBeNull()
+    expect(icon().getAttribute('aria-expanded')).toBe('false')
+  })
+
+  test('Escape closes the panel', () => {
+    const { runtime } = fakeRuntime()
+    installChrome(host, fakeSession().session, undefined, runtime, everywhere)
+    icon().click()
+    expect(host.querySelector('.panel')).not.toBeNull()
+    pressEscape()
+    expect(host.querySelector('.panel')).toBeNull()
+    expect(icon().getAttribute('aria-expanded')).toBe('false')
+  })
+
+  test('names the host and the IRI on show, and mirrors the IRI into the title', () => {
     history.replaceState(null, '', 'https://pod.example/https://other.example/a.md')
     const { runtime, emit } = fakeRuntime()
     installChrome(host, fakeSession().session, undefined, runtime, everywhere)
-    expect(host.querySelector('.showing .origin')?.textContent).toBe('other.example')
-    expect(host.querySelector('.showing .iri')?.textContent).toBe('https://other.example/a.md')
+    icon().click()
+    expect(host.querySelector('.host')?.textContent).toBe('other.example')
+    expect(host.querySelector('.panel .iri')?.textContent).toBe('https://other.example/a.md')
     expect(document.title).toBe('https://other.example/a.md · Aleph Garden')
 
     history.replaceState(null, '', 'https://pod.example/notes/b.md')
     emit({ type: AS.View, object: 'https://pod.example/notes/b.md' })
-    expect(host.querySelector('.showing .origin')?.textContent).toBe('pod.example')
-    expect(host.querySelector('.showing .iri')?.textContent).toBe('https://pod.example/notes/b.md')
+    expect(host.querySelector('.host')?.textContent).toBe('pod.example')
+    expect(host.querySelector('.panel .iri')?.textContent).toBe('https://pod.example/notes/b.md')
     expect(document.title).toBe('https://pod.example/notes/b.md · Aleph Garden')
+  })
+
+  test('the host name follows popstate', () => {
+    const { runtime } = fakeRuntime()
+    installChrome(host, fakeSession().session, undefined, runtime, everywhere)
+    history.replaceState(null, '', 'https://pod.example/https://other.example/a.md')
+    window.dispatchEvent(new Event('popstate'))
+    expect(host.querySelector('.host')?.textContent).toBe('other.example')
   })
 
   test('the IRI field dispatches an as:View and keeps the page', () => {
     const { runtime, dispatched } = fakeRuntime()
     installChrome(host, fakeSession().session, undefined, runtime, everywhere)
+    icon().click()
     const form = host.querySelector<HTMLFormElement>('form.open')!
     expect(submit(form, 'https://pod.toph.so/public/')).toBe(false)
     expect(dispatched).toEqual([{ type: AS.View, object: 'https://pod.toph.so/public/' }])
@@ -113,6 +197,7 @@ describe('installChrome', () => {
     const { runtime } = fakeRuntime()
     const { session } = fakeSession('https://me.example/card#me')
     installChrome(host, session, 'https://pod.example/', runtime, everywhere)
+    icon().click()
     expect(host.querySelector('.webid')?.textContent).toBe('https://me.example/card#me')
     expect(host.querySelector('.login')).toBeNull()
   })
@@ -121,6 +206,7 @@ describe('installChrome', () => {
     const { runtime } = fakeRuntime()
     const { session, logins } = fakeSession()
     installChrome(host, session, 'https://pod.example/', runtime, everywhere)
+    icon().click()
     host.querySelector<HTMLButtonElement>('button.login')!.click()
     expect(logins).toEqual(['https://pod.example/'])
   })
@@ -133,6 +219,7 @@ describe('installChrome', () => {
         <https://me.example/card#me> solid:oidcIssuer <https://issuer.example/> .`)
     )
     installChrome(host, session, undefined, runtime, everywhere)
+    icon().click()
     const form = host.querySelector<HTMLFormElement>('form.login')!
     expect(submit(form, 'https://me.example/card#me')).toBe(false)
     await new Promise((r) => setTimeout(r, 0))
@@ -144,6 +231,7 @@ describe('installChrome', () => {
     const { runtime } = fakeRuntime()
     const { session, logins } = fakeSession(undefined, turtle(''))
     installChrome(host, session, undefined, runtime, everywhere)
+    icon().click()
     const form = host.querySelector<HTMLFormElement>('form.login')!
     submit(form, 'https://me.example/card#me')
     await new Promise((r) => setTimeout(r, 0))
@@ -151,38 +239,20 @@ describe('installChrome', () => {
     expect(form.querySelector('p.error')?.textContent).toContain('no solid:oidcIssuer')
   })
 
-  test('marks the resource on show anonymous while the session does not reach it', () => {
-    history.replaceState(null, '', 'https://pod.example/https://other.example/a.md')
-    const { runtime, emit } = fakeRuntime()
-    const { session } = fakeSession('https://me.example/card#me')
-    installChrome(host, session, undefined, runtime, (o) => o === 'https://pod.example')
-    expect(host.querySelector('.anonymous')?.textContent).toBe('anonymous here')
-
-    history.replaceState(null, '', 'https://pod.example/notes/b.md')
-    emit({ type: AS.View, object: 'https://pod.example/notes/b.md' })
-    expect(host.querySelector('.anonymous')).toBeNull()
-  })
-
-  test('marks nothing anonymous without a session', () => {
-    history.replaceState(null, '', 'https://pod.example/https://other.example/a.md')
-    const { runtime } = fakeRuntime()
-    installChrome(host, fakeSession().session, undefined, runtime, () => false)
-    expect(host.querySelector('.anonymous')).toBeNull()
-  })
-
   test('a host without a session shows no login control and no WebID', () => {
     const { runtime } = fakeRuntime()
     installChrome(host, anonymousSession(), 'https://pod.example/', runtime, everywhere)
+    icon().click()
     expect(host.querySelector('.login')).toBeNull()
     expect(host.querySelector('.webid')).toBeNull()
-    expect(host.querySelector('.anonymous')).toBeNull()
   })
 
   test('a host without a session keeps what is on show and the IRI field', () => {
     const { runtime, dispatched } = fakeRuntime()
     installChrome(host, anonymousSession(), undefined, runtime, everywhere)
-    expect(host.querySelector('.showing .origin')?.textContent).toBe('pod.example')
-    expect(host.querySelector('.showing .iri')?.textContent).toBe('https://pod.example/notes/a.md')
+    icon().click()
+    expect(host.querySelector('.host')?.textContent).toBe('pod.example')
+    expect(host.querySelector('.panel .iri')?.textContent).toBe('https://pod.example/notes/a.md')
     const form = host.querySelector<HTMLFormElement>('form.open')!
     expect(submit(form, 'https://pod.toph.so/public/')).toBe(false)
     expect(dispatched).toEqual([{ type: AS.View, object: 'https://pod.toph.so/public/' }])
@@ -198,6 +268,7 @@ describe('installChrome', () => {
       credentialed: everywhere
     })
     installChrome(host, fakeSession().session, undefined, runtime, everywhere)
+    icon().click()
 
     emit({
       type: AS.View,
@@ -206,6 +277,6 @@ describe('installChrome', () => {
     })
     await new Promise((r) => setTimeout(r, 0))
 
-    expect(host.querySelector('.showing .iri')?.textContent).toBe('https://pod.example/notes/b.md')
+    expect(host.querySelector('.panel .iri')?.textContent).toBe('https://pod.example/notes/b.md')
   })
 })
