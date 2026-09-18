@@ -1,14 +1,13 @@
-# The shell as a reader, round one: frame and switcher
+# The shell as a reader, round one: the frame
 
 The shell replaces Obsidian for reading and moving through the vault.
-This round gives it Obsidian's two habits that cost the least and carry
-the most: a chrome that stays out of the way, and a quick switcher.
-Sidebars, backlinks and search wait for the layout resource and the
-storage's services (see "Deferred").
+This round gives it the habit that costs the least and carries the most:
+a chrome that stays out of the way. A quick switcher, sidebars, backlinks
+and search wait for a source of names the shell can ask without knowing
+a view, and for the layout resource (see "Deferred").
 
 It builds on the [host design](2026-09-17-aleph-garden-host-design.md)
-and changes no host document key. One contract in `view-markdown` grows
-by a method.
+and changes no host document key and no contract.
 
 ## The frame
 
@@ -44,8 +43,7 @@ icon.
 
 The icon opens a panel below it, and `Escape` or a second click closes
 it. The panel holds what the bar held until now, in this order: the full
-IRI on show, the IRI field ("Open an IRI"), the switcher's entry ("Open a
-note", present when a switcher exists), and the session control: the
+IRI on show, the IRI field ("Open an IRI"), and the session control: the
 WebID when logged in, the login button when the host names an issuer,
 the WebID form otherwise, nothing on a host without a session.
 
@@ -60,32 +58,6 @@ An SVG of the letter aleph on a round ground, in the shell's own
 `<link rel="icon">` in `index.html`. The pod hands static assets out
 beside the bundle already.
 
-## The quick switcher
-
-`Ctrl+O` (`Cmd+O` on a Mac) and the panel's entry open a prompt over the
-region: one text field, a list of up to twenty matches below it, the
-first selected. Typing filters, the arrow keys move the selection,
-`Enter` opens the selected note through an `as:View` on the runtime,
-`Escape` closes. A match is a note name from the wikilink index whose
-characters contain the typed ones in order; matches with the typed
-characters closer together and nearer the start rank first. No library.
-
-The index is the Markdown view's. Its contract grows by one method:
-
-```ts
-export type WikilinkIndex = {
-  lookup(name: string): string | undefined
-  /** Every name the index resolves, in no particular order. */
-  names(): string[]
-}
-```
-
-The shell builds a context for it with the runtime's `instanceContext`
-over its own resolve and asks `wikilinkIndex(ctx, webId)` once, when the
-switcher first opens. The index needs a WebID with a type index, so the
-switcher exists when the session has a WebID and the Markdown view is
-registered, and is absent otherwise; aleph.garden today has neither.
-
 ## Acceptance
 
 Unit:
@@ -94,28 +66,26 @@ Unit:
   credentialed predicate, and nothing else of the chrome is in the DOM
   until the icon is clicked
 - the panel opens and closes on click and on `Escape`, and carries the
-  IRI field, the session control, and the switcher entry only when a
-  switcher exists
-- the switcher filters `names()` by subsequence, ranks a tighter match
-  first, moves the selection with the arrow keys, and dispatches an
-  `as:View` with the selected IRI on `Enter`
-- `names()` returns every name the fixture index resolves
+  IRI field and the session control
 
 By hand, on `pod.toph.so`:
 
 - a note opens with the icon and `pod.toph.so` at the top left and
   nothing else over the content; the vault's snippet colors the frame
-- `Ctrl+O`, three letters of a note's name, `Enter`: the note is open,
-  the address follows
-- on aleph.garden the frame shows without a dot and without the switcher
+- the icon opens the panel; a wikilink click keeps the frame in place
+- on aleph.garden the frame shows without a dot and without a session
+  control
 
 ## Rejected
 
 - **Hiding the host name when the chrome is closed.** Then a page could
   pass for its content's origin, which the host design set out to
   prevent.
-- **A fuzzy-search library.** A subsequence match over a few thousand
-  names is a loop.
+- **A quick switcher over the Markdown view's wikilink index.** The
+  shell would then know one view, and the split that keeps views
+  ignorant of hosts would be crossed from the other side. The switcher
+  waits for a source of names that is nobody's view: a service of the
+  storage, or a contract in the core that any view or host can feed.
 - **Filling all four corners now.** Nothing has a claim on them yet; an
   empty slot costs one element.
 
@@ -127,4 +97,5 @@ By hand, on `pod.toph.so`:
   turned around or a service of the storage.
 - Full-text search as a view over a search service the storage
   description announces (see the ideas note).
-- A command palette behind the same prompt, once there are commands.
+- A quick switcher, once a name source exists (see "Rejected"), and a
+  command palette behind the same prompt once there are commands.
