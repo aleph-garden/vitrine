@@ -56,7 +56,7 @@
   --font-text-size: 16px;
   --line-height: 1.6;
   --file-line-width: 700px;
-  --frame-inset: 3rem;
+  --frame-inset: 3.25rem;
   --radius-s: 4px;
   --radius-m: 8px;
 }
@@ -336,8 +336,7 @@ a:hover {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  min-width: 20rem;
-  max-width: min(32rem, calc(100vw - 2rem));
+  width: min(32rem, calc(100vw - 2rem));
   padding: 0.8rem;
   background: var(--background-secondary);
   border: 1px solid var(--background-modifier-border);
