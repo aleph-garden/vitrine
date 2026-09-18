@@ -53,10 +53,12 @@ one gets the shell's defaults.
 
 ## The icon
 
-An SVG of the letter aleph on a round ground, in the shell's own
-`public/` so that both hosts serve it, and the document's favicon by a
-`<link rel="icon">` in `index.html`. The pod hands static assets out
-beside the bundle already.
+The brand mark alone, the four-tone aleph from the brand repository
+(`Asset 5` of its SVG set), copied unchanged as `aleph.svg` into the
+shell's own `public/` so that both hosts serve it, and the document's
+favicon by a `<link rel="icon">` in `index.html`. It reads on a dark and
+a light ground alike, so one file serves both themes. The pod hands
+static assets out beside the bundle already.
 
 ## Acceptance
 
