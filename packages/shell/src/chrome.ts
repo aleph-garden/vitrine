@@ -43,11 +43,16 @@ export function installChrome(
 
   const close = () => {
     panel.remove()
+    corner.removeAttribute('data-open')
     icon.setAttribute('aria-expanded', 'false')
   }
-  icon.addEventListener('click', () => {
+  // The whole pill opens the panel; once open, only the pill itself
+  // closes it, so a click inside the panel stays a click in the panel.
+  corner.addEventListener('click', (event) => {
+    if (panel.contains(event.target as Node)) return
     if (panel.isConnected) return close()
     corner.append(panel)
+    corner.setAttribute('data-open', '')
     icon.setAttribute('aria-expanded', 'true')
   })
   document.addEventListener('keydown', (event) => {

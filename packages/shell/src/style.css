@@ -283,12 +283,21 @@ a:hover {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.75rem 1rem;
+  margin: 0.75rem;
   pointer-events: auto;
 }
+/* The filled corner is a pill: a small floating card, never bare text. */
 #chrome .top-left {
   top: 0;
   left: 0;
+  padding: 0.6rem 1.7rem 0.6rem 0.6rem;
+  border-radius: 999px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+#chrome .top-left:not([data-open]) {
+  cursor: pointer;
 }
 #chrome .top-right {
   top: 0;
@@ -332,11 +341,12 @@ a:hover {
 #chrome .panel {
   position: absolute;
   top: 100%;
-  left: 1rem;
+  left: 0;
+  margin-top: 0.4rem;
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  width: min(32rem, calc(100vw - 2rem));
+  width: min(32rem, calc(100vw - 1.5rem));
   padding: 0.8rem;
   background: var(--background-secondary);
   border: 1px solid var(--background-modifier-border);
