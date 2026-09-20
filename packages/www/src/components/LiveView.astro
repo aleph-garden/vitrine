@@ -1,0 +1,68 @@
+---
+// Runs an example view in the page. The docs are a host: they answer
+// `resolve` from the fixture pod in @aleph-garden/view-examples and give the
+// runtime one region, which is everything a host owes.
+interface Props {
+  /** The IRI to show. Must exist in the examples' fixture pod. */
+  iri: string
+  /** A view id, when the page wants one in particular. */
+  view?: string
+  caption?: string
+}
+const { iri, view, caption } = Astro.props
+---
+
+<figure class="live-view">
+  <div class="live-view__region" data-live-view={iri} data-live-hint={view}></div>
+  <figcaption>{caption ?? iri}</figcaption>
+</figure>
+
+<script>
+  import { createRenderer } from '@aleph-garden/view'
+  import { createRuntime } from '@aleph-garden/view/dom'
+  import { checklistView, exampleResolve, personCardView } from '@aleph-garden/view-examples'
+
+  const renderer = createRenderer({ parsers: [], views: [personCardView, checklistView] })
+  const runtime = createRuntime(renderer, exampleResolve)
+
+  for (const region of document.querySelectorAll<HTMLElement>('[data-live-view]')) {
+    const iri = region.dataset.liveView
+    if (!iri) continue
+    const view = region.dataset.liveHint
+    void runtime.mount(region, iri, view ? { view } : undefined).catch((error: unknown) => {
+      region.textContent = error instanceof Error ? error.message : String(error)
+    })
+  }
+</script>
+
+<style>
+  .live-view {
+    margin: 1.5rem 0;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.5rem;
+    overflow: hidden;
+  }
+  .live-view__region {
+    padding: 1rem;
+  }
+  .live-view figcaption {
+    padding: 0.4rem 1rem;
+    font-size: var(--sl-text-xs);
+    color: var(--sl-color-gray-3);
+    background: var(--sl-color-gray-6);
+    border-top: 1px solid var(--sl-color-gray-5);
+  }
+  .live-view :global(.person-card h2) {
+    margin: 0 0 0.25rem;
+    font-size: var(--sl-text-lg);
+  }
+  .live-view :global(.checklist ul) {
+    margin: 0;
+    padding-left: 1.2rem;
+    list-style: none;
+  }
+  .live-view :global(.task.is-done) {
+    text-decoration: line-through;
+    opacity: 0.6;
+  }
+</style>

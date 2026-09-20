@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["**", "!packages/shell/public"]
+    "includes": ["**", "!packages/shell/public", "!**/*.astro"]
   },
   "formatter": {
     "enabled": true,

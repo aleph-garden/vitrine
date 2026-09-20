@@ -1,0 +1,112 @@
+---
+title: Build a host
+description: What a host owes the library, and the smallest one that works.
+---
+
+import LiveView from '../../../../../components/LiveView.astro'
+
+A host is whatever puts the library to work: it answers `resolve`, gives the
+runtime a region, and runs the re-render protocol. Everything the library
+refuses to decide belongs to it, which is fetching, session, navigation, the
+address, layout and chrome.
+
+Three hosts exist in this repository. A browser shell that a Solid server
+hands out as the `text/html` representation of every resource. The same
+shell at `aleph.garden`, where an IRI written after the origin opens there.
+And these documentation pages, which are the smallest host there is.
+
+## The smallest host
+
+```ts
+import { createRenderer } from '@aleph-garden/view'
+import { createRuntime } from '@aleph-garden/view/dom'
+
+const renderer = createRenderer({ parsers: [], views: [personCardView, checklistView] })
+const runtime = createRuntime(renderer, resolve)
+
+await runtime.mount(document.querySelector('#region'), iri)
+```
+
+That is this page. `resolve` answers from a record of fixture resources
+instead of the network, which is a difference no view can observe.
+
+<LiveView iri="https://example.org/people/grace" caption="mounted by the five lines above" />
+
+## What `resolve` owes
+
+```ts
+type Resolve = (iri: string) => Promise<Resource>
+```
+
+A `Resource` is the IRI, the content type, the body, `meta` for what the
+server says about the resource, `allow` for what this requester may do, and
+`graph` once a parser has filled it. The [contracts
+page](/docs/view/contracts/) has the shape.
+
+A browser host builds that from a response: `Content-Type` becomes the
+content type, `Link rel="type"` and `Last-Modified` become quads in `meta`,
+`WAC-Allow` becomes `allow`. Rejecting matters as much as resolving: a
+runtime `mount` rejects when `resolve` does, which is how a host learns it
+should show a login instead of a region.
+
+Two things are worth doing here and nowhere else. **Caching**, because ten
+transclusions of one note should be one request. **Authorisation**, because
+the credentials belong to the host and no view should ever see them.
+
+## Parsers
+
+The core has no RDF library. A host registers what it can parse:
+
+```ts
+const renderer = createRenderer({
+  parsers: [turtleParser()],
+  views: [...]
+})
+```
+
+Parsing runs before selection, so a rule can match on `rdf:type`. A host
+that never sees RDF registers none, and views then select by content type.
+
+## The region and the protocol
+
+`createRuntime` keeps one instance per region: the handle `hydrate`
+returned, and the set of IRIs that instance resolved. Delivering an event to
+it is the whole re-render protocol:
+
+```ts
+runtime.dispatch({ type: AS.Update, object: iri })   // that resource changed
+runtime.dispatch({ type: AS.View, object: iri, target: `${iri}#Setup` })
+```
+
+An instance whose handle has `update` answers events itself. Every other
+instance is re-rendered by the runtime when the event names one of its
+dependencies or changes its hint. A host does not decide which; it delivers
+everything and the instances sort it out.
+
+`runtime.listen` puts the host ahead of the instances, which is where
+navigation lives: the runtime turns a click on a link into an `as:View`
+event, the host hears it first and decides whether that means a new mount, a
+new address, or handing the URL to the browser.
+
+## What a host decides
+
+- **Which views exist.** The registry is the host's, and rules override
+  what each view claims about itself.
+- **What an IRI means.** The shell reads it from `location`; these pages
+  read it from an attribute; a desktop host might read it from a window
+  title.
+- **Whether there is a session.** No session is a valid answer: this page
+  has none, and `aleph.garden` runs without one.
+- **What a link does.** Open in place, open a new region, hand it to the
+  browser.
+
+## Hosts that are not browsers
+
+`render` returns a string and never touches the DOM, so a server-side host
+can run the same views and ship finished HTML, skipping `hydrate`. What such
+a host needs from a view is a statement about whether its output stands
+without hydration: KaTeX resolves in `render`, a diagram that needs a
+renderer does not. That declaration does not exist yet.
+
+The same property is what keeps a view in WebAssembly possible: data in,
+HTML out, one async import for reaching other resources.
