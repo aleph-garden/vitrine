@@ -24,12 +24,10 @@ specified and unbuilt.
   renders the note, and so does
   `https://aleph.garden/https://pod.toph.so/notes/Matrix.md` from the other
   host. The address bar stays the resource, and the browser's history works.
-- **Read a note the way Obsidian shows it.** Frontmatter as a properties
-  block, wikilinks in all four forms resolved by basename across the vault,
-  embeds inline, tags, task checkboxes, callouts, KaTeX math, mermaid
-  diagrams, and `sparql` blocks executed against the endpoint the host
-  names. The vault's own CSS snippets apply unchanged, since the view emits
-  Obsidian's class names.
+- **Read a note the way Obsidian shows it.** The Markdown view resolves
+  wikilinks across the vault, renders embeds, math, diagrams and `sparql`
+  blocks, and emits Obsidian's class names so the vault's own CSS applies.
+  It is one view under the contract, and a replaceable one.
 - **Look at everything else.** An LDP container lists its children, an RDF
   document becomes a statement table grouped by subject, other text is shown
   raw, and a binary is offered for download.
@@ -119,24 +117,11 @@ HTML into the document: through a sanitizer with an allowlist, under Trusted
 Types where the browser has them. The resource is untrusted input, and the
 renderers a view leans on have had injection bugs before.
 
-### What a deployment configures
-
-One JSON-LD node the build embeds into `index.html`:
-
-```json
-{
-  "@context": "https://w3id.org/aleph/ns/view",
-  "@type": "Host",
-  "issuer": "https://pod.toph.so/",
-  "sparqlEndpoint": "https://sparql.toph.so"
-}
-```
-
-`issuer` says where to log in, `sparqlEndpoint` where `sparql` blocks go,
-`session: false` makes every fetch anonymous and drops the login control,
-`opens` says whether the shell opens every IRI in place or only its own
-origin's, and `views` and `rules` choose among the bundle's views. Each key
-is optional.
+One deployment differs from another in a JSON-LD `Host` node the build
+embeds into the shell's `index.html`: where to log in, where `sparql` blocks
+go, whether the shell holds a session, which IRIs it opens in place, and
+which views and rules it registers. That surface is the shell's, and
+`docs/superpowers/specs/` fixes it.
 
 ## Packages
 

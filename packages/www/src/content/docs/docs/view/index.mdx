@@ -11,15 +11,11 @@ knows no server and no protocol, so a host fetches and the library renders.
 RDF is where the rule table earns its keep, since a condition can select a
 view by the resource's `rdf:type`.
 
-The hosts that exist speak Solid. The first view renders Obsidian-flavored
-Markdown, and a Community Solid Server hands the browser shell out as the
-`text/html` representation of every resource it serves. The same shell runs
-at `https://aleph.garden/`, where it renders its own landing view and opens
-any IRI written after the origin.
-
 This section is the public contract: the data that crosses the boundary,
 the selection rule, the re-render protocol, and what a host owes the
-library. Everything a view can do, it does through these.
+library. Everything a view can do, it does through these. Concrete views
+and concrete hosts are implementations under it and are documented where
+they live.
 
 ## The pipeline
 
@@ -63,9 +59,19 @@ see [Contracts](/docs/view/contracts/).
 View IRIs and the event types the library defines live under
 `https://w3id.org/aleph/ns/view#`.
 
-## What is deliberately outside
+## What a host is
 
-Navigation, session, editing, search and layout belong to a host. A view
-never fetches, never touches the address bar, never reaches outside its own
-region. The library does not model what a view is beyond the signature
-above: every case arrives as a concrete view under the same contract.
+A host is whatever answers `resolve`, places the HTML the library returns,
+and drives the re-render protocol. Everything the library refuses to decide
+is its: fetching, session, navigation, the address, editing, search, layout.
+A view never fetches, never touches the address bar, never reaches outside
+its own region.
+
+The repository ships one host, a browser shell. A Solid server hands it out
+as the `text/html` representation of every resource it serves, and the same
+bundle runs at `https://aleph.garden/` for any IRI written after the origin.
+What it configures, how it logs in and how it is deployed belong to that
+shell; the contract on this page holds whatever a host does with it.
+
+The library does not model what a view is beyond the signature above: every
+case arrives as a concrete view under the same contract.

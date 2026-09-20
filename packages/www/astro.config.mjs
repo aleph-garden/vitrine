@@ -20,9 +20,7 @@ export default defineConfig({
             { label: 'Overview', link: '/docs/view/' },
             { label: 'Contracts', link: '/docs/view/contracts/' },
             { label: 'Selection', link: '/docs/view/selection/' },
-            { label: 'Rendering and re-render', link: '/docs/view/rendering/' },
-            { label: 'Hosts', link: '/docs/view/hosts/' },
-            { label: 'The Markdown view', link: '/docs/view/markdown/' }
+            { label: 'Rendering and re-render', link: '/docs/view/rendering/' }
           ]
         }
       ]

@@ -55,9 +55,9 @@ sequenceDiagram
 Mount and every patch go through `writeHtml`, the one place view HTML
 enters the document. It sanitizes against a fixed allowlist and, where the
 browser has Trusted Types, produces the `TrustedHTML` the sink takes. A
-view's own writes in `hydrate` are the view's, and that is why the Markdown
-view stays off aleph.garden until the sandboxed region exists. [Foreign
-content](/docs/view/hosts/#foreign-content) has the rest of the reasoning.
+view's own writes in `hydrate` are outside that chokepoint, so a host that
+renders resources from origins it does not control decides for itself which
+views it registers there.
 
 ## Two paths to a re-render
 
