@@ -1,4 +1,4 @@
-# Why this exists (draft)
+# Why this exists
 
 ## The case it started from
 

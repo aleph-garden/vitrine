@@ -23,10 +23,28 @@ function hostDocument(): Plugin {
   }
 }
 
+/** Puts a text file into the document as an HTML comment. ALEPH_NOTE names
+ *  it, relative to the process cwd. A deployment that wants the document to
+ *  stay small, which a pod does, leaves the variable unset. */
+function documentNote(): Plugin {
+  return {
+    name: 'aleph-note',
+    transformIndexHtml(html) {
+      const path = process.env.ALEPH_NOTE
+      if (!path) return html
+      const text = readFileSync(path, 'utf8')
+      // The text goes in verbatim, so a comment terminator inside it would
+      // end the comment and spill the rest into the document.
+      if (text.includes('--' + '>')) throw new Error(`${path} contains a comment terminator`)
+      return html.replace('</head>', `<!--\n${text}\n-->\n</head>`)
+    }
+  }
+}
+
 // Assets must be addressed from the origin root: the document is served
 // under the IRI of whatever resource was requested.
 export default defineConfig({
   base: '/',
   build: { outDir: 'dist', emptyOutDir: true },
-  plugins: [hostDocument()]
+  plugins: [hostDocument(), documentNote()]
 })
