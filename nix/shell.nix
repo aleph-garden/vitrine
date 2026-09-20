@@ -84,7 +84,7 @@ in
     '';
 
     meta = {
-      description = "Browser shell of @aleph-garden/view, served by a Solid pod as its HTML view";
+      description = "Browser host of @aleph-garden/view: renders any IRI, and a Solid server hands it out as the HTML view of every resource";
       homepage = "https://github.com/aleph-garden/view";
       platforms = lib.platforms.unix;
     };

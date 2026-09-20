@@ -1,5 +1,5 @@
 {
-  description = "Rendering layer for resources on a Solid pod: one IRI in, HTML out";
+  description = "Rendering layer for IRIs: one IRI in, HTML out";
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 

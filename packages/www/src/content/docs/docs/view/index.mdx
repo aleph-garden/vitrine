@@ -1,15 +1,21 @@
 ---
 title: view
-description: A rendering layer for resources on a Solid pod. One IRI in, HTML out.
+description: A rendering layer for IRIs. One IRI in, HTML out.
 ---
 
-`@aleph-garden/view` turns a resource on a Solid pod into HTML. One IRI goes
-in, HTML comes out, and the piece that decides how is a plain rule table over
-a list of views. The first view renders Obsidian-flavored Markdown; the first
-host is a browser shell that a Community Solid Server hands out as the
-`text/html` representation of every resource. The same shell runs at
-`https://aleph.garden/`, where it renders its own landing view and opens any
-IRI written after the origin.
+`@aleph-garden/view` turns an IRI into HTML. One IRI goes in, HTML comes
+out, and the piece that decides how is a plain rule table over a list of
+views. What the library sees of a resource is its body, its content type,
+what the server says about it, and quads when the body carries RDF; the core
+knows no server and no protocol, so a host fetches and the library renders.
+RDF is where the rule table earns its keep, since a condition can select a
+view by the resource's `rdf:type`.
+
+The hosts that exist speak Solid. The first view renders Obsidian-flavored
+Markdown, and a Community Solid Server hands the browser shell out as the
+`text/html` representation of every resource it serves. The same shell runs
+at `https://aleph.garden/`, where it renders its own landing view and opens
+any IRI written after the origin.
 
 This section is the public contract: the data that crosses the boundary,
 the selection rule, the re-render protocol, and what a host owes the
@@ -48,11 +54,11 @@ see [Contracts](/docs/view/contracts/).
 
 ## Packages
 
-| Package | Holds |
-|---|---|
-| `@aleph-garden/view` | contracts, renderer, selection, DOM runtime with instance bookkeeping |
-| `@aleph-garden/view-markdown` | the Markdown view |
-| `@aleph-garden/shell` | the browser host |
+| Package | Holds | Knows about |
+|---|---|---|
+| `@aleph-garden/view` | contracts, renderer, selection, DOM runtime with instance bookkeeping | IRIs and quads |
+| `@aleph-garden/view-markdown` | the Markdown view | Obsidian, a Solid type index |
+| `@aleph-garden/shell` | the browser host | Solid-OIDC, WAC, LDP, Turtle |
 
 View IRIs and the event types the library defines live under
 `https://w3id.org/aleph/ns/view#`.
