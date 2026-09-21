@@ -3,11 +3,39 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" type="image/svg+xml" href="/aleph.svg" />
     <title>Aleph Garden</title>
+    <meta
+      name="description"
+      content="Christopher Mühl's workshop for one mechanism: a resource has an address, a table of rules picks the code that draws it."
+    />
+
+    <!-- The mark at the sizes each surface asks for. favicon.svg is the
+         16px composition, one ink on the dark ground, so the leaf survives
+         in a tab. -->
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fcfaf6" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f1213" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Aleph Garden" />
+    <meta property="og:title" content="Aleph Garden" />
+    <meta
+      property="og:description"
+      content="A resource has an address, a table of rules picks the code that draws it, and you replace that code without building an application around it."
+    />
+    <meta property="og:url" content="https://aleph.garden/" />
+    <meta property="og:image" content="https://aleph.garden/social-card.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+
     <script type="module" src="./src/entry.ts"></script>
   </head>
-  <body class="theme-dark">
+  <!-- No theme class: this host follows the reader's colour scheme, which is
+       tier 3 of the token system's resolution order. The pod host pins dark,
+       because a vault's own snippets are written against one appearance. -->
+  <body>
     <div id="chrome" class="frame">
       <div class="corner top-left"></div>
       <div class="corner top-right"></div>
