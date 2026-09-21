@@ -112,18 +112,26 @@ The [reference](/vitrine/docs/reference/contracts/) has the types, the
 selection order and the re-render protocol, for when you need the exact
 rule rather than the idea.
 
-## What runs today
+## What exists, and what does not
 
-| Where | What |
-|---|---|
-| `pod.toph.so` | a Solid server hands out the shell as the `text/html` representation of every resource, so a note opens at its own URL and renders as a note |
-| `aleph.garden` | the same bundle for any IRI written after the origin |
-| these pages | the examples above, mounted by a host of five lines |
+Three views ship with the library: Obsidian-flavoured Markdown, a container
+listing, and a fallback that puts RDF in a statement table. The browser host
+is a single page a Solid server can hand out as the `text/html`
+representation of every resource, so a note opens at its own URL and renders
+as a note; the same bundle also takes an IRI from its own address and shows
+whatever that names.
 
-Views in the bundle: Obsidian-flavoured Markdown, a container listing, and a
-fallback that puts RDF in a statement table. Transclusion, where a view
-brings another resource in and that one keeps its own identity, is specified
-and being built.
+Not there yet, and each one matters for some use:
+
+- **Transclusion**, where a view brings another resource in and that one
+  keeps its own region and its own updates, is specified and being built.
+- **A server-side host.** Rendering happens in the browser, so a page needs
+  JavaScript and a crawler sees an empty document.
+- **Isolation for views you did not write.** A view runs in the host's
+  origin with the host's session, so a host today runs the views its
+  operator chose. The sandboxed region that would change this is designed
+  and unbuilt.
+- **A release.** Nothing is on npm.
 
 ## Packages
 
