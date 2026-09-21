@@ -72,6 +72,17 @@ describe('quad helpers', () => {
     expect(typesOf(typed)).toEqual(['https://schema.org/Note'])
     expect(typesOf(resource())).toEqual([])
   })
+
+  test('typesOf unions the types in meta with the ones in graph, without repeats', () => {
+    const both = resource({
+      meta: [
+        q('https://pod.example/notes/a.md', RDF_TYPE, 'https://schema.org/CreativeWork'),
+        q('https://pod.example/notes/a.md', RDF_TYPE, 'https://schema.org/Note')
+      ],
+      graph: [q('https://pod.example/notes/a.md', RDF_TYPE, 'https://schema.org/Note')]
+    })
+    expect(typesOf(both)).toEqual(['https://schema.org/CreativeWork', 'https://schema.org/Note'])
+  })
 })
 
 describe('holds', () => {

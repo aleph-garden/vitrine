@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { dcterms, ldp } from '@aleph-garden/terms'
 import type { Fetch } from '../src/http.ts'
 import { fetchResource } from '../src/http.ts'
-import { about, isContainer } from '../src/index.ts'
+import { about, holds, isContainer } from '../src/index.ts'
 
 /** Enough of a Turtle reader for the one container fixture below: the point
  *  here is that fetchResource calls what it was handed and folds the quads
@@ -56,6 +56,20 @@ describe('fetchResource', () => {
     expect(r.allow).toEqual(['read', 'write'])
     expect(isContainer(r)).toBe(false)
     expect(about(r.meta, r.iri).one(dcterms.modified)).toBe('2026-09-17T10:00:00.000Z')
+  })
+
+  test('a type declared only in the Link header reaches a { type } condition', async () => {
+    const r = await fetchResource(
+      fetchOf(
+        response('%PDF-1.7', {
+          'content-type': 'application/pdf',
+          link: '<https://schema.org/Invoice>; rel="type"'
+        })
+      ),
+      'https://pod.example/invoice.pdf'
+    )
+    expect(r.graph).toBeUndefined()
+    expect(holds({ type: 'https://schema.org/Invoice' }, r)).toBe(true)
   })
 
   test('marks a container from the Link header and lists its children from the body', async () => {

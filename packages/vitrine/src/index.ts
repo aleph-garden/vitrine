@@ -242,8 +242,14 @@ export function isContainer(resource: Resource): boolean {
   return about(resource.meta, resource.iri).all(rdf.type).includes(ldp.Container)
 }
 
+/** Every `rdf:type` the response states of the resource's own subject, from
+ *  the envelope and from the body alike. A `Link; rel="type"` header and an
+ *  `rdf:type` statement in the graph are the same claim made in two places,
+ *  so neither overrules the other and a resource with no RDF in it is
+ *  typeable all the same. */
 export function typesOf(resource: Resource): string[] {
-  return about(resource).all(rdf.type)
+  const here = (quads: Quad[]) => about(quads, resource.iri).all(rdf.type)
+  return [...new Set([...here(resource.meta), ...here(resource.graph ?? [])])]
 }
 
 // --------------------------------------------------------- built-in views
