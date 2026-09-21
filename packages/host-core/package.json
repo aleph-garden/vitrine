@@ -1,0 +1,20 @@
+{
+  "name": "@aleph-garden/host-core",
+  "version": "0.0.0",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./style.css": "./src/style.css",
+    "./vite": "./src/vite.ts"
+  },
+  "dependencies": {
+    "@aleph-garden/terms": "workspace:*",
+    "@aleph-garden/vitrine": "workspace:*",
+    "@inrupt/solid-client-authn-browser": "^5.0.0"
+  },
+  "devDependencies": {
+    "@aleph-garden/vitrine-turtle": "workspace:*",
+    "vite": "^8.3.0"
+  }
+}

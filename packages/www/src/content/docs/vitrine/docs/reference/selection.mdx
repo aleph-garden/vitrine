@@ -73,14 +73,15 @@ everything, which is how a fallback view is registered last.
 the lens applies to resources of a certain shape, whatever their class. The
 core cannot evaluate it, since it has no RDF engine.
 
-`iri` pins a view to one resource, whatever that resource contains. The
-shell's landing page is its first use, through a rule in the host document
-of `https://aleph.garden`:
+`iri` pins a view to one resource, whatever that resource contains. A
+greeting at the one IRI a deployment answers with its own document is what
+it was added for, and a rule list is where a reader pins a view to a
+resource of their own:
 
 ```json
 {
-  "view": "https://w3id.org/aleph/ns/view#Landing",
-  "when": [{ "iri": "https://aleph.garden/" }]
+  "view": "https://example.org/views#Dashboard",
+  "when": [{ "iri": "https://pod.example/notes/Today.md" }]
 }
 ```
 

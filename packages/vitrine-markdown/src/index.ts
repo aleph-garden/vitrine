@@ -1,3 +1,4 @@
+import { ldp, schema, solid } from '@aleph-garden/terms'
 // Obsidian-flavored Markdown as a View.
 
 import {
@@ -387,10 +388,7 @@ function cellHtml(binding: { type: string; value: string } | undefined): string 
 // registers for schema:NoteDigitalDocument. Built lazily through
 // `resolve`, held per WebID for the page lifetime.
 
-export const NOTE_CLASS = 'https://schema.org/NoteDigitalDocument'
-
-const SOLID = 'http://www.w3.org/ns/solid/terms#'
-const LDP_CONTAINS = 'http://www.w3.org/ns/ldp#contains'
+export const NOTE_CLASS = schema.NoteDigitalDocument
 
 export type WikilinkIndex = {
   /** IRI for an Obsidian link target name, or undefined when unresolved. */
@@ -445,7 +443,7 @@ async function buildIndex(
     } catch {
       return
     }
-    for (const child of objects(container.meta, iri, LDP_CONTAINS)) {
+    for (const child of objects(container.meta, iri, ldp.contains)) {
       const childIsContainer =
         child.value.endsWith('/') || isContainer({ ...container, iri: child.value })
       if (childIsContainer) await walkContainer(root, child.value)
@@ -455,14 +453,14 @@ async function buildIndex(
 
   try {
     const profile = await ctx.resolve(webId.split('#')[0]!)
-    for (const typeIndex of objects(profile.graph ?? [], webId, `${SOLID}privateTypeIndex`)) {
+    for (const typeIndex of objects(profile.graph ?? [], webId, solid.privateTypeIndex)) {
       const registry = await ctx.resolve(typeIndex.value)
       const graph = registry.graph ?? []
       const registrations = graph
-        .filter((q) => q.predicate.value === `${SOLID}forClass` && q.object.value === NOTE_CLASS)
+        .filter((q) => q.predicate.value === solid.forClass && q.object.value === NOTE_CLASS)
         .map((q) => q.subject.value)
       for (const registration of registrations) {
-        for (const root of objects(graph, registration, `${SOLID}instanceContainer`)) {
+        for (const root of objects(graph, registration, solid.instanceContainer)) {
           await walkContainer(root.value, root.value)
         }
       }

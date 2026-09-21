@@ -1,7 +1,7 @@
-// Serves the shell for `/` and for IRI paths, and the static files for
-// everything else. A `_redirects` rule cannot name a path that begins
-// with `https://`, so the routing lives here; `_headers` does not reach
-// a response a worker returns, so the policy on the shell lives here too.
+// Serves the host for `/` and for viewer paths, and the static files for
+// everything else. A `_redirects` rule cannot name the reserved segment's
+// path shape, so the routing lives here; `_headers` does not reach a
+// response a worker returns, so the policy on the host lives here too.
 
 const POLICY = [
   "default-src 'self'",
@@ -17,14 +17,14 @@ const POLICY = [
   'trusted-types aleph dompurify'
 ].join('; ')
 
-const IRI_PATH = /^\/https?:\/\//
+const IRI_PATH = /^\/-\//
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url)
     if (url.pathname === '/' || url.pathname === '/index.html' || IRI_PATH.test(url.pathname)) {
-      const shell = await env.ASSETS.fetch(new Request(new URL('/', url.origin), request))
-      const response = new Response(shell.body, shell)
+      const host = await env.ASSETS.fetch(new Request(new URL('/', url.origin), request))
+      const response = new Response(host.body, host)
       response.headers.set('content-security-policy', POLICY)
       return response
     }

@@ -1,0 +1,20 @@
+{
+  "name": "@aleph-garden/pod-host",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@aleph-garden/host-core": "workspace:*",
+    "@aleph-garden/vitrine": "workspace:*",
+    "@aleph-garden/vitrine-markdown": "workspace:*",
+    "@aleph-garden/vitrine-turtle": "workspace:*",
+    "katex": "^0.18.7"
+  },
+  "devDependencies": {
+    "vite": "^8.3.0"
+  },
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite"
+  }
+}

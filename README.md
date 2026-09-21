@@ -29,7 +29,7 @@ depend on. Clone and build.
 
 - **Open a resource at its own URL.** `https://pod.toph.so/notes/Matrix.md`
   renders the note, and so does
-  `https://aleph.garden/https://pod.toph.so/notes/Matrix.md` from the other
+  `https://aleph.garden/-/https://pod.toph.so/notes/Matrix.md` from the other
   host. The address bar stays the resource, and the browser's history works.
 - **Read a note the way Obsidian shows it.** The Markdown view resolves
   wikilinks across the vault, renders embeds, math, diagrams and `sparql`
@@ -127,17 +127,26 @@ renderers a view leans on have had injection bugs before.
 One deployment differs from another in a JSON-LD `Host` node the build
 embeds into the shell's `index.html`: where to log in, where `sparql` blocks
 go, whether the shell holds a session, which IRIs it opens in place, and
-which views and rules it registers. That surface is the shell's, and
-`docs/superpowers/specs/` fixes it.
+which views and rules it registers. Which host this is decides the rest:
+what opens in place, whether a session exists, and how a location names a
+resource are properties of the host package, not keys in that document.
 
 ## Packages
 
 | Package | Holds | Knows about |
 |---|---|---|
-| `@aleph-garden/vitrine` | contracts, renderer, selection, the DOM runtime | IRIs and quads |
+| `@aleph-garden/terms` | the IRIs more than one package names, and `ns` | nothing |
+| `@aleph-garden/vitrine` | contracts, renderer, selection, the DOM runtime, `about` | IRIs and quads |
+| `@aleph-garden/vitrine` (`/http`) | an HTTP response as a `Resource` | HTTP, LDP and WAC headers |
+| `@aleph-garden/vitrine-turtle` | a `Parser` over Turtle and TriG | Turtle |
 | `@aleph-garden/vitrine-markdown` | the Markdown view | Obsidian, a Solid type index |
-| `@aleph-garden/shell` | the browser host | Solid-OIDC, WAC, LDP, Turtle |
-| `packages/www` | aleph.garden: the docs site the shell is deployed with | |
+| `@aleph-garden/host-core` | session, credentialed origins, chrome, the region's failure states | Solid-OIDC |
+| `@aleph-garden/pod-host` | the host a pod hands out | its own origin, the vault's snippets |
+| `@aleph-garden/garden-host` | the host at aleph.garden | any IRI, no session |
+| `packages/www` | aleph.garden: the docs site the garden host is deployed with | |
+
+An application that embeds a region needs neither host package: a renderer,
+a `Resolve`, and `runtime.mount` are the whole surface.
 
 View ids and the event types the library defines live under
 `https://w3id.org/aleph/ns/view#`.
@@ -148,12 +157,12 @@ View ids and the event types the library defines live under
 bun install
 bun test
 bun run check                      # biome, typecheck, tests
-bun run --cwd packages/shell dev   # vite dev; ALEPH_HOST names a host document
-bun run build:site                 # shell and docs into one dist
-nix build .#shell                  # the bundle a pod serves
+bun run --cwd packages/pod-host dev  # vite dev; ALEPH_HOST names a host document
+bun run build:site                   # the garden host and the docs into one dist
+nix build .#pod-host                 # the bundle a pod serves
 ```
 
-`nix/shell.nix` takes the host document as an argument, so the fleet builds
+`nix/pod-host.nix` takes the host document as an argument, so the fleet builds
 the pod's bundle from this flake with its own configuration.
 
 ## Licence

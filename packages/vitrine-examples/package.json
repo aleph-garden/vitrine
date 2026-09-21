@@ -8,6 +8,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@aleph-garden/terms": "workspace:*",
     "@aleph-garden/vitrine": "workspace:*"
   }
 }

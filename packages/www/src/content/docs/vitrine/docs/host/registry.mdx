@@ -39,7 +39,7 @@ themselves:
 
 ```ts
 const rules = [
-  { view: 'https://w3id.org/aleph/ns/view#Landing', when: [{ iri: 'https://aleph.garden/' }] }
+  { view: 'https://example.org/views#Dashboard', when: [{ iri: 'https://pod.example/notes/Today.md' }] }
 ]
 ```
 
@@ -50,7 +50,7 @@ path per source.
 ## The host document
 
 A browser deployment carries its configuration as a JSON-LD node in the
-document it serves, which the shell reads and never expands:
+document it serves, which the host reads and never expands:
 
 ```json
 {
@@ -65,15 +65,19 @@ document it serves, which the shell reads and never expands:
 |---|---|
 | `issuer` | where the login goes. Absent with a session: ask for a WebID and read `solid:oidcIssuer` from that profile |
 | `sparqlEndpoint` | where views send queries. Absent: they render as code |
-| `session` | `false` for a host that holds none: no login control, every fetch anonymous |
-| `opens` | `any` to open every IRI in place, `self` to open its own origin's and hand the rest to the browser |
-| `views` | the ids to register, in that order. Absent: all of the bundle's |
+| `views` | the ids to register, in that order. Absent: all of the host's |
 | `rules` | the override rules above |
 
-Every key is optional, and a deployment that names none gets the bundle's
-own defaults. The same document is what a build embeds, which is why one
-bundle serves a pod and a public viewer with nothing differing but this
-node.
+Every key is optional, and a deployment that names none gets the host's own
+defaults.
+
+This document holds what varies between deployments of one host. What
+varies between hosts is not here: whether a session exists, what opens in
+place, and how a location names the resource it shows are properties of the
+host package. A pod's host resolves its own location to the resource and
+leaves a link elsewhere to the browser; the host at `aleph.garden` opens any
+IRI and carries it behind a reserved first segment,
+`https://aleph.garden/-/https://pod.toph.so/notes/a.md`.
 
 ## Views a host did not ship
 
@@ -82,4 +86,4 @@ the origin is the only boundary a browser has. Until a region can be an
 isolated frame with its own origin, a host runs the views its operator
 chose, and every piece of view HTML goes into the document through one
 sanitiser under a content security policy. That is hardening inside the
-origin, and it is not a boundary.
+origin, and no boundary.

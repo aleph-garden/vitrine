@@ -101,7 +101,7 @@ recipe" without writing an application.
 
 Vitrine is a socket for that missing piece. A resource arrives, a rule table
 picks a view, the view renders it. The frame is still work, and it was done
-once: `@aleph-garden/shell` carries the fetching, the Solid login and the
+once: `@aleph-garden/host-core` carries the fetching, the Solid login and the
 navigation, and a host that needs something else replaces it. What you
 replace to change how a resource looks is one function in a table.
 
@@ -161,9 +161,14 @@ Not there yet, and each one matters for some use:
 
 | Package | Holds | Knows about |
 |---|---|---|
-| `@aleph-garden/vitrine` | contracts, renderer, selection, DOM runtime | IRIs and quads |
+| `@aleph-garden/terms` | the IRIs more than one package names, and `ns` | nothing |
+| `@aleph-garden/vitrine` | contracts, renderer, selection, the DOM runtime, `about` | IRIs and quads |
+| `@aleph-garden/vitrine` (`/http`) | an HTTP response as a `Resource` | HTTP, LDP and WAC headers |
+| `@aleph-garden/vitrine-turtle` | a `Parser` over Turtle and TriG | Turtle |
 | `@aleph-garden/vitrine-markdown` | the Markdown view | Obsidian, a Solid type index |
-| `@aleph-garden/shell` | the browser host | Solid-OIDC, WAC, LDP, Turtle |
+| `@aleph-garden/host-core` | session, credentialed origins, chrome, the region's failure states | Solid-OIDC |
+| `@aleph-garden/pod-host` | the host a pod hands out | its own origin, the vault's snippets |
+| `@aleph-garden/garden-host` | the host at aleph.garden | any IRI, no session |
 | `@aleph-garden/vitrine-examples` | the views on these pages, and their fixture resources | nothing beyond the contract |
 
 The unit stays a view: you write one, register it, and a rule picks it.

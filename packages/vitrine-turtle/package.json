@@ -1,0 +1,16 @@
+{
+  "name": "@aleph-garden/vitrine-turtle",
+  "version": "0.0.0",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@aleph-garden/vitrine": "workspace:*",
+    "n3": "^2.7.12"
+  },
+  "devDependencies": {
+    "@types/n3": "^1.26.4"
+  }
+}

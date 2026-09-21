@@ -3,6 +3,7 @@
 // demonstrates one part of it: render from a graph and from a body, reaching
 // another resource, hydration, events, and a patch.
 
+import { rdf, schema, xsd } from '@aleph-garden/terms'
 import {
   ALEPH,
   type Context,
@@ -15,16 +16,13 @@ import {
   type View
 } from '@aleph-garden/vitrine'
 
-const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'
-const SCHEMA = 'https://schema.org/'
-
 // ------------------------------------------------------------- resources
 
 const named = (value: string): Term => ({ termType: 'NamedNode', value })
 const literal = (value: string): Term => ({
   termType: 'Literal',
   value,
-  datatype: 'http://www.w3.org/2001/XMLSchema#string'
+  datatype: xsd.string
 })
 const quad = (subject: string, predicate: string, object: Term): Quad => ({
   subject: named(subject),
@@ -44,13 +42,13 @@ type PersonFields = {
 
 function person(iri: string, fields: PersonFields): Resource {
   const graph = [
-    quad(iri, RDF_TYPE, named(`${SCHEMA}Person`)),
-    quad(iri, `${SCHEMA}name`, literal(fields.name))
+    quad(iri, rdf.type, named(schema.Person)),
+    quad(iri, schema.name, literal(fields.name))
   ]
-  if (fields.image) graph.push(quad(iri, `${SCHEMA}image`, named(fields.image)))
-  if (fields.birthDate) graph.push(quad(iri, `${SCHEMA}birthDate`, literal(fields.birthDate)))
-  if (fields.deathDate) graph.push(quad(iri, `${SCHEMA}deathDate`, literal(fields.deathDate)))
-  if (fields.worksFor) graph.push(quad(iri, `${SCHEMA}worksFor`, named(fields.worksFor)))
+  if (fields.image) graph.push(quad(iri, schema.image, named(fields.image)))
+  if (fields.birthDate) graph.push(quad(iri, schema.birthDate, literal(fields.birthDate)))
+  if (fields.deathDate) graph.push(quad(iri, schema.deathDate, literal(fields.deathDate)))
+  if (fields.worksFor) graph.push(quad(iri, schema.worksFor, named(fields.worksFor)))
   return { iri, contentType: 'text/turtle', body: '', graph, meta: [], allow: ['read'] }
 }
 
@@ -84,8 +82,8 @@ export const exampleResources: Record<string, Resource> = {
     contentType: 'text/turtle',
     body: '',
     graph: [
-      quad('https://example.org/orgs/aeo', RDF_TYPE, named(`${SCHEMA}Organization`)),
-      quad('https://example.org/orgs/aeo', `${SCHEMA}name`, literal('Analytical Engine Office'))
+      quad('https://example.org/orgs/aeo', rdf.type, named(schema.Organization)),
+      quad('https://example.org/orgs/aeo', schema.name, literal('Analytical Engine Office'))
     ],
     meta: [],
     allow: ['read']
@@ -140,14 +138,14 @@ function lifespan(born?: string, died?: string): string {
 
 export const personCardView: View = {
   id: PERSON_CARD_VIEW,
-  when: [{ type: `${SCHEMA}Person` }],
+  when: [{ type: schema.Person }],
 
   async render(resource, ctx) {
     const graph = resource.graph ?? []
     const value = (predicate: string) => objects(graph, resource.iri, predicate)[0]?.value
-    const name = value(`${SCHEMA}name`) ?? resource.iri
-    const image = value(`${SCHEMA}image`)
-    const employerIri = value(`${SCHEMA}worksFor`)
+    const name = value(schema.name) ?? resource.iri
+    const image = value(schema.image)
+    const employerIri = value(schema.worksFor)
 
     const portrait = image
       ? `<img class="portrait" src="${escapeHtml(image)}" alt="${escapeHtml(name)}" width="72" height="72">`
@@ -156,8 +154,7 @@ export const personCardView: View = {
     let employer = ''
     if (employerIri) {
       const org = await ctx.resolve(employerIri)
-      const orgName =
-        objects(org.graph ?? [], employerIri, `${SCHEMA}name`)[0]?.value ?? employerIri
+      const orgName = objects(org.graph ?? [], employerIri, schema.name)[0]?.value ?? employerIri
       employer = `<p class="employer"><a href="${escapeHtml(employerIri)}">${escapeHtml(orgName)}</a></p>`
     }
 
@@ -165,7 +162,7 @@ export const personCardView: View = {
       html:
         `<article class="person-card">${portrait}<div class="who">` +
         `<h2>${escapeHtml(name)}</h2>` +
-        `${lifespan(value(`${SCHEMA}birthDate`), value(`${SCHEMA}deathDate`))}` +
+        `${lifespan(value(schema.birthDate), value(schema.deathDate))}` +
         `${employer}</div></article>`
     }
   }

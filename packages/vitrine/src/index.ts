@@ -1,6 +1,8 @@
 // Contracts and the pipeline. No RDF library, no DOM: quads are plain data,
 // and everything that touches elements lives in ./dom.ts.
 
+import { dcterms, ldp, rdf } from '@aleph-garden/terms'
+
 // ---------------------------------------------------------------- data
 
 export type Mode = 'read' | 'write' | 'append' | 'control'
@@ -174,9 +176,6 @@ function matchesType(expected: string | RegExp, contentType: string): boolean {
     : expected.test(mediaType)
 }
 
-const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'
-const LDP_CONTAINER = 'http://www.w3.org/ns/ldp#Container'
-
 // ---------------------------------------------------------- quad helpers
 // Plain scans over quad arrays, so that views and conditions read `meta`
 // and `graph` without an RDF library.
@@ -187,19 +186,58 @@ export function objects(quads: Quad[], subject: string, predicate: string): Term
     .map((q) => q.object)
 }
 
+export type Reader = {
+  /** The subject this reader is on. */
+  readonly iri: string
+  /** The objects as they are, for a datatype or a language tag. */
+  terms(predicate: string): Term[]
+  /** Every object as a string, in quad order. */
+  all(predicate: string, opts?: { lang?: string }): string[]
+  /** The first object as a string. */
+  one(predicate: string, opts?: { lang?: string }): string | undefined
+  /** A reader on the first object. An absent object, or a literal, yields a
+   *  reader that finds nothing, so a chain reads to the end without a check
+   *  at every step. */
+  node(predicate: string): Reader
+}
+
+/** A reader over `source`, on `subject`. The subject defaults to the
+ *  resource's own IRI and the quads to its `graph`, which is the pair a view
+ *  reads almost every time. */
+export function about(source: Resource | Quad[], subject?: string): Reader {
+  const quads = Array.isArray(source) ? source : (source.graph ?? [])
+  const iri = subject ?? (Array.isArray(source) ? '' : source.iri)
+  const self: Reader = {
+    iri,
+    terms: (predicate) => objects(quads, iri, predicate),
+    all: (predicate, opts) => byLanguage(self.terms(predicate), opts?.lang).map((t) => t.value),
+    one: (predicate, opts) => self.all(predicate, opts)[0],
+    node(predicate) {
+      const first = self.terms(predicate)[0]
+      return about(quads, first && first.termType !== 'Literal' ? first.value : '')
+    }
+  }
+  return self
+}
+
+/** The literals tagged `lang` when there are any, the untagged ones
+ *  otherwise; every term when no language is asked for. */
+function byLanguage(terms: Term[], lang?: string): Term[] {
+  if (lang === undefined) return terms
+  const tagged = terms.filter((t) => t.language === lang)
+  return tagged.length > 0 ? tagged : terms.filter((t) => t.language === undefined)
+}
+
 export function isContainer(resource: Resource): boolean {
-  return objects(resource.meta, resource.iri, RDF_TYPE).some((t) => t.value === LDP_CONTAINER)
+  return about(resource.meta, resource.iri).all(rdf.type).includes(ldp.Container)
 }
 
 export function typesOf(resource: Resource): string[] {
-  return objects(resource.graph ?? [], resource.iri, RDF_TYPE).map((t) => t.value)
+  return about(resource).all(rdf.type)
 }
 
 // --------------------------------------------------------- built-in views
 // Both read `meta` and `graph` as plain quads, so they live here.
-
-const LDP_CONTAINS = 'http://www.w3.org/ns/ldp#contains'
-const DC_MODIFIED = 'http://purl.org/dc/terms/modified'
 
 export function escapeHtml(text: string): string {
   return text
@@ -218,16 +256,18 @@ export const containerView: View = {
   id: 'https://w3id.org/aleph/ns/view#Container',
   when: [{ container: true }],
   async render(resource) {
-    const items = objects(resource.meta, resource.iri, LDP_CONTAINS).map((child) => {
-      const iri = child.value
-      const container = objects(resource.meta, iri, RDF_TYPE).some((t) => t.value === LDP_CONTAINER)
-      const modified = objects(resource.meta, iri, DC_MODIFIED)[0]?.value
-      const cls = container ? 'child is-container' : 'child'
-      const time = modified
-        ? ` <time datetime="${escapeHtml(modified)}">${escapeHtml(modified)}</time>`
-        : ''
-      return `<li class="${cls}"><a href="${escapeHtml(iri)}">${escapeHtml(childName(resource.iri, iri))}</a>${time}</li>`
-    })
+    const items = about(resource.meta, resource.iri)
+      .all(ldp.contains)
+      .map((iri) => {
+        const child = about(resource.meta, iri)
+        const container = child.all(rdf.type).includes(ldp.Container)
+        const modified = child.one(dcterms.modified)
+        const cls = container ? 'child is-container' : 'child'
+        const time = modified
+          ? ` <time datetime="${escapeHtml(modified)}">${escapeHtml(modified)}</time>`
+          : ''
+        return `<li class="${cls}"><a href="${escapeHtml(iri)}">${escapeHtml(childName(resource.iri, iri))}</a>${time}</li>`
+      })
     return { html: `<ul class="container-listing">${items.join('')}</ul>` }
   }
 }
