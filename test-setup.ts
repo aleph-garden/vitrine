@@ -1,6 +1,18 @@
 import { GlobalRegistrator } from '@happy-dom/global-registrator'
+import { beforeEach } from 'bun:test'
 
-GlobalRegistrator.register({ url: 'https://pod.example/' })
+const URL_UNDER_TEST = 'https://pod.example/'
+
+GlobalRegistrator.register({ url: URL_UNDER_TEST })
+
+// Every test file shares one document, and a click on a link that nothing
+// prevented navigates it. A file that leaves the document somewhere else
+// then decides what `location` says for every file after it, so each test
+// starts from the same address.
+beforeEach(() => {
+  const happyDOM = (globalThis as { happyDOM?: { setURL(url: string): void } }).happyDOM
+  if (location.href !== URL_UNDER_TEST) happyDOM?.setURL(URL_UNDER_TEST)
+})
 
 // A browser answers `nodeName` from `Node.prototype` for every node; happy-dom
 // answers '' there and overrides the getter on each subclass. Code that reads
