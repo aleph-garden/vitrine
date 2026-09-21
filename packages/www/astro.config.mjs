@@ -5,29 +5,6 @@ import mermaid from 'astro-mermaid'
 
 export default defineConfig({
   site: 'https://aleph.garden',
-  // Everything lived under /docs/view/ before the component had a name,
-  // and the reference pages sat one level higher than they do now.
-  redirects: {
-    '/docs/view': '/vitrine/docs/',
-    '/docs/view/author/getting-started': '/vitrine/docs/author/getting-started/',
-    '/docs/view/author/use-rdf': '/vitrine/docs/author/use-rdf/',
-    '/docs/view/author/fetch-resources': '/vitrine/docs/author/fetch-resources/',
-    '/docs/view/author/interaction': '/vitrine/docs/author/interaction/',
-    '/docs/view/author/transclude': '/vitrine/docs/author/transclude/',
-    '/docs/view/host/getting-started': '/vitrine/docs/host/getting-started/',
-    '/docs/view/host/resolving': '/vitrine/docs/host/resolving/',
-    '/docs/view/host/navigation': '/vitrine/docs/host/navigation/',
-    '/docs/view/host/registry': '/vitrine/docs/host/registry/',
-    '/docs/view/reference/contracts': '/vitrine/docs/reference/contracts/',
-    '/docs/view/reference/selection': '/vitrine/docs/reference/selection/',
-    '/docs/view/reference/rendering': '/vitrine/docs/reference/rendering/',
-    '/docs/view/contracts': '/vitrine/docs/reference/contracts/',
-    '/vitrine/docs/contracts': '/vitrine/docs/reference/contracts/',
-    '/docs/view/selection': '/vitrine/docs/reference/selection/',
-    '/vitrine/docs/selection': '/vitrine/docs/reference/selection/',
-    '/docs/view/rendering': '/vitrine/docs/reference/rendering/',
-    '/vitrine/docs/rendering': '/vitrine/docs/reference/rendering/'
-  },
   integrations: [
     // Before Starlight, so the ```mermaid fences are claimed before
     // Expressive Code sees them.
@@ -39,7 +16,20 @@ export default defineConfig({
       sidebar: [
         {
           label: 'Vitrine',
-          items: [{ label: 'Overview', link: '/vitrine/docs/' }]
+          items: [
+            { label: 'Overview', link: '/vitrine/docs/' },
+            { label: 'Why this exists', link: '/vitrine/docs/why/' },
+            { label: 'Roadmap', link: '/vitrine/docs/roadmap/' }
+          ]
+        },
+        {
+          label: 'Run it',
+          items: [
+            { label: 'Install and build', link: '/vitrine/docs/run/install/' },
+            { label: 'Serve it from your pod', link: '/vitrine/docs/run/pod/' },
+            { label: 'Put it in a page you have', link: '/vitrine/docs/run/embed/' },
+            { label: 'The Markdown view', link: '/vitrine/docs/run/markdown/' }
+          ]
         },
         {
           label: 'Author a view',
@@ -47,18 +37,13 @@ export default defineConfig({
             { label: 'Your first view', link: '/vitrine/docs/author/getting-started/' },
             { label: 'Use RDF', link: '/vitrine/docs/author/use-rdf/' },
             { label: 'Fetch resources', link: '/vitrine/docs/author/fetch-resources/' },
-            { label: 'Interaction', link: '/vitrine/docs/author/interaction/' },
-            {
-              label: 'Transclude resources',
-              link: '/vitrine/docs/author/transclude/',
-              badge: { text: 'planned', variant: 'caution' }
-            }
+            { label: 'Interaction', link: '/vitrine/docs/author/interaction/' }
           ]
         },
         {
-          label: 'Create a host',
+          label: 'Build a browser host',
           items: [
-            { label: 'Your first host', link: '/vitrine/docs/host/getting-started/' },
+            { label: 'Your first browser host', link: '/vitrine/docs/host/getting-started/' },
             { label: 'Resolving', link: '/vitrine/docs/host/resolving/' },
             { label: 'Navigation and events', link: '/vitrine/docs/host/navigation/' },
             { label: 'Registry and configuration', link: '/vitrine/docs/host/registry/' }

@@ -1,0 +1,36 @@
+---
+title: Why this exists
+description: What it costs to show one kind of thing on the web, and what is left when the frame is taken away.
+---
+
+To show one kind of thing on the web you build an application: fetching,
+authentication, routing, layout, state, a deployment. The renderer is the
+smallest part of the result. So each domain gets a handful of applications,
+every one shaped by the requirements of whoever needed it first, and if
+yours differ you write another application or you live with theirs. The data
+may be yours; the way you see it is theirs.
+
+For RDF this is worse than elsewhere, and the way to see it is to open your
+own data in what exists. SolidOS shows a Markdown note as a generic document
+pane. Penny lists a resource's properties in a table, which is correct and
+tells you nothing about what the resource is. Protégé and TopBraid are
+ontology tools and were never meant for reading. None of them is bad at what
+it was built for, and none of them lets you say "a recipe should look like a
+recipe" without writing an application.
+
+Vitrine is a socket for that missing piece. A resource arrives, a rule table
+picks a view, the view renders it. The frame is still work, and it was done
+once: `@aleph-garden/host-core` carries the fetching, the Solid login and the
+navigation, and a host that needs something else replaces it. What you
+replace to change how a resource looks is one function in a table.
+
+Access to the data is the precondition. A renderer is only as good as what
+it may read, and an API that hands out a fixed shape fixes what any renderer
+can do with it. That is why this is built against a graph you hold. Nothing
+in the contract requires RDF, though: a condition on the content type is
+enough, so a host can hand a view a CSV or a PDF and the same selection
+applies.
+
+There is a longer version of the argument, and an account of the twenty
+attempts that came before this one, in
+[the repository](https://github.com/aleph-garden/vitrine).

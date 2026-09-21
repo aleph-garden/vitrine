@@ -1,0 +1,88 @@
+---
+title: Put it in a page you have
+description: Mounting a region inside an application that already exists, and handing it back cleanly.
+sidebar:
+  order: 3
+---
+
+import LiveView from '../../../../../components/LiveView.astro'
+
+A host does not have to be a whole page. It can be a region inside an
+application you already run, which is what these documentation pages are:
+
+```ts
+import { createRenderer } from '@aleph-garden/vitrine'
+import { createRuntime } from '@aleph-garden/vitrine/dom'
+import { checklistView, personCardView } from '@aleph-garden/vitrine-examples'
+
+const renderer = createRenderer({ parsers: [], views: [personCardView, checklistView] })
+const runtime = createRuntime(renderer, resolve)
+
+const instance = await runtime.mount(region, iri)
+```
+
+<LiveView iri="https://example.org/people/grace" caption="a region inside this page" />
+
+## Inside a component lifecycle
+
+`mount` is asynchronous and returns the `Instance` that owns the region.
+Disposing that instance is how you give the region back. Two details decide
+whether this behaves in a framework:
+
+**An effect can be torn down before the mount resolves.** React 18 in
+development runs effects twice on purpose, and a router can unmount a route
+mid-fetch. Keep a flag beside the promise:
+
+```ts
+useEffect(() => {
+  let live = true
+  let instance: Instance | undefined
+
+  void runtime.mount(ref.current!, iri).then((mounted) => {
+    if (live) instance = mounted
+    else mounted.dispose()
+  })
+
+  return () => {
+    live = false
+    instance?.dispose()
+  }
+}, [iri])
+```
+
+**A second mount into the same region disposes the first.** So a changed
+IRI needs no cleanup of its own, and the effect above is defensive rather
+than load-bearing.
+
+## Navigation belongs to your router
+
+The runtime turns a click on a link inside a region into an `as:View`
+event, and it does nothing else with it. In a page with its own router, do
+not let the example's `history.pushState` handler anywhere near it:
+
+```ts
+runtime.listen((event) => {
+  if (event.type !== AS.View || typeof event.object !== 'string') return
+  navigate(toRoute(event.object))        // your router, your URL shape
+})
+```
+
+If you want a resource to open in place instead, call `mount` again with
+the new IRI. [Navigation and events](/vitrine/docs/host/navigation/) has
+the full set of cases.
+
+## Styling
+
+Views emit class names and no styles. `.person-card`, `.markdown-preview-view`,
+`.container-listing` and the rest are yours to style, which is how one view
+renders inside these pages, a pod's chrome and your application without
+carrying three stylesheets. Scope your rules to the region so that a view's
+`h2` does not inherit whatever your application does to headings.
+
+## What this costs you
+
+Rendering happens in the browser: a crawler sees the region empty, since
+there is no server-side host yet. Everything the runtime writes goes
+through a sanitiser, and a strict content security policy needs the
+`aleph` and `dompurify` Trusted Types policy names allowed. And the views
+you register are code you are shipping, so register the ones you chose.

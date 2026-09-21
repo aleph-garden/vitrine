@@ -1,0 +1,82 @@
+---
+title: Serve it from your pod
+description: What a Community Solid Server has to be told so that every resource renders.
+sidebar:
+  order: 2
+---
+
+A Solid server that serves a note as `text/markdown` can also serve a page
+that renders that note, at the same URL, to a browser that asked for
+`text/html`. That page is the pod host, and it is a build of
+`@aleph-garden/pod-host`.
+
+Nothing is published, so the sequence is: build the host, put its files
+where the server can read them, and point the server's HTML conversion at
+its `index.html`.
+
+## The conversion slot
+
+Community Solid Server answers a request for `text/html` through a
+component it calls `DefaultUiConverter`. Stock CSS binds that to its own
+interface; a config that binds it to a `ConstantConverter` hands out one
+file instead:
+
+```json
+{
+  "@id": "urn:solid-server:default:DefaultUiConverter",
+  "@type": "ConstantConverter",
+  "contentType": "text/html",
+  "filePath": "/assets/index.html",
+  "options_container": true,
+  "options_document": true,
+  "options_minQuality": 1,
+  "options_disabledMediaRanges": ["image/*", "application/pdf"]
+}
+```
+
+What each part is doing:
+
+- **`filePath`** is the built `index.html`. The rest of the build (the
+  bundle, the stylesheet, the icon) has to be reachable from the origin
+  root, since the document is served under the IRI of whatever resource was
+  asked for and its asset links are absolute.
+- **`options_container` and `options_document`** make it apply to both, so
+  a container listing renders as well as a note.
+- **`options_minQuality: 1`** keeps it out of content negotiation for
+  clients that did not really ask for HTML.
+- **`options_disabledMediaRanges`** excludes what a browser shows natively.
+  An image should stay an image.
+- Your config must not also import CSS's `util/index`, which binds the same
+  slot to the built-in interface.
+
+The server also serves this page on a `401`, which is what lets the host
+show a login and then fetch the resource itself.
+
+## What the host does once it loads
+
+It reads the IRI from `location`, restores a Solid-OIDC session if there is
+one, fetches the resource with an `Accept` that leaves `text/html` out, and
+renders it. It registers the Markdown view, the container listing and the
+fallback, parses Turtle, and loads the CSS snippets your vault enables, so
+an Obsidian theme applies to the rendering.
+
+The second fetch is real: the conversion slot serves a constant file, so it
+cannot carry the representation with it. A private resource needs the fetch
+after login in any case.
+
+## Checking it
+
+- A public note opens at its own URL and renders as a note.
+- A private one shows a login, and renders after it.
+- A container lists its children.
+- `curl -H 'Accept: text/turtle'` still returns Turtle, not the page.
+- An image still opens as an image.
+
+## Where it does not carry you
+
+Wikilinks need to know which containers hold notes, and the Markdown view
+asks the WebID's type index for that, as [the Markdown
+view](/vitrine/docs/run/markdown/) describes.
+
+This host renders. It never writes, so editing, uploading and permissions
+stay with whatever tool you use for them today.

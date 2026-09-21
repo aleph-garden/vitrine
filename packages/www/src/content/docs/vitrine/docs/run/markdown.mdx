@@ -1,0 +1,72 @@
+---
+title: The Markdown view
+description: What it renders of an Obsidian vault, and what it needs from the pod to resolve a wikilink.
+sidebar:
+  order: 4
+---
+
+`@aleph-garden/vitrine-markdown` renders `text/markdown` the way an
+Obsidian vault is written, which is the reason the whole library exists:
+notes on a pod are Markdown files, and a generic document pane is not a way
+to read them.
+
+```ts
+import { markdownView } from '@aleph-garden/vitrine-markdown'
+
+const view = markdownView({
+  webId: session.webId ?? '',           // whose type index names the note containers
+  sparqlEndpoint: config.sparqlEndpoint // optional; without it, sparql blocks stay code
+})
+```
+
+## What it renders
+
+- **Frontmatter** as a properties block, with `tags`, `aliases` and
+  `cssclasses` given their Obsidian meaning. `cssclasses` land on the
+  view's root element.
+- **Wikilinks** in all four forms: `[[Name]]`, `[[Name|Alias]]`,
+  `[[Name#Heading]]`, `[[Name#^block]]`. Resolved ones become
+  `<a class="internal-link">`, unresolved ones carry `is-unresolved` and no
+  `href`, the way the editor shows them.
+- **Embeds** `![[…]]`: a note is rendered inline with a depth limit and a
+  cycle guard, an image becomes an `<img>`, anything else a link.
+- **Tags** as `.tag` elements, **task list items** as read-only checkboxes,
+  **callouts** `> [!type]` as `.callout` with the type on a data attribute.
+- **Math** through KaTeX, in `render`, so it survives a host with no DOM.
+- **Mermaid** in `hydrate`, since the renderer needs elements. `render`
+  emits `<pre class="mermaid">`, which is what a server-side host would be
+  left with.
+- **`sparql` code blocks** sent through `resolve` to the endpoint the
+  options name, with the result table rendered. SELECT is supported; other
+  forms render the raw result.
+
+The emitted DOM uses Obsidian's class names, `markdown-preview-view`,
+`internal-link`, `tag`, `callout`, `task-list-item` and the rest, so a
+vault's own CSS snippets apply unchanged. The pod host loads the snippets
+your `appearance.json` enables.
+
+## What it needs from the pod
+
+Obsidian resolves `[[Name]]` by basename across the whole vault, so the
+view needs a map from basename to IRI. It builds that the Solid way rather
+than from configuration: the WebID's `solid:privateTypeIndex` lists
+registrations, and the ones whose `solid:forClass` is the note class name
+their containers. The view walks those through `ldp:contains` and maps each
+`.md` basename to its IRI.
+
+So a vault whose notes are not registered in the type index renders, and
+every wikilink in it comes out unresolved. Registering
+`schema:NoteDigitalDocument` for the containers that hold notes is what
+turns them on.
+
+The index is built on the first render that contains a wikilink, once per
+page, and dropped when an `as:Update` names one of the indexed containers.
+Frontmatter aliases are not in it yet: they would cost one request per
+note.
+
+## What it does not do
+
+No Dataview, no Bases, no plugins. Tasks-plugin decorations render as the
+text they are. Nothing is editable. And the embeds still recurse inside the
+view rather than becoming child instances, which is what
+[transclusion](/vitrine/docs/roadmap/) changes.

@@ -1,0 +1,59 @@
+---
+title: Install and build
+description: There is no release. What cloning and building actually takes.
+sidebar:
+  order: 1
+---
+
+Nothing is published. No npm package, no tarball, no version to pin. Using
+Vitrine today means building it from a checkout, and that is true for every
+page in this track.
+
+```sh
+git clone https://github.com/aleph-garden/vitrine
+cd vitrine
+bun install
+bun run check          # biome, typecheck, the whole test suite
+```
+
+The workspace is [bun](https://bun.sh); the tests run on bun's runner with a
+DOM from happy-dom. There is no separate build step for the packages
+themselves, since they ship TypeScript source and whatever bundles your host
+compiles them.
+
+## What is in the box
+
+| Package | What you would use it for |
+|---|---|
+| `@aleph-garden/vitrine` | the contracts, the renderer, the DOM runtime |
+| `@aleph-garden/vitrine-markdown` | [the Markdown view](/vitrine/docs/run/markdown/) |
+| `@aleph-garden/vitrine-turtle` | a parser, when your resources are Turtle |
+| `@aleph-garden/terms` | the IRIs the packages share, and `ns` for your own |
+| `@aleph-garden/host-core` | session, chrome and failure states for a browser host |
+| `@aleph-garden/pod-host` | [the host a Solid server hands out](/vitrine/docs/run/pod/) |
+| `@aleph-garden/garden-host` | the host that opens any IRI from its own address |
+| `@aleph-garden/vitrine-examples` | the views these pages run, and their fixtures |
+
+## Building a host bundle
+
+The two browser hosts are vite applications. Each takes its deployment's
+Host document through an environment variable at build time:
+
+```sh
+ALEPH_HOST=../../my-host.jsonld bun run --cwd packages/pod-host build
+```
+
+What goes in that document is on [Registry and
+configuration](/vitrine/docs/host/registry/). The output is a directory of
+static files: one `index.html` under a kilobyte, one bundle, one stylesheet.
+
+There is a Nix derivation for the pod host in `nix/pod-host.nix`, which
+takes the same document as an argument, for a deployment that would rather
+not have a node toolchain on the server.
+
+## Depending on it from your own project
+
+Until there is a release, the honest options are a git dependency pinned to
+a commit, a submodule, or vendoring the two or three packages you need. A
+git dependency will do for an experiment and pins you to a moving `main`.
+There is no deprecation policy, because there is nothing to deprecate yet.

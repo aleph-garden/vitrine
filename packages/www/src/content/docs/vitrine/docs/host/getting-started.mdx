@@ -1,5 +1,5 @@
 ---
-title: Your first host
+title: Your first browser host
 description: Five lines put the library to work. These pages are that host.
 sidebar:
   order: 1
@@ -8,7 +8,9 @@ sidebar:
 import LiveView from '../../../../../components/LiveView.astro'
 
 A host is what puts Vitrine to work. It fetches, it hands over a region of
-the page, and it passes events around. Here is one, whole:
+the page, and it passes events around. Everything on this page is a browser
+host; a host outside the browser is on the
+[roadmap](/vitrine/docs/roadmap/). Here is one, whole:
 
 ```ts
 import { createRenderer } from '@aleph-garden/vitrine'

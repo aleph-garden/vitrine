@@ -1,0 +1,73 @@
+---
+title: Roadmap
+description: What is designed and not built, what it would change, and where the design lives.
+---
+
+Everything on the other pages is running code. This page is the rest, and
+none of it is in the bundle. The designs live in `docs/drafts/` in
+[the repository](https://github.com/aleph-garden/vitrine), which is where
+they get argued over.
+
+## Transclusion
+
+A view names an IRI in its output and gets back rendered content, without
+learning what was behind it. `ctx.transclude(iri, hint?)` returns HTML the
+calling view drops into its own, and the runtime replaces it with a child
+instance: own region, own dependencies, own re-render. A note embedded in a
+note becomes a thing that updates on its own, a dashboard becomes a view
+that composes without branching on content type, and the Markdown view
+loses its private embed recursion.
+
+The contract delta is settled: one call, plus `clip` on the `Hint` for
+showing a fragment alone. The runtime work is not: children are keyed by
+`(iri, hint)` so a parent's re-render keeps them, and the cycle and depth
+guards move out of views into the runtime.
+
+`docs/drafts/transclusion.md`.
+
+## Writing
+
+Vitrine reads. The design for writing keeps the core out of protocols the
+same way reading does: a view asks through `ctx.act(activity)`, an
+ActivityStreams activity carrying a media type and bytes, and the host
+carries it out over whatever it speaks. A resource gains an opaque
+`version` the host issues, so a change can say what it was based on, and a
+successful write comes back as the `as:Update` the re-render path already
+handles.
+
+Editing would be a view like any other, selected by a hint, and the first
+one worth building generates a form from a SHACL shape.
+
+`docs/drafts/write.md`.
+
+## The portal element
+
+A custom element and one script tag, so any page can render an IRI:
+
+```html
+<aleph-portal url="https://pod.example/notes/a.md"></aleph-portal>
+```
+
+One rule keeps it comprehensible: a portal never holds a session. Public
+resources render, a private one becomes a link that opens where the
+reader's session lives. Rules come from the reader's pod rather than the
+page, so a reader's own views can follow them across sites, and a portal
+runs only the views of its own bundle, since loading a stranger's code into
+someone else's page is not a thing to offer.
+
+`docs/drafts/portal.md`.
+
+## Further out
+
+- **A server-side host.** The same views rendered without a browser, so a
+  page arrives complete. `render` already returns a string and never
+  touches the DOM; what is missing is a statement per view about whether
+  its output stands without `hydrate`.
+- **Views that are not JavaScript.** Data in, HTML out, one async import
+  for reaching other resources is a WIT world, so a view could come from
+  any language that compiles to WebAssembly.
+- **Isolation for views you did not write.** A region that is a sandboxed
+  frame with an opaque origin, so a view runs without the host's session.
+  Until that stands, a host runs the views its operator chose.
+- **`ask` conditions**, which need a place to register an evaluator before
+  they can hold at all.
