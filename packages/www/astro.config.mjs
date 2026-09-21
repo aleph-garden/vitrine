@@ -29,7 +29,12 @@ export default defineConfig({
             { label: 'Your first view', link: '/docs/view/author/getting-started/' },
             { label: 'Use RDF', link: '/docs/view/author/use-rdf/' },
             { label: 'Fetch resources', link: '/docs/view/author/fetch-resources/' },
-            { label: 'Interaction', link: '/docs/view/author/interaction/' }
+            { label: 'Interaction', link: '/docs/view/author/interaction/' },
+            {
+              label: 'Transclude resources',
+              link: '/docs/view/author/transclude/',
+              badge: { text: 'planned', variant: 'caution' }
+            }
           ]
         },
         {

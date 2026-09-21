@@ -73,8 +73,8 @@ here.
 
 The two paths are exclusive. An instance whose handle has `update` is never
 re-rendered by the host; an instance without one is re-rendered whenever an
-input changed. Pick the second unless keeping DOM state is the point, since
-it needs no code at all.
+input changed. Pick the second unless the view holds DOM state worth
+keeping, since it needs no code at all.
 
 ## Things that need a real element
 
