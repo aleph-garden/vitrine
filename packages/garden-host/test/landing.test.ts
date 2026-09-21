@@ -27,6 +27,17 @@ describe('landingView', () => {
     expect(rendered.hydrate).toBeUndefined()
   })
 
+  test('shows the address it was matched on, which is the claim it makes', async () => {
+    const rendered = await landing.render(resource('https://pod.example/'), noop)
+    expect(rendered.html).toContain('<code>https://pod.example/</code>')
+  })
+
+  test('links a repository only where the source is public', async () => {
+    const rendered = await landing.render(resource('https://pod.example/'), noop)
+    expect(rendered.html).toContain('href="https://github.com/aleph-garden/vocab"')
+    expect(rendered.html).not.toContain('github.com/aleph-garden/vitrine')
+  })
+
   test("applies to the host's own IRI and nowhere else", () => {
     const renderer = createRenderer({ parsers: [], views: [landing, fallbackView] })
     expect(renderer.select(resource('https://pod.example/'))?.id).toBe(LANDING_VIEW)
