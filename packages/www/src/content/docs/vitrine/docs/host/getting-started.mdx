@@ -7,8 +7,8 @@ sidebar:
 
 import LiveView from '../../../../../components/LiveView.astro'
 
-A host answers `resolve`, gives the runtime a region, and delivers events.
-Here is one, whole:
+A host is what puts Vitrine to work. It fetches, it hands over a region of
+the page, and it passes events around. Here is one, whole:
 
 ```ts
 import { createRenderer } from '@aleph-garden/vitrine'
@@ -25,6 +25,12 @@ fixture resources instead of the network, which is a difference no view can
 observe.
 
 <LiveView iri="https://example.org/people/grace" caption="mounted by the five lines above" />
+
+## Getting the package
+
+Nothing is published. The imports above name packages inside
+[the repository](https://github.com/aleph-garden/vitrine), which you clone
+and build; there is no npm release to depend on yet. MIT licensed.
 
 ## What `resolve` is
 

@@ -1,14 +1,18 @@
 # Vitrine
 
-A rendering layer for IRIs, and one component of [Aleph
-Garden](https://aleph.garden). One IRI goes in, HTML comes out, and the
-piece that decides how is a plain rule table over a list of views.
+Vitrine turns an address into HTML. Give it the IRI of a resource and you
+get something you can read: a note as a note, a person as a card, a
+directory as a list. What draws each one is a small function, and you can
+replace it with your own. Vitrine reads and never writes, so editing and
+permissions stay with the tools you already use for them.
 
-What the library sees of a resource is its body, its content type, what the
-server says about it, and quads when the body carries RDF. The core knows no
-server, no protocol and no RDF library: a host fetches, the library renders.
-RDF is where the rule table earns its keep, since a condition can select a
-view by the resource's `rdf:type`.
+Which function runs is decided by a table of rules over the content type,
+the `rdf:type`, or the IRI itself. What the library hands that function is
+the body, the content type, what the server says about the resource, and
+quads when the body carries RDF. It knows no server, no protocol and no RDF
+library of its own: a host fetches, Vitrine renders.
+
+Vitrine is one component of [Aleph Garden](https://aleph.garden).
 
 The hosts that exist speak Solid. A Community Solid Server hands the browser
 shell out as the `text/html` representation of every resource it serves, and
@@ -17,7 +21,9 @@ origin. A deployment differs only in the host document the build embeds.
 
 Status: the pipeline, the Markdown view, the browser shell and the
 aleph.garden host stand. Transclusion, a server-side host and WASM views are
-specified and unbuilt.
+specified and unbuilt. **Nothing is published:** the package names below are
+internal to this repository, nothing is on npm, and there is no release to
+depend on. Clone and build.
 
 ## What it allows
 
@@ -149,6 +155,10 @@ nix build .#shell                  # the bundle a pod serves
 
 `nix/shell.nix` takes the host document as an argument, so the fleet builds
 the pod's bundle from this flake with its own configuration.
+
+## Licence
+
+MIT. See [LICENSE](LICENSE).
 
 ## Documentation
 

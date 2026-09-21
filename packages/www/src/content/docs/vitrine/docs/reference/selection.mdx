@@ -39,7 +39,24 @@ flowchart TD
   W -- none --> N[no view: render rejects]
 ```
 
-Order is explicit and nothing else decides. An empty `when` holds for
+Order is explicit and nothing else decides.
+
+## When several views could apply
+
+A subject typed `foaf:Person` and `schema:Person` at once is the normal
+case, not the exception, and both conditions hold. There is no specificity
+score and no entailment: the registry has no ontology, so `owl:sameAs`,
+`rdfs:subClassOf` and the rest do not enter into it. Two views that both
+hold are settled by position, the first one in the list.
+
+That is the whole tie-break, and it puts the burden where it can be seen:
+
+- A host that wants one vocabulary to win registers that view earlier.
+- A view that covers several vocabularies says so, with one condition per
+  vocabulary in its own `when`, since every condition of a rule must hold
+  but a view may be reached by more than one rule.
+- Collapsing vocabularies onto one canonical form before selection is a
+  parser's job or a host's, and the library does not do it for you. An empty `when` holds for
 everything, which is how a fallback view is registered last.
 
 ## Conditions

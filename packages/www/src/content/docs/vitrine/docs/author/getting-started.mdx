@@ -7,7 +7,8 @@ sidebar:
 
 import LiveView from '../../../../../components/LiveView.astro'
 
-A view takes a resource and returns HTML. Here is a whole one:
+A view takes a resource and returns HTML. Here is a whole one, and
+it is running further down the page:
 
 ```ts
 import { escapeHtml, type View } from '@aleph-garden/vitrine'
@@ -23,7 +24,7 @@ export const plainTextView: View = {
 }
 ```
 
-That view is registered on this page, and this is it rendering a resource:
+Registered on this page, that view renders a text resource:
 
 <LiveView
   iri="https://example.org/notes/packing.txt"
@@ -52,6 +53,14 @@ later, in [`hydrate`](/vitrine/docs/author/interaction/).
 `resource.body` came from somewhere else. So does every literal in a graph.
 `escapeHtml` is exported for this, and the runtime sanitises what it writes
 as a second line of defence. Both are wanted, and the view goes first.
+
+## Getting the package
+
+There is none to get yet. Nothing is on npm, there is no release, and the
+`@aleph-garden/vitrine` in the imports above is how the packages refer to
+each other inside [the repository](https://github.com/aleph-garden/vitrine).
+Clone it, `bun install`, and write your view in a package beside the
+examples. It is MIT licensed.
 
 ## Registering it
 

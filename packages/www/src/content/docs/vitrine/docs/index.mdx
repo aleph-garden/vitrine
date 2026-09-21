@@ -5,22 +5,58 @@ description: A rendering layer for IRIs. One IRI in, HTML out, and a rule table 
 
 import LiveView from '../../../../components/LiveView.astro'
 
-Vitrine renders IRIs. One goes in, HTML comes out: a rule table maps the
-resource to a view, and the view returns a string. It is one component of
-[Aleph Garden](https://aleph.garden), and the live box below is it running
-in this page, over a fixture resource, through the same library a pod
-serves:
+Vitrine turns an address into HTML. Give it the IRI of a resource, which is
+a URL that may carry any character, and you get something you can read: a
+note as a note, a person as a card, a directory as a list. What draws each
+one is a small function, and you can replace it with your own.
 
-<LiveView iri="https://example.org/people/ada" caption="a person resource, rendered by a twenty-line view" />
+The box below is one of those functions, running in this page. It reads a
+person out of a graph and draws the card. Here it is, whole, with nothing
+left out:
+
+<LiveView iri="https://example.org/people/ada" caption="personCardView over a fixture person" />
 
 ```ts
+import { escapeHtml, objects, type View } from '@aleph-garden/vitrine'
+
+const SCHEMA = 'https://schema.org/'
+
 export const personCardView: View = {
   id: 'https://example.org/views#PersonCard',
-  when: [{ type: 'https://schema.org/Person' }],
+  when: [{ type: `${SCHEMA}Person` }],
 
-  async render (resource, ctx) { /* … returns { html } */ }
+  async render (resource, ctx) {
+    const graph = resource.graph ?? []
+    const name = objects(graph, resource.iri, `${SCHEMA}name`)[0]?.value ?? resource.iri
+    const employerIri = objects(graph, resource.iri, `${SCHEMA}worksFor`)[0]?.value
+
+    let employer = ''
+    if (employerIri) {
+      const org = await ctx.resolve(employerIri)
+      const orgName = objects(org.graph ?? [], employerIri, `${SCHEMA}name`)[0]?.value ?? employerIri
+      employer = `<p class="employer"><a href="${escapeHtml(employerIri)}">${escapeHtml(orgName)}</a></p>`
+    }
+
+    return { html: `<article class="person-card"><h2>${escapeHtml(name)}</h2>${employer}</article>` }
+  }
 }
 ```
+
+`escapeHtml` is there because everything in a resource came from somewhere
+else. The view escapes, and the runtime sanitises every string it writes
+into the document against a fixed allowlist, under a content security policy
+and Trusted Types where the browser has them. Both, deliberately.
+
+Which function runs is decided by a table of rules over the content type,
+the `rdf:type`, or the IRI itself. Write a view, put it in the table, and
+every host that loads that table renders those resources your way. The table
+is per host: your rules reach the hosts you control, and a stranger's viewer
+keeps its own.
+
+Vitrine reads. It shows a resource and it never writes one back, so editing,
+uploading and permissions stay with whatever tool you already use for them.
+It is one component of [Aleph Garden](https://aleph.garden), and the source
+is at [github.com/aleph-garden/vitrine](https://github.com/aleph-garden/vitrine).
 
 ## Why this exists
 
@@ -31,22 +67,30 @@ every one shaped by the requirements of whoever needed it first, and if
 yours differ you write another application or you live with theirs. The data
 may be yours; the way you see it is theirs.
 
-For RDF this is worse than elsewhere, since the tools that do exist are
-enterprise tooling or they look like the decade they were written in, and
-the answer to "I want this to look different" is another whole application.
+For RDF this is worse than elsewhere, and the way to see it is to open your
+own data in what exists. SolidOS shows a Markdown note as a generic document
+pane. Penny lists a resource's properties in a table, which is correct and
+tells you nothing about what the resource is. Protégé and TopBraid are
+ontology tools and were never meant for reading. None of them is bad at what
+it was built for, and none of them lets you say "a recipe should look like a
+recipe" without writing an application.
 
-Vitrine is the missing socket. A resource arrives, a rule table picks a
-view, the view renders it. The frame stops being the work: an application
-keeps its shell, its session and its navigation, and the piece you replace
-is a function. Your replacement then applies everywhere a resource of that
-kind is opened, because the rule table is what decides.
+Vitrine is a socket for that missing piece. A resource arrives, a rule table
+picks a view, the view renders it. The frame is still work, and it was done
+once: `@aleph-garden/shell` carries the fetching, the Solid login and the
+navigation, and a host that needs something else replaces it. What you
+replace to change how a resource looks is one function in a table.
 
-Access to the data is the precondition. A renderer can only be as good as
-what it is allowed to read, which is why this is built against a graph you
-hold rather than an API somebody rations.
+Access to the data is the precondition. A renderer is only as good as what
+it may read, and an API that hands out a fixed shape fixes what any renderer
+can do with it. That is why this is built against a graph you hold. Nothing
+in the contract requires RDF, though: a condition on the content type is
+enough, so a host can hand a view a CSV or a PDF and the same selection
+applies.
 
-There is a longer version of the argument, and the honest account of the
-twenty attempts that came before this one, in the repository.
+There is a longer version of the argument, and an account of the twenty
+attempts that came before this one, in
+[the repository](https://github.com/aleph-garden/vitrine).
 
 ## Two ways in
 
@@ -92,6 +136,12 @@ and being built.
 
 The unit stays a view: you write one, register it, and a rule picks it.
 Vitrine is what runs them.
+
+**Nothing is published yet.** These names are how the packages refer to each
+other inside the repository; none of them is on npm, and there is no release
+or version to depend on. Using Vitrine today means cloning
+[the repository](https://github.com/aleph-garden/vitrine) and building it.
+It is MIT licensed.
 
 View ids and the event types the library defines live under
 `https://w3id.org/aleph/ns/view#`.

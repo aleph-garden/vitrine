@@ -77,6 +77,17 @@ anything else. `meta` is what the server says about the resource, so
 about the request, so it is never in `meta`, where a cached resource would
 carry one agent's permissions to another.
 
+## Subjects without an IRI
+
+A blank node has no IRI, so nothing can address it: no rule selects on it,
+no link points at it, and transclusion cannot bring it in. It is part of the
+resource that carries it, and the view that renders that resource renders it
+inline, reached by walking the quads from a subject that does have an IRI.
+
+If you want a part of a document to be addressable, give it a fragment IRI.
+`<#claim-1>` is a subject like any other, and a view can hand it to whatever
+renders that kind of thing.
+
 ## Vocabularies you did not plan for
 
 A resource can carry several vocabularies at once, and no single view owns
