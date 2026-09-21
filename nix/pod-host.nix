@@ -56,7 +56,7 @@
 
     outputHashAlgo = "sha256";
     outputHashMode = "recursive";
-    outputHash = "sha256-zT1FjBg8Pg0p6Syfs15ZCXWEaihg28ArReQKtzutrAE=";
+    outputHash = "sha256-n+jqn/bukYSnfpnLxcVH+CH14AGylUG/vYIxgU98Bqs=";
   };
 in
   stdenvNoCC.mkDerivation {

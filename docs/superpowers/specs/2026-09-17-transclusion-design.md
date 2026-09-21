@@ -1,10 +1,9 @@
 # Transclusion: design (slice 2)
 
 A view can bring another resource in by reference, and what comes in has a
-life of its own: its own region, hint, dependencies and re-render. This is
-the one addition slice 2 makes to the contract of
-[slice 1](2026-09-17-aleph-view-design.md). Everything else here is how a
-host makes it affordable.
+life of its own: its own region, hint, dependencies and re-render. That is
+the one addition this makes to the view contract. Everything else here is
+how a host makes it affordable.
 
 ## Purpose
 

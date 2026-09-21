@@ -172,5 +172,6 @@ MIT. See [LICENSE](LICENSE).
 ## Documentation
 
 The contracts in full are at
-[aleph.garden/vitrine/docs/](https://aleph.garden/vitrine/docs/), and the design
-documents behind them are in `docs/superpowers/specs/`.
+[aleph.garden/vitrine/docs/](https://aleph.garden/vitrine/docs/).
+`docs/superpowers/specs/` holds the designs not yet built; a spec is a
+snapshot and goes once its slice stands.
