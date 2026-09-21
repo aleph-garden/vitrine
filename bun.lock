@@ -11,13 +11,6 @@
         "typescript": "^7.0.2",
       },
     },
-    "packages/annotate": {
-      "name": "@aleph-garden/annotate",
-      "version": "0.0.0",
-      "bin": {
-        "annotate-serve": "./src/serve.ts",
-      },
-    },
     "packages/shell": {
       "name": "@aleph-garden/shell",
       "version": "0.0.0",
@@ -82,8 +75,6 @@
     },
   },
   "packages": {
-    "@aleph-garden/annotate": ["@aleph-garden/annotate@workspace:packages/annotate"],
-
     "@aleph-garden/shell": ["@aleph-garden/shell@workspace:packages/shell"],
 
     "@aleph-garden/vitrine": ["@aleph-garden/vitrine@workspace:packages/vitrine"],
