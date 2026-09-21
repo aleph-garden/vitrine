@@ -5,10 +5,10 @@ description: A rendering layer for IRIs. One IRI in, HTML out, and a rule table 
 
 import LiveView from '../../../../components/LiveView.astro'
 
-Vitrine turns an address into HTML. Give it the IRI of a resource, which is
-a URL that may carry any character, and you get something you can read: a
-note as a note, a person as a card, a directory as a list. What draws each
-one is a small function, and you can replace it with your own.
+Vitrine turns an address into HTML. Give it a resource's IRI, which is what
+RDF calls a web address, and you get something you can read: a note as a
+note, a person as a card, a directory as a list. What draws each one is a
+small function, and you can replace it with your own.
 
 The box below is one of those functions, running in this page. It reads a
 person out of a graph and draws the card. Here it is, whole, with nothing

@@ -70,6 +70,11 @@ classDiagram
 
 ## Resource
 
+An IRI is a URL that may also contain characters beyond ASCII, so
+`https://müller.example/über-uns` is one where a URL would need percent
+encoding. Nothing here depends on the difference; the word is RDF's and the
+contract uses it throughout.
+
 ```ts
 type Resource = {
   iri: string
