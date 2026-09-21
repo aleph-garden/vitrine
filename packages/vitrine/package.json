@@ -8,7 +8,8 @@
     "./cache": "./src/cache.ts",
     "./dom": "./src/dom.ts",
     "./ssr": "./src/ssr.ts",
-    "./http": "./src/http.ts"
+    "./http": "./src/http.ts",
+    "./rdfjs": "./src/rdfjs.ts"
   },
   "dependencies": {
     "@aleph-garden/terms": "workspace:*",

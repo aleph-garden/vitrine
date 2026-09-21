@@ -5,6 +5,7 @@
 import type { Host } from '@aleph-garden/host-core'
 import { anonymousSession } from '@aleph-garden/host-core'
 import { containerView, fallbackView } from '@aleph-garden/vitrine'
+import { jsonLdParser } from '@aleph-garden/vitrine-jsonld'
 import { parseTurtle, turtleParser } from '@aleph-garden/vitrine-turtle'
 import { gardenAddress } from './address.ts'
 import { landingView } from './landing.ts'
@@ -12,7 +13,7 @@ import { landingView } from './landing.ts'
 export const gardenHost: Host = {
   address: gardenAddress,
   parseTurtle,
-  parsers: () => [turtleParser()],
+  parsers: () => [turtleParser(), jsonLdParser()],
   session: async () => anonymousSession(),
   views: () => [landingView(location.origin), containerView, fallbackView]
 }

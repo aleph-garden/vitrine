@@ -6,6 +6,7 @@
   "dependencies": {
     "@aleph-garden/host-core": "workspace:*",
     "@aleph-garden/vitrine": "workspace:*",
+    "@aleph-garden/vitrine-jsonld": "workspace:*",
     "@aleph-garden/vitrine-markdown": "workspace:*",
     "@aleph-garden/vitrine-turtle": "workspace:*",
     "katex": "^0.18.7"
