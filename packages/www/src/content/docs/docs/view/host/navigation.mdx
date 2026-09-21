@@ -1,0 +1,86 @@
+---
+title: Navigation and events
+description: One bus, one listener ahead of the views, and the host deciding what a link means.
+sidebar:
+  order: 3
+---
+
+Everything that happens reaches the runtime as an event, and the runtime
+delivers it to every instance:
+
+```ts
+runtime.dispatch({ type: AS.Update, object: iri })                    // it changed
+runtime.dispatch({ type: AS.View, object: iri, target: `${iri}#Setup` })  // show this part
+```
+
+An instance whose handle has `update` answers for itself. Every other
+instance is re-rendered when the event names one of its dependencies or
+changes its hint. A host delivers and does not choose.
+
+## The host listens first
+
+```ts
+runtime.listen((event) => {
+  if (event.type !== AS.View || typeof event.object !== 'string') return
+  // …
+})
+```
+
+`listen` puts a callback ahead of the instances, which is where navigation
+lives. The runtime turns a click on an `http` or `https` link inside any
+region into an `as:View` event carrying the link's IRI as `object` and the
+full target, fragment included, as `target`.
+
+What that means is the host's decision:
+
+```ts
+runtime.listen((event) => {
+  if (event.type !== AS.View || typeof event.object !== 'string') return
+  const sameResource = current()?.iri === event.object
+
+  if (sameResource) {
+    history.replaceState(null, '', event.target as string)   // a fragment: no refetch
+  } else if (opensInPlace(event.object)) {
+    history.pushState(null, '', addressFor(event.object).href)
+    void runtime.mount(root, event.object, hintOf(event.target))
+  } else {
+    location.assign(event.object)                            // let the browser have it
+  }
+})
+```
+
+Three cases, and the middle one is the only one that fetches. A fragment on
+the resource already mounted is a `dispatch`, so the instance decides what
+to do with it; another resource is a fresh `mount`.
+
+## Coming back
+
+The browser's own history is the other direction of the same thing:
+
+```ts
+window.addEventListener('popstate', () => {
+  const { iri, hint } = addressOf(location.href)
+  if (current()?.iri === iri) void runtime.dispatch({ type: AS.View, object: iri, target: location.href })
+  else void runtime.mount(root, iri, hint)
+})
+```
+
+## Which links open in place
+
+A host that renders resources from any origin has to decide whether a link
+to a foreign origin opens in its own region or in the browser. Both answers
+are defensible: a viewer whose purpose is any IRI opens everything, while a
+pod's own shell opens its own resources and hands the rest to the browser,
+which is what its visitors expect.
+
+Whatever the rule, it belongs to the host and it should be one rule.
+Deciding per link inside views spreads it across code nobody reads
+together.
+
+## Other event sources
+
+The bus is not only for clicks. A reload control emits `as:Update` for the
+current IRI. A Solid notification channel emits ActivityStreams activities
+already, so a subscription can dispatch them unchanged. A host that watches
+a file can do the same. Every source arrives on the same path, and no view
+learns which one it was.

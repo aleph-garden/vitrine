@@ -1,0 +1,97 @@
+---
+title: Interaction
+description: Hydration, events that carry meaning, and replacing one slot instead of re-rendering.
+sidebar:
+  order: 4
+---
+
+import LiveView from '../../../../../components/LiveView.astro'
+
+`render` returns a string and cannot touch the DOM. When a view needs
+behaviour, it returns `hydrate`, which the host calls once its HTML is in
+the document:
+
+```ts
+type Rendered = {
+  html: string
+  hydrate?(root: Element, ctx: Context): Handle | void
+}
+```
+
+`root` is the view's own region. Everything outside it belongs to the host.
+
+## Events carry meaning
+
+```ts
+hydrate (root, ctx) {
+  root.addEventListener('click', (event) => {
+    const box = event.target as HTMLInputElement | null
+    if (!box?.dataset.index) return
+    ctx.emit({
+      type: ALEPH.Select,
+      object: `${resource.iri}#${box.dataset.index}`,
+      target: resource.iri
+    })
+  })
+}
+```
+
+What goes on the bus is `aleph:Select` with the item's IRI, never a `click`
+with an element. An event is an ActivityStreams 2.0 activity as a plain
+object, which is the shape a Solid notification already has, so a message
+from the server and a click in a region arrive the same way. Other views
+hear it, and so does the host.
+
+<LiveView iri="https://example.org/notes/packing.txt" caption="tick a box: an event goes out, the tally is patched" />
+
+## Answering events yourself
+
+`hydrate` may return a `Handle`. A handle with `update` takes the instance
+off the host's re-render path: it sees every event and answers with a
+`Patch` or with nothing.
+
+```ts
+return {
+  update (event) {
+    if (event.type !== ALEPH.Select) return
+    if (typeof event.object !== 'string' || !event.object.startsWith(resource.iri)) return
+    const boxes = [...root.querySelectorAll('.task input')]
+    const done = boxes.filter((box) => box.checked).length
+    return { slot: 'count', html: `${done} of ${boxes.length}` }
+  },
+
+  dispose () {
+    // Anything that outlives a render: a timer, an observer, a worker.
+  }
+}
+```
+
+A `Patch` names a `data-slot` in the view's own HTML, and the host replaces
+that element's content. The checkboxes above keep their state because only
+the tally is replaced. Returning nothing means this event changed nothing
+here.
+
+The two paths are exclusive. An instance whose handle has `update` is never
+re-rendered by the host; an instance without one is re-rendered whenever an
+input changed. Pick the second unless keeping DOM state is the point, since
+it needs no code at all.
+
+## Things that need a real element
+
+Some renderers only work on live elements, and that is what `hydrate` is
+for. A diagram view emits `<pre class="mermaid">` in `render` and calls the
+renderer in `hydrate`; a formula view can do all of it in `render`, since
+KaTeX produces HTML.
+
+The difference matters beyond the browser: a host with no DOM runs `render`
+and skips `hydrate`, so the first view degrades to source text and the
+second is complete. A view that puts meaning only in `hydrate` cannot be
+rendered on a server at all.
+
+## Links
+
+A link in your HTML is enough. The runtime turns a click on an `http` or
+`https` link inside a region into an `as:View` event, and the host decides
+what that means: open in place, push an address, hand it to the browser. A
+view that wants other semantics for a particular link marks it with `target`
+or handles the click in `hydrate` and stops it there.

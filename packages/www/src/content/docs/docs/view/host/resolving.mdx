@@ -1,0 +1,94 @@
+---
+title: Resolving
+description: Turning an HTTP response into a Resource, and the two things worth doing here and nowhere else.
+sidebar:
+  order: 2
+---
+
+`resolve` is where the outside world enters. What comes back is the only
+thing a view ever sees of it:
+
+```ts
+type Resource = {
+  iri: string
+  contentType: string
+  body: string | Uint8Array
+  graph?: Quad[]      // filled by a parser, not by you
+  meta: Quad[]        // what the server says about the resource
+  allow: Mode[]       // what this requester may do
+}
+```
+
+## From a response
+
+A browser host asks for representations and keeps HTML out of the
+negotiation, so the server never answers with the shell:
+
+```ts
+const response = await fetch(iri, { headers: { accept: 'text/turtle, text/markdown, */*;q=0.5' } })
+if (!response.ok) throw Object.assign(new Error(`${response.status} ${iri}`), { status: response.status })
+```
+
+Then the headers become statements. This is the part worth getting right,
+because a view's conditions depend on it:
+
+- `Content-Type` is the content type, parameters and all. Conditions strip
+  them.
+- `Link rel="type"` becomes `<iri> rdf:type <type>` in `meta`. This is how
+  a container announces itself, and how `{ container: true }` holds.
+- `Last-Modified` becomes `dcterms:modified` in `meta`, as an
+  `xsd:dateTime`.
+- `WAC-Allow` becomes `allow`. It belongs to the request, so it never goes
+  into `meta`: a cached resource must not carry one agent's permissions to
+  another.
+- For a container, the body itself describes the children, so parsing it
+  into `meta` is what makes a listing possible.
+
+Whether the body is text or bytes follows from the media type, and a view
+that gets a `Uint8Array` where it expected a string is a bug in the host.
+
+## Parsers
+
+The library has no RDF library. A host registers what it can parse, and
+parsing runs before selection so that a rule can match on `rdf:type`:
+
+```ts
+const renderer = createRenderer({
+  parsers: [{
+    contentType: 'text/turtle',
+    async parse (resource) {
+      return toPlainQuads(new N3Parser({ baseIRI: resource.iri }).parse(String(resource.body)))
+    }
+  }],
+  views: [...]
+})
+```
+
+Quads must come out as plain objects, not as the library's own term
+instances, since that is what crosses the boundary to a view. A host that
+never sees RDF registers no parsers, and views then select by content type
+alone.
+
+## Caching
+
+Worth doing here, and pointless anywhere else. Key by the IRI without its
+fragment, keep the entry while its `ETag` or `Last-Modified` stands, and
+drop it when an `as:Update` names it. Several views on one page asking for
+the same note then cost one request.
+
+Because the cache is the host's, a server-side host that already holds a
+store needs none, and a desktop host can make it persistent.
+
+## Credentials
+
+The token is the host's and never reaches a view. Two rules keep that from
+leaking:
+
+- Attach credentials per origin, and only to the origins the session
+  actually stands on. A host that renders foreign resources must send them
+  nothing.
+- Never put anything derived from a credential into `Resource`, apart from
+  `allow`.
+
+A host that holds no session is a legitimate host: it fetches anonymously,
+and a `401` becomes a link rather than a login.

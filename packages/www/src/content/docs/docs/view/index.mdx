@@ -1,77 +1,93 @@
 ---
 title: view
-description: A rendering layer for IRIs. One IRI in, HTML out.
+description: A rendering layer for IRIs. One IRI in, HTML out, and a rule table decides how.
 ---
 
-`@aleph-garden/view` turns an IRI into HTML. One IRI goes in, HTML comes
-out, and the piece that decides how is a plain rule table over a list of
-views. What the library sees of a resource is its body, its content type,
-what the server says about it, and quads when the body carries RDF; the core
-knows no server and no protocol, so a host fetches and the library renders.
-RDF is where the rule table earns its keep, since a condition can select a
-view by the resource's `rdf:type`.
+import LiveView from '../../../../components/LiveView.astro'
 
-This section is the public contract: the data that crosses the boundary,
-the selection rule, the re-render protocol, and what a host owes the
-library. Everything a view can do, it does through these. Concrete views
-and concrete hosts are implementations under it and are documented where
-they live.
+An IRI goes in, HTML comes out. A rule table maps the resource to a view;
+the view returns a string. That is the whole idea, and the live box below is
+it running in this page, over a fixture resource, through the same library a
+pod serves:
 
-## The pipeline
-
-```mermaid
-flowchart LR
-  R[Resource<br/>raw body + meta] --> P[parse<br/>by content type]
-  P --> S[select<br/>by hint, rules, view.when]
-  S --> V[view.render]
-  V --> H[Rendered<br/>html + hydrate?]
-  H --> M[host places html]
-  M --> Y[hydrate → Handle]
-```
-
-The core has no RDF library and no DOM. Parsers and views bring their own
-libraries; the core knows quads only as plain data. Everything that touches
-elements lives in one DOM module a browser host uses.
-
-## What a view is
+<LiveView iri="https://example.org/people/ada" caption="a person resource, rendered by a twenty-line view" />
 
 ```ts
-type View = {
-  id: string                 // an IRI
-  when?: Condition[]         // where it applies by default
-  render(resource, ctx, hint?): Promise<Rendered>
+export const personCardView: View = {
+  id: 'https://example.org/views#PersonCard',
+  when: [{ type: 'https://schema.org/Person' }],
+
+  async render (resource, ctx) { /* … returns { html } */ }
 }
 ```
 
-A view receives a `Resource`, a `Context` to reach other resources and the
-event bus, and an optional `Hint`. It returns HTML and, when it needs
-behavior after placement, a `hydrate` function. That is the whole surface;
-see [Contracts](/docs/view/contracts/).
+## Why this exists
+
+To show one kind of thing on the web you build an application: fetching,
+authentication, routing, layout, state, a deployment. The renderer is the
+smallest part of the result. So each domain gets a handful of applications,
+every one shaped by the requirements of whoever needed it first, and if
+yours differ you write another application or you live with theirs. The data
+may be yours; the way you see it is theirs.
+
+For RDF this is worse than elsewhere, since the tools that do exist are
+enterprise tooling or they look like the decade they were written in, and
+the answer to "I want this to look different" is another whole application.
+
+This library is the missing socket. A resource arrives, a rule table picks a
+view, the view renders it. The frame stops being the work: an application
+keeps its shell, its session and its navigation, and the piece you replace
+is a function. Your replacement then applies everywhere a resource of that
+kind is opened, because the rule table is what decides.
+
+Access to the data is the precondition. A renderer can only be as good as
+what it is allowed to read, which is why this is built against a graph you
+hold rather than an API somebody rations.
+
+There is a longer version of the argument, and the honest account of the
+twenty attempts that came before this one, in the repository.
+
+## Two ways in
+
+**[Author a view](/docs/view/author/getting-started/)** when you want a
+resource to look different. A view is an object with an id, the conditions
+under which it applies, and `render`. No framework, no base class, no build
+step of its own. Then: [use RDF](/docs/view/author/use-rdf/), [fetch
+resources](/docs/view/author/fetch-resources/),
+[interaction](/docs/view/author/interaction/).
+
+**[Create a host](/docs/view/host/getting-started/)** when you want views
+somewhere new: a page, an application, a server, a desktop. A host answers
+`resolve`, gives the runtime a region, and delivers events. Then:
+[resolving](/docs/view/host/resolving/), [navigation and
+events](/docs/view/host/navigation/), [registry and
+configuration](/docs/view/host/registry/).
+
+The [reference](/docs/view/reference/contracts/) has the types, the
+selection order and the re-render protocol, for when you need the exact
+rule rather than the idea.
+
+## What runs today
+
+| Where | What |
+|---|---|
+| `pod.toph.so` | a Solid server hands out the shell as the `text/html` representation of every resource, so a note opens at its own URL and renders as a note |
+| `aleph.garden` | the same bundle for any IRI written after the origin |
+| these pages | the examples above, mounted by a host of five lines |
+
+Views in the bundle: Obsidian-flavoured Markdown, a container listing, and a
+fallback that puts RDF in a statement table. Transclusion, where a view
+brings another resource in and that one keeps its own identity, is specified
+and being built.
 
 ## Packages
 
 | Package | Holds | Knows about |
 |---|---|---|
-| `@aleph-garden/view` | contracts, renderer, selection, DOM runtime with instance bookkeeping | IRIs and quads |
+| `@aleph-garden/view` | contracts, renderer, selection, DOM runtime | IRIs and quads |
 | `@aleph-garden/view-markdown` | the Markdown view | Obsidian, a Solid type index |
 | `@aleph-garden/shell` | the browser host | Solid-OIDC, WAC, LDP, Turtle |
+| `@aleph-garden/view-examples` | the views on these pages, and their fixture resources | nothing beyond the contract |
 
-View IRIs and the event types the library defines live under
+View ids and the event types the library defines live under
 `https://w3id.org/aleph/ns/view#`.
-
-## What a host is
-
-A host is whatever answers `resolve`, places the HTML the library returns,
-and drives the re-render protocol. Everything the library refuses to decide
-is its: fetching, session, navigation, the address, editing, search, layout.
-A view never fetches, never touches the address bar, never reaches outside
-its own region.
-
-The repository ships one host, a browser shell. A Solid server hands it out
-as the `text/html` representation of every resource it serves, and the same
-bundle runs at `https://aleph.garden/` for any IRI written after the origin.
-What it configures, how it logs in and how it is deployed belong to that
-shell; the contract on this page holds whatever a host does with it.
-
-The library does not model what a view is beyond the signature above: every
-case arrives as a concrete view under the same contract.

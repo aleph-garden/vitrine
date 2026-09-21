@@ -5,6 +5,11 @@ import mermaid from 'astro-mermaid'
 
 export default defineConfig({
   site: 'https://aleph.garden',
+  redirects: {
+    '/docs/view/contracts': '/docs/view/reference/contracts/',
+    '/docs/view/selection': '/docs/view/reference/selection/',
+    '/docs/view/rendering': '/docs/view/reference/rendering/'
+  },
   integrations: [
     // Before Starlight, so the ```mermaid fences are claimed before
     // Expressive Code sees them.
@@ -16,13 +21,32 @@ export default defineConfig({
       sidebar: [
         {
           label: 'view',
+          items: [{ label: 'Overview', link: '/docs/view/' }]
+        },
+        {
+          label: 'Author a view',
           items: [
-            { label: 'Overview', link: '/docs/view/' },
-            { label: 'Contracts', link: '/docs/view/contracts/' },
-            { label: 'Selection', link: '/docs/view/selection/' },
-            { label: 'Rendering and re-render', link: '/docs/view/rendering/' },
-            { label: 'Write a view', link: '/docs/view/guides/write-a-view/' },
-            { label: 'Build a host', link: '/docs/view/guides/build-a-host/' }
+            { label: 'Your first view', link: '/docs/view/author/getting-started/' },
+            { label: 'Use RDF', link: '/docs/view/author/use-rdf/' },
+            { label: 'Fetch resources', link: '/docs/view/author/fetch-resources/' },
+            { label: 'Interaction', link: '/docs/view/author/interaction/' }
+          ]
+        },
+        {
+          label: 'Create a host',
+          items: [
+            { label: 'Your first host', link: '/docs/view/host/getting-started/' },
+            { label: 'Resolving', link: '/docs/view/host/resolving/' },
+            { label: 'Navigation and events', link: '/docs/view/host/navigation/' },
+            { label: 'Registry and configuration', link: '/docs/view/host/registry/' }
+          ]
+        },
+        {
+          label: 'Reference',
+          items: [
+            { label: 'Contracts', link: '/docs/view/reference/contracts/' },
+            { label: 'Selection', link: '/docs/view/reference/selection/' },
+            { label: 'Rendering and re-render', link: '/docs/view/reference/rendering/' }
           ]
         }
       ]

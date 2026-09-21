@@ -83,6 +83,22 @@ export async function exampleResolve(iri: string): Promise<Resource> {
   return resource
 }
 
+// ------------------------------------------------------------ plain text
+// The smallest view there is: no state, no hydration, no graph. Registered
+// after the checklist, so only a hint reaches it.
+
+export const PLAIN_TEXT_VIEW = 'https://example.org/views#PlainText'
+
+export const plainTextView: View = {
+  id: PLAIN_TEXT_VIEW,
+  when: [{ contentType: 'text/plain' }],
+
+  async render(resource) {
+    const body = typeof resource.body === 'string' ? resource.body : ''
+    return { html: `<pre class="plain">${escapeHtml(body)}</pre>` }
+  }
+}
+
 // ----------------------------------------------------------- person card
 // Reads the graph, reaches one further resource, returns HTML. No hydrate,
 // because nothing here behaves.

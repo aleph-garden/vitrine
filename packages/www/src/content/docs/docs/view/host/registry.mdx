@@ -1,0 +1,85 @@
+---
+title: Registry and configuration
+description: Which views exist, which rules override them, and how a deployment says so without touching code.
+sidebar:
+  order: 4
+---
+
+```ts
+type Registry = {
+  parsers: Parser[]
+  views: View[]
+  rules?: Rule[]
+}
+```
+
+The views are the bundle's, the rules are the deployment's. Selection
+consults, in order: a hint naming a registered view, then the rules, then
+each view's own `when` in registration order. [Selection
+](/docs/view/reference/selection/) has the conditions and the exact order.
+
+## Order is the only implicit thing
+
+```ts
+createRenderer({
+  parsers: [turtleParser()],
+  views: [markdownView, containerView, fallbackView]
+})
+```
+
+A view with an empty `when` holds for everything, which is why a fallback
+goes last. Two views claiming the same content type means the earlier one
+wins and the later one is reachable by name. There is nothing else: no
+priority numbers, no specificity, no score.
+
+## Rules, as data
+
+A rule pins a view to a condition and outranks what the views claim about
+themselves:
+
+```ts
+const rules = [
+  { view: 'https://w3id.org/aleph/ns/view#Landing', when: [{ iri: 'https://aleph.garden/' }] }
+]
+```
+
+Being plain data is the point of this shape: a rule list can be written by
+hand, shipped with a deployment, or read from a resource, without a code
+path per source.
+
+## The host document
+
+A browser deployment carries its configuration as a JSON-LD node in the
+document it serves, which the shell reads and never expands:
+
+```json
+{
+  "@context": "https://w3id.org/aleph/ns/view",
+  "@type": "Host",
+  "issuer": "https://pod.toph.so/",
+  "sparqlEndpoint": "https://sparql.toph.so"
+}
+```
+
+| Key | Meaning |
+|---|---|
+| `issuer` | where the login goes. Absent with a session: ask for a WebID and read `solid:oidcIssuer` from that profile |
+| `sparqlEndpoint` | where views send queries. Absent: they render as code |
+| `session` | `false` for a host that holds none: no login control, every fetch anonymous |
+| `opens` | `any` to open every IRI in place, `self` to open its own origin's and hand the rest to the browser |
+| `views` | the ids to register, in that order. Absent: all of the bundle's |
+| `rules` | the override rules above |
+
+Every key is optional, and a deployment that names none gets the bundle's
+own defaults. The same document is what a build embeds, which is why one
+bundle serves a pod and a public viewer with nothing differing but this
+node.
+
+## Views a host did not ship
+
+A view is code, so running one you did not write is a trust decision, and
+the origin is the only boundary a browser has. Until a region can be an
+isolated frame with its own origin, a host runs the views its operator
+chose, and every piece of view HTML goes into the document through one
+sanitiser under a content security policy. That is hardening inside the
+origin, and it is not a boundary.

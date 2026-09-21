@@ -20,9 +20,17 @@ const { iri, view, caption } = Astro.props
 <script>
   import { createRenderer } from '@aleph-garden/view'
   import { createRuntime } from '@aleph-garden/view/dom'
-  import { checklistView, exampleResolve, personCardView } from '@aleph-garden/view-examples'
+  import {
+    checklistView,
+    exampleResolve,
+    personCardView,
+    plainTextView
+  } from '@aleph-garden/view-examples'
 
-  const renderer = createRenderer({ parsers: [], views: [personCardView, checklistView] })
+  const renderer = createRenderer({
+    parsers: [],
+    views: [personCardView, checklistView, plainTextView]
+  })
   const runtime = createRuntime(renderer, exampleResolve)
 
   for (const region of document.querySelectorAll<HTMLElement>('[data-live-view]')) {

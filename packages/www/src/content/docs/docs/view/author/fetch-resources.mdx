@@ -1,0 +1,83 @@
+---
+title: Fetch resources
+description: A view never fetches. It asks the host, and gets re-rendered when the answer changes.
+sidebar:
+  order: 3
+---
+
+import LiveView from '../../../../../components/LiveView.astro'
+
+A view is handed one resource. Everything else it needs, it asks for:
+
+```ts
+const org = await ctx.resolve('https://example.org/orgs/aeo')
+```
+
+That is the only way out of a view. No `fetch`, no `XMLHttpRequest`, no
+library that does either behind your back.
+
+## Why it is the host's
+
+The host holds the credentials, so a view never sees a token. The host holds
+the cache, so ten views asking for the same note cost one request. The host
+decides what an IRI even means, which is how the same view runs against a
+pod over the network and against the fixture resources these pages use.
+
+```ts
+const employerIri = objects(graph, resource.iri, `${SCHEMA}worksFor`)[0]?.value
+if (employerIri) {
+  const org = await ctx.resolve(employerIri)
+  const orgName = objects(org.graph ?? [], employerIri, `${SCHEMA}name`)[0]?.value
+}
+```
+
+<LiveView iri="https://example.org/people/ada" caption="the employer's name came from a second resource" />
+
+## What you get for free
+
+Every IRI an instance resolves is recorded as a dependency of that instance.
+When the host later hears that one of them changed, it re-renders this view
+and nothing else on the page:
+
+```ts
+runtime.dispatch({ type: AS.Update, object: 'https://example.org/orgs/aeo' })
+```
+
+The card above would render again, with the new name. The view arranges
+nothing for this, holds no subscription, and keeps no state. Writing
+`ctx.resolve` is the whole of it. The protocol is in
+[Rendering and re-render](/docs/view/reference/rendering/).
+
+## Failure
+
+`resolve` rejects the way a fetch does: a private resource, a resource that
+is gone, a server that is down. A view may catch it and render what it can:
+
+```ts
+let orgName = employerIri
+try {
+  const org = await ctx.resolve(employerIri)
+  orgName = objects(org.graph ?? [], employerIri, `${SCHEMA}name`)[0]?.value ?? employerIri
+} catch {
+  // The card is still worth showing without the employer's name.
+}
+```
+
+A view that lets the rejection through hands the problem to the host, which
+then shows its own error or its login control for the whole region. Both are
+legitimate; the difference is whether the rest of your output is worth
+seeing without that one piece.
+
+## Queries
+
+A SPARQL query is a GET on an endpoint IRI with the query in the query
+string, so it goes through `resolve` like everything else:
+
+```ts
+const url = `${endpoint}?query=${encodeURIComponent(query)}`
+const result = await ctx.resolve(url)   // application/sparql-results+json
+```
+
+Whether the host answers that over the network or from a store it holds in
+memory is its business. A view that wants an endpoint takes it as an option
+rather than hard-coding one, since the endpoint belongs to the deployment.

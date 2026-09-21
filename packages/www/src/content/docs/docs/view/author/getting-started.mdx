@@ -1,0 +1,90 @@
+---
+title: Your first view
+description: Ten lines that render a resource, and how to get them onto a page.
+sidebar:
+  order: 1
+---
+
+import LiveView from '../../../../../components/LiveView.astro'
+
+A view takes a resource and returns HTML. Here is a whole one:
+
+```ts
+import { escapeHtml, type View } from '@aleph-garden/view'
+
+export const plainTextView: View = {
+  id: 'https://example.org/views#PlainText',
+  when: [{ contentType: 'text/plain' }],
+
+  async render (resource) {
+    const body = typeof resource.body === 'string' ? resource.body : ''
+    return { html: `<pre class="plain">${escapeHtml(body)}</pre>` }
+  }
+}
+```
+
+That view is registered on this page, and this is it rendering a resource:
+
+<LiveView
+  iri="https://example.org/notes/packing.txt"
+  view="https://example.org/views#PlainText"
+  caption="plainTextView over a text resource"
+/>
+
+## The three parts
+
+**`id` is an IRI**, because a view is a thing that can be referred to: by a
+rule, by a link, by someone else's configuration. It never has to resolve to
+anything.
+
+**`when` says where it applies.** A `contentType` condition holds when the
+resource's media type matches. The host checks it; the view is never asked
+whether it should run. Other conditions match an `rdf:type`, a container, or
+an IRI pattern, and [Selection](/docs/view/reference/selection/) has the
+list.
+
+**`render` gets the resource and returns HTML as a string.** No DOM, because
+a view may run where there is none. Anything that needs elements happens
+later, in [`hydrate`](/docs/view/author/interaction/).
+
+## Escaping is yours
+
+`resource.body` came from somewhere else. So does every literal in a graph.
+`escapeHtml` is exported for this, and the runtime sanitises what it writes
+as a second line of defence. Both are wanted, and the view goes first.
+
+## Registering it
+
+A view reaches a page through a host's registry:
+
+```ts
+import { createRenderer } from '@aleph-garden/view'
+
+const renderer = createRenderer({
+  parsers: [],
+  views: [checklistView, plainTextView]
+})
+```
+
+Order decides: the first view whose own `when` holds wins. Both views above
+claim `text/plain`, so the checklist wins and the plain-text view is only
+reachable by name. The example on this page asks for it by IRI, which is
+what `hint.view` is:
+
+```ts
+await runtime.mount(region, iri, { view: 'https://example.org/views#PlainText' })
+```
+
+In a browser host that hint also comes from the URL, as `?view=<iri>`.
+
+## Where to go next
+
+- [Use RDF](/docs/view/author/use-rdf/) for reading a graph without an RDF
+  library.
+- [Fetch resources](/docs/view/author/fetch-resources/) for reaching
+  anything beyond the resource you were handed.
+- [Interaction](/docs/view/author/interaction/) for behaviour, events and
+  partial updates.
+
+Both views on this page live in `packages/view-examples`, with the fixture
+resources they run against and the tests that pin them.

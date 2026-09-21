@@ -1,7 +1,13 @@
 import { describe, expect, test } from 'bun:test'
 import { ALEPH, createRenderer } from '@aleph-garden/view'
 import { createRuntime, instanceContext } from '@aleph-garden/view/dom'
-import { checklistView, exampleResolve, exampleResources, personCardView } from '../src/index.ts'
+import {
+  checklistView,
+  exampleResolve,
+  exampleResources,
+  personCardView,
+  plainTextView
+} from '../src/index.ts'
 
 const ctxFor = () => {
   const { ctx, dependencies } = instanceContext(exampleResolve, () => {}, (async function* () {})())
@@ -137,5 +143,25 @@ describe('the docs host', () => {
     const runtime = createRuntime(renderer, exampleResolve)
     const region = document.createElement('div')
     await expect(runtime.mount(region, 'https://example.org/nope')).rejects.toThrow('404')
+  })
+})
+
+describe('plainTextView', () => {
+  test('puts the body in a pre element, escaped', async () => {
+    const { ctx } = ctxFor()
+    const resource = await exampleResolve('https://example.org/notes/packing.txt')
+    const { html } = await plainTextView.render(resource, ctx)
+    expect(html).toStartWith('<pre class="plain">')
+    expect(html).toContain('- [x] charger')
+  })
+
+  test('a hint reaches it although the checklist claims the same type', async () => {
+    const renderer = createRenderer({
+      parsers: [],
+      views: [checklistView, plainTextView]
+    })
+    const resource = await exampleResolve('https://example.org/notes/packing.txt')
+    expect(renderer.select(resource)?.id).toBe(checklistView.id)
+    expect(renderer.select(resource, { view: plainTextView.id })?.id).toBe(plainTextView.id)
   })
 })
