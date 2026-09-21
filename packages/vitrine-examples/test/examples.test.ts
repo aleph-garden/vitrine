@@ -47,6 +47,45 @@ describe('personCardView', () => {
   })
 })
 
+describe('personCardView, the fuller card', () => {
+  test('renders the portrait with the name as its alt text', async () => {
+    const { ctx } = ctxFor()
+    const resource = await exampleResolve('https://example.org/people/ada')
+    const { html } = await personCardView.render(resource, ctx)
+    expect(html).toContain('<img class="portrait" src="/fixtures/ada.svg" alt="Ada Lovelace"')
+  })
+
+  test('leaves the portrait out when the resource carries no image', async () => {
+    const { ctx } = ctxFor()
+    const resource = await exampleResolve('https://example.org/people/grace')
+    const { html } = await personCardView.render(resource, ctx)
+    expect(html).not.toContain('<img')
+  })
+
+  test('shows both years, with the full dates machine-readable', async () => {
+    const { ctx } = ctxFor()
+    const resource = await exampleResolve('https://example.org/people/ada')
+    const { html } = await personCardView.render(resource, ctx)
+    expect(html).toContain('<time datetime="1815-12-10">1815</time>')
+    expect(html).toContain('<time datetime="1852-11-27">1852</time>')
+  })
+
+  test('a person still alive gets a birth year and no range', async () => {
+    const { ctx } = ctxFor()
+    const resource = await exampleResolve('https://example.org/people/injection')
+    const { html } = await personCardView.render(resource, ctx)
+    expect(html).toContain('born <time datetime="1980-02-29">1980</time>')
+    expect(html).not.toContain('–')
+  })
+
+  test('no dates at all leaves the line out', async () => {
+    const { ctx } = ctxFor()
+    const resource = await exampleResolve('https://example.org/people/nodates')
+    const { html } = await personCardView.render(resource, ctx)
+    expect(html).not.toContain('class="lifespan"')
+  })
+})
+
 describe('checklistView', () => {
   test('renders one item per task line', async () => {
     const { ctx } = ctxFor()
@@ -136,6 +175,19 @@ describe('the docs host', () => {
     region.querySelector<HTMLElement>('.task input')?.click()
     await Bun.sleep(1)
     expect(region.querySelector('[data-slot="count"]')?.textContent).toBe('2 of 3')
+  })
+
+  test('the portrait and the dates survive the sanitiser', async () => {
+    const renderer = createRenderer({ parsers: [], views: [personCardView, checklistView] })
+    const runtime = createRuntime(renderer, exampleResolve)
+    const region = document.createElement('div')
+    document.body.append(region)
+
+    await runtime.mount(region, 'https://example.org/people/ada')
+    const portrait = region.querySelector('img.portrait')
+    expect(portrait?.getAttribute('src')).toBe('/fixtures/ada.svg')
+    expect(portrait?.getAttribute('alt')).toBe('Ada Lovelace')
+    expect(region.querySelector('time')?.getAttribute('datetime')).toBe('1815-12-10')
   })
 
   test('a mount of an unknown IRI rejects, so the host can say so', async () => {

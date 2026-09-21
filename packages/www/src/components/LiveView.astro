@@ -60,9 +60,26 @@ const { iri, view, caption } = Astro.props
     background: var(--sl-color-gray-6);
     border-top: 1px solid var(--sl-color-gray-5);
   }
+  .live-view :global(.person-card) {
+    display: flex;
+    gap: 0.9rem;
+    align-items: center;
+  }
+  .live-view :global(.person-card .portrait) {
+    border-radius: 50%;
+    flex: none;
+  }
   .live-view :global(.person-card h2) {
-    margin: 0 0 0.25rem;
+    margin: 0;
     font-size: var(--sl-text-lg);
+  }
+  .live-view :global(.person-card p) {
+    margin: 0.15rem 0 0;
+    font-size: var(--sl-text-sm);
+  }
+  .live-view :global(.person-card .lifespan) {
+    color: var(--sl-color-gray-3);
+    font-variant-numeric: tabular-nums;
   }
   .live-view :global(.checklist ul) {
     margin: 0;

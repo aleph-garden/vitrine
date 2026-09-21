@@ -21,23 +21,47 @@ import { escapeHtml, objects, type View } from '@aleph-garden/vitrine'
 
 const SCHEMA = 'https://schema.org/'
 
+/** A date as the year, with the full value kept machine-readable. */
+const year = (date: string) =>
+  `<time datetime="${escapeHtml(date)}">${escapeHtml(date.slice(0, 4))}</time>`
+
+function lifespan(born?: string, died?: string): string {
+  if (born && died) return `<p class="lifespan">${year(born)}&ndash;${year(died)}</p>`
+  if (born) return `<p class="lifespan">born ${year(born)}</p>`
+  if (died) return `<p class="lifespan">died ${year(died)}</p>`
+  return ''
+}
+
 export const personCardView: View = {
   id: 'https://example.org/views#PersonCard',
   when: [{ type: `${SCHEMA}Person` }],
 
-  async render (resource, ctx) {
+  async render(resource, ctx) {
     const graph = resource.graph ?? []
-    const name = objects(graph, resource.iri, `${SCHEMA}name`)[0]?.value ?? resource.iri
-    const employerIri = objects(graph, resource.iri, `${SCHEMA}worksFor`)[0]?.value
+    const value = (predicate: string) => objects(graph, resource.iri, predicate)[0]?.value
+    const name = value(`${SCHEMA}name`) ?? resource.iri
+    const image = value(`${SCHEMA}image`)
+    const employerIri = value(`${SCHEMA}worksFor`)
+
+    const portrait = image
+      ? `<img class="portrait" src="${escapeHtml(image)}" alt="${escapeHtml(name)}" width="72" height="72">`
+      : ''
 
     let employer = ''
     if (employerIri) {
       const org = await ctx.resolve(employerIri)
-      const orgName = objects(org.graph ?? [], employerIri, `${SCHEMA}name`)[0]?.value ?? employerIri
+      const orgName =
+        objects(org.graph ?? [], employerIri, `${SCHEMA}name`)[0]?.value ?? employerIri
       employer = `<p class="employer"><a href="${escapeHtml(employerIri)}">${escapeHtml(orgName)}</a></p>`
     }
 
-    return { html: `<article class="person-card"><h2>${escapeHtml(name)}</h2>${employer}</article>` }
+    return {
+      html:
+        `<article class="person-card">${portrait}<div class="who">` +
+        `<h2>${escapeHtml(name)}</h2>` +
+        `${lifespan(value(`${SCHEMA}birthDate`), value(`${SCHEMA}deathDate`))}` +
+        `${employer}</div></article>`
+    }
   }
 }
 ```

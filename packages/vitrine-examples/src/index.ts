@@ -32,12 +32,25 @@ const quad = (subject: string, predicate: string, object: Term): Quad => ({
   object
 })
 
-function person(iri: string, name: string, worksFor?: string): Resource {
+type PersonFields = {
+  name: string
+  /** Where the portrait lives. The fixture pod is fiction, so this points at
+   *  a file the documentation site serves. */
+  image?: string
+  birthDate?: string
+  deathDate?: string
+  worksFor?: string
+}
+
+function person(iri: string, fields: PersonFields): Resource {
   const graph = [
     quad(iri, RDF_TYPE, named(`${SCHEMA}Person`)),
-    quad(iri, `${SCHEMA}name`, literal(name))
+    quad(iri, `${SCHEMA}name`, literal(fields.name))
   ]
-  if (worksFor) graph.push(quad(iri, `${SCHEMA}worksFor`, named(worksFor)))
+  if (fields.image) graph.push(quad(iri, `${SCHEMA}image`, named(fields.image)))
+  if (fields.birthDate) graph.push(quad(iri, `${SCHEMA}birthDate`, literal(fields.birthDate)))
+  if (fields.deathDate) graph.push(quad(iri, `${SCHEMA}deathDate`, literal(fields.deathDate)))
+  if (fields.worksFor) graph.push(quad(iri, `${SCHEMA}worksFor`, named(fields.worksFor)))
   return { iri, contentType: 'text/turtle', body: '', graph, meta: [], allow: ['read'] }
 }
 
@@ -47,16 +60,25 @@ const PACKING = ['- [ ] passport', '- [x] charger', '- [ ] towel'].join('\n')
  *  the network; this one answers from a record, which is all a view can
  *  tell apart. */
 export const exampleResources: Record<string, Resource> = {
-  'https://example.org/people/ada': person(
-    'https://example.org/people/ada',
-    'Ada Lovelace',
-    'https://example.org/orgs/aeo'
-  ),
-  'https://example.org/people/grace': person('https://example.org/people/grace', 'Grace Hopper'),
-  'https://example.org/people/injection': person(
-    'https://example.org/people/injection',
-    '<script>alert(1)</script>'
-  ),
+  'https://example.org/people/ada': person('https://example.org/people/ada', {
+    name: 'Ada Lovelace',
+    image: '/fixtures/ada.svg',
+    birthDate: '1815-12-10',
+    deathDate: '1852-11-27',
+    worksFor: 'https://example.org/orgs/aeo'
+  }),
+  'https://example.org/people/grace': person('https://example.org/people/grace', {
+    name: 'Grace Hopper',
+    birthDate: '1906-12-09',
+    deathDate: '1992-01-01'
+  }),
+  'https://example.org/people/injection': person('https://example.org/people/injection', {
+    name: '<script>alert(1)</script>',
+    birthDate: '1980-02-29'
+  }),
+  'https://example.org/people/nodates': person('https://example.org/people/nodates', {
+    name: 'Anon'
+  }),
   'https://example.org/orgs/aeo': {
     iri: 'https://example.org/orgs/aeo',
     contentType: 'text/turtle',
@@ -105,14 +127,31 @@ export const plainTextView: View = {
 
 export const PERSON_CARD_VIEW = 'https://example.org/views#PersonCard'
 
+/** A date as the year, with the full value kept machine-readable. */
+const year = (date: string) =>
+  `<time datetime="${escapeHtml(date)}">${escapeHtml(date.slice(0, 4))}</time>`
+
+function lifespan(born?: string, died?: string): string {
+  if (born && died) return `<p class="lifespan">${year(born)}&ndash;${year(died)}</p>`
+  if (born) return `<p class="lifespan">born ${year(born)}</p>`
+  if (died) return `<p class="lifespan">died ${year(died)}</p>`
+  return ''
+}
+
 export const personCardView: View = {
   id: PERSON_CARD_VIEW,
   when: [{ type: `${SCHEMA}Person` }],
 
   async render(resource, ctx) {
     const graph = resource.graph ?? []
-    const name = objects(graph, resource.iri, `${SCHEMA}name`)[0]?.value ?? resource.iri
-    const employerIri = objects(graph, resource.iri, `${SCHEMA}worksFor`)[0]?.value
+    const value = (predicate: string) => objects(graph, resource.iri, predicate)[0]?.value
+    const name = value(`${SCHEMA}name`) ?? resource.iri
+    const image = value(`${SCHEMA}image`)
+    const employerIri = value(`${SCHEMA}worksFor`)
+
+    const portrait = image
+      ? `<img class="portrait" src="${escapeHtml(image)}" alt="${escapeHtml(name)}" width="72" height="72">`
+      : ''
 
     let employer = ''
     if (employerIri) {
@@ -123,7 +162,11 @@ export const personCardView: View = {
     }
 
     return {
-      html: `<article class="person-card"><h2>${escapeHtml(name)}</h2>${employer}</article>`
+      html:
+        `<article class="person-card">${portrait}<div class="who">` +
+        `<h2>${escapeHtml(name)}</h2>` +
+        `${lifespan(value(`${SCHEMA}birthDate`), value(`${SCHEMA}deathDate`))}` +
+        `${employer}</div></article>`
     }
   }
 }
