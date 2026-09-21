@@ -33,7 +33,6 @@ export type MarkdownOptions = {
 export const MARKDOWN_VIEW = 'https://w3id.org/aleph/ns/view#Markdown'
 
 const IMAGE = /\.(png|jpe?g|gif|svg|webp|avif)$/i
-const EMBED_DEPTH = 3
 
 /** What one render carries through markdown-it's env. */
 type Env = {
@@ -51,19 +50,20 @@ export function markdownView(options: MarkdownOptions): View {
   const renderNote = async (
     resource: Resource,
     ctx: Context,
-    fragment: string | undefined,
-    chain: string[]
+    hint: Hint | undefined
   ): Promise<{ html: string; hasMermaid: boolean }> => {
     const source =
       typeof resource.body === 'string' ? resource.body : new TextDecoder().decode(resource.body)
     const { frontmatter, body } = splitFrontmatter(source)
     const index = await wikilinkIndex(ctx, options.webId)
+    const fragment = hint?.fragment
     const env: Env = { index, embeds: new Map(), sparql: new Map(), fragment }
-    const tokens = md.parse(body, env)
+    const parsed = md.parse(body, env)
+    const tokens = hint?.clip && fragment !== undefined ? clip(parsed, fragment) : parsed
 
     for (const token of walk(tokens)) {
       if (token.type === 'wikilink' && linkOf(token).embed) {
-        env.embeds.set(token, await renderEmbed(linkOf(token), resource, ctx, chain))
+        env.embeds.set(token, await renderEmbed(linkOf(token), ctx))
       } else if (
         token.type === 'fence' &&
         token.info.trim() === 'sparql' &&
@@ -79,34 +79,25 @@ export function markdownView(options: MarkdownOptions): View {
     return { html, hasMermaid }
   }
 
-  const renderEmbed = async (
-    link: Wikilink,
-    from: Resource,
-    ctx: Context,
-    chain: string[]
-  ): Promise<string> => {
+  /** An embed hands the target to the host and inserts what comes back. The
+   *  chain, the depth and the cycle live in the runtime; an image stays an
+   *  `<img>`, which costs no instance. */
+  const renderEmbed = async (link: Wikilink, ctx: Context): Promise<string> => {
     const target = (await wikilinkIndex(ctx, options.webId)).lookup(link.name)
     if (!target) return unresolvedHtml(link)
     if (IMAGE.test(target)) {
       return `<img src="${escapeHtml(href(target))}" alt="${escapeHtml(link.alias ?? link.name)}">`
     }
     if (!/\.md$/i.test(target)) return linkHtml(link, target)
-    const next = [...chain, from.iri]
-    if (next.includes(target) || next.length > EMBED_DEPTH) return unresolvedHtml(link)
-    try {
-      const embedded = await ctx.resolve(target)
-      const { html } = await renderNote(embedded, ctx, undefined, next)
-      return `<div class="markdown-embed" data-embed="${escapeHtml(href(target))}">${html}</div>`
-    } catch {
-      return unresolvedHtml(link)
-    }
+    const fragment = link.block !== undefined ? `^${link.block}` : link.heading
+    return ctx.transclude(target, fragment === undefined ? undefined : { fragment, clip: true })
   }
 
   return {
     id: MARKDOWN_VIEW,
     when: [{ contentType: 'text/markdown' }],
     async render(resource, ctx, hint?: Hint): Promise<Rendered> {
-      const { html, hasMermaid } = await renderNote(resource, ctx, hint?.fragment, [])
+      const { html, hasMermaid } = await renderNote(resource, ctx, hint)
       return {
         html,
         hydrate(root, hydrateCtx) {
@@ -288,6 +279,40 @@ function dropPrefix(children: Token[], count: number): void {
       remaining = 0
     }
   }
+}
+
+/** The part of a note a `clip` hint asks for: the section under a heading,
+ *  up to the next heading of the same or higher level, or the one block
+ *  carrying `^id`. An unknown fragment clips to nothing, so an embed of a
+ *  heading that is gone shows nothing rather than the whole note. */
+function clip(tokens: Token[], fragment: string): Token[] {
+  return fragment.startsWith('^')
+    ? clipBlock(tokens, fragment.slice(1))
+    : clipSection(tokens, fragment)
+}
+
+function clipSection(tokens: Token[], heading: string): Token[] {
+  const start = tokens.findIndex((t) => t.type === 'heading_open' && t.attrGet('id') === heading)
+  if (start === -1) return []
+  const level = tokens[start]!.markup.length
+  const end = tokens.findIndex(
+    (t, i) => i > start && t.type === 'heading_open' && t.markup.length <= level
+  )
+  return tokens.slice(start, end === -1 ? undefined : end)
+}
+
+function clipBlock(tokens: Token[], id: string): Token[] {
+  const marker = new RegExp(`\\s*\\^${id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`)
+  const at = tokens.findIndex((t) => t.type === 'inline' && marker.test(t.content.trimEnd()))
+  if (at === -1) return []
+  const inline = tokens[at]!
+  inline.content = inline.content.trimEnd().replace(marker, '')
+  const last = inline.children?.findLast((c) => c.type === 'text')
+  if (last) last.content = last.content.trimEnd().replace(marker, '')
+  const open = tokens[at - 1]
+  if (!open?.type.endsWith('_open')) return [inline]
+  const close = findClose(tokens, at - 1, open.type, open.type.replace(/_open$/, '_close'))
+  return tokens.slice(at - 1, close === undefined ? at + 1 : close + 1)
 }
 
 function findClose(tokens: Token[], from: number, open: string, close: string): number | undefined {

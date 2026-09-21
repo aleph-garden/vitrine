@@ -7,7 +7,8 @@ const landing = landingView('https://pod.example')
 const noop: Context = {
   resolve: () => Promise.reject(new Error('no resolve')),
   emit: () => {},
-  events: (async function* () {})()
+  events: (async function* () {})(),
+  transclude: async () => ''
 }
 
 const resource = (iri: string): Resource => ({

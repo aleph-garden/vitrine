@@ -4,7 +4,8 @@
 // Host it is handed.
 
 import type { Parser, View } from '@aleph-garden/vitrine'
-import { createRenderer } from '@aleph-garden/vitrine'
+import { AS, createRenderer } from '@aleph-garden/vitrine'
+import { createResolveCache } from '@aleph-garden/vitrine/cache'
 import { createRuntime } from '@aleph-garden/vitrine/dom'
 import type { Fetch } from '@aleph-garden/vitrine/http'
 import { fetchResource } from '@aleph-garden/vitrine/http'
@@ -47,13 +48,19 @@ export async function boot(host: Host, chrome: Element, root: Element): Promise<
 
   const credentialed = await credentialedOrigins(session, config.issuer, host.parseTurtle)
   const bare: Fetch = (input, init) => globalThis.fetch(input, init)
-  const runtime = createRuntime(renderer, (target) =>
+  // One resolve per resource, so a page full of transclusions of one note
+  // fetches it once. The entry stands until the resource says it changed.
+  const cache = createResolveCache((target) =>
     fetchResource(
       credentialed(new URL(target).origin) ? session.fetch : bare,
       target,
       host.parseTurtle
     )
   )
+  const runtime = createRuntime(renderer, cache.resolve)
+  runtime.listen((event) => {
+    if (event.type === AS.Update && typeof event.object === 'string') cache.invalidate(event.object)
+  })
 
   const region = { session, credentialed }
   installNavigation(runtime, root, { ...region, address: host.address })

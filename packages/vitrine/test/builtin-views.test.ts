@@ -22,7 +22,8 @@ const q = (s: string, p: string, o: Quad['object'] | string): Quad => ({
 const noop: Context = {
   resolve: () => Promise.reject(new Error('no resolve')),
   emit: () => {},
-  events: (async function* () {})()
+  events: (async function* () {})(),
+  transclude: async () => ''
 }
 
 describe('containerView', () => {

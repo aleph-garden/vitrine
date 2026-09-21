@@ -95,7 +95,15 @@ describe('installNavigation', () => {
       async mount(region, iri, hint) {
         mounted.push({ iri, hint })
         if (fails !== undefined) throw fails
-        current = { id: 'i', iri, hint, region, dependencies: new Set(), dispose() {} }
+        current = {
+          id: 'i',
+          iri,
+          hint,
+          region,
+          chain: [iri],
+          dependencies: new Set(),
+          dispose() {}
+        }
         return current
       },
       async dispatch(e) {

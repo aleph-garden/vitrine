@@ -10,7 +10,12 @@ import {
 } from '../src/index.ts'
 
 const ctxFor = () => {
-  const { ctx, dependencies } = instanceContext(exampleResolve, () => {}, (async function* () {})())
+  const { ctx, dependencies } = instanceContext(
+    exampleResolve,
+    () => {},
+    (async function* () {})(),
+    async () => ''
+  )
   return { ctx, dependencies }
 }
 
@@ -116,7 +121,8 @@ describe('checklistView', () => {
     const { ctx } = instanceContext(
       exampleResolve,
       (e) => emitted.push(e),
-      (async function* () {})()
+      (async function* () {})(),
+      async () => ''
     )
     const resource = await exampleResolve('https://example.org/notes/packing.txt')
     const { html, hydrate } = await checklistView.render(resource, ctx)

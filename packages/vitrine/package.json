@@ -5,7 +5,9 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./cache": "./src/cache.ts",
     "./dom": "./src/dom.ts",
+    "./ssr": "./src/ssr.ts",
     "./http": "./src/http.ts"
   },
   "dependencies": {

@@ -34,7 +34,8 @@ const resource = (over: Partial<Resource> = {}): Resource => ({
 const noop: Context = {
   resolve: () => Promise.reject(new Error('no resolve')),
   emit: () => {},
-  events: (async function* () {})()
+  events: (async function* () {})(),
+  transclude: async () => ''
 }
 
 const view = (id: string, when?: View['when']): View => ({

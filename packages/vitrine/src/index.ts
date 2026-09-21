@@ -55,6 +55,10 @@ export type Context = {
   resolve(iri: string): Promise<Resource>
   emit(event: Event): void
   events: AsyncIterable<Event>
+  /** Brings `iri` in as a child with a life of its own, and answers the HTML
+   *  to insert verbatim. Whether that string is the rendered child or a
+   *  placeholder a host fills in later is the host's business. */
+  transclude(iri: string, hint?: Hint): Promise<string>
 }
 
 // ----------------------------------------------------------- selection
@@ -75,7 +79,13 @@ export type Rule = {
 
 export type Hint = {
   view?: string
+  /** The part of the resource that is meant, named the way the media type
+   *  names parts: a heading or a block id in Markdown, the subject an IRI
+   *  denotes in RDF. */
   fragment?: string
+  /** Render `fragment` alone, without the rest of the resource. A view that
+   *  does not understand it ignores it. */
+  clip?: boolean
 }
 
 export type Patch = {

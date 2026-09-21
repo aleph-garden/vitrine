@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import type { Context, Event, Quad, Resource } from '@aleph-garden/vitrine'
+import type { Context, Event, Hint, Quad, Resource } from '@aleph-garden/vitrine'
 import { invalidateWikilinkIndex, markdownView, NOTE_CLASS, wikilinkIndex } from '../src/index.ts'
 
 const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'
@@ -74,6 +74,7 @@ const pod = (): Record<string, Resource> => {
 const ctxFor = (entries: Record<string, Resource>) => {
   const calls: string[] = []
   const events: Event[] = []
+  const transcluded: { iri: string; hint?: Hint }[] = []
   const ctx: Context = {
     resolve: async (iriValue) => {
       calls.push(iriValue)
@@ -82,9 +83,13 @@ const ctxFor = (entries: Record<string, Resource>) => {
       return r
     },
     emit: (e) => void events.push(e),
-    events: (async function* () {})()
+    events: (async function* () {})(),
+    transclude: async (iriValue, hint) => {
+      transcluded.push({ iri: iriValue, hint })
+      return `<div data-test-transclude="${iriValue}"></div>`
+    }
   }
-  return { ctx, calls, events }
+  return { ctx, calls, events, transcluded }
 }
 
 const view = () => markdownView({ sparqlEndpoint: `${POD}/sparql`, webId: WEBID })
@@ -164,22 +169,71 @@ describe('markdownView', () => {
     expect(html).not.toMatch(/is-unresolved" href=/)
   })
 
-  test('embeds a note inline and an image as img', async () => {
-    const { ctx } = ctxFor(pod())
+  test('embeds a note by transcluding it, and an image as img', async () => {
+    const { ctx, transcluded } = ctxFor(pod())
     invalidateWikilinkIndex(WEBID, `${POD}/notes/`)
     const { html } = await view().render(note('![[Körper]]\n\n![[image.png]]\n'), ctx)
-    expect(html).toContain('Ein Körper.')
-    expect(html).toMatch(/class="[^"]*\bmarkdown-embed\b/)
+    expect(transcluded).toEqual([{ iri: `${POD}/notes/algebra/Körper.md`, hint: undefined }])
+    expect(html).toContain(`data-test-transclude="${POD}/notes/algebra/Körper.md"`)
+    expect(html).not.toContain('Ein Körper.')
     expect(html).toContain(`<img src="${POD}/notes/algebra/image.png"`)
   })
 
-  test('embeds stop at a cycle', async () => {
+  test('embeds a heading as a clipped transclusion', async () => {
+    const { ctx, transcluded } = ctxFor(pod())
+    invalidateWikilinkIndex(WEBID, `${POD}/notes/`)
+    await view().render(note('![[Körper#Definition]]\n'), ctx)
+    expect(transcluded).toEqual([
+      { iri: `${POD}/notes/algebra/Körper.md`, hint: { fragment: 'Definition', clip: true } }
+    ])
+  })
+
+  test('embeds a block as a clipped transclusion', async () => {
+    const { ctx, transcluded } = ctxFor(pod())
+    invalidateWikilinkIndex(WEBID, `${POD}/notes/`)
+    await view().render(note('![[Matrix#^b1]]\n'), ctx)
+    expect(transcluded).toEqual([
+      { iri: `${POD}/notes/Matrix.md`, hint: { fragment: '^b1', clip: true } }
+    ])
+  })
+
+  test('embeds its own note without recursing: the runtime decides', async () => {
     const entries = pod()
     entries[`${POD}/notes/Matrix.md`]!.body = '![[Matrix]]'
-    const { ctx } = ctxFor(entries)
+    const { ctx, transcluded } = ctxFor(entries)
     invalidateWikilinkIndex(WEBID, `${POD}/notes/`)
     const { html } = await view().render(entries[`${POD}/notes/Matrix.md`]!, ctx)
-    expect(html).toContain('is-unresolved')
+    expect(transcluded).toEqual([{ iri: `${POD}/notes/Matrix.md`, hint: undefined }])
+    expect(html).not.toContain('is-unresolved')
+  })
+
+  test('clip renders the section the fragment names and nothing else', async () => {
+    const { ctx } = ctxFor(pod())
+    const body = '# Eins\n\nErster Text.\n\n## Zwei\n\nZweiter Text.\n\n## Drei\n\nDritter Text.\n'
+    const { html } = await view().render(note(body), ctx, { fragment: 'Zwei', clip: true })
+    expect(html).toContain('Zweiter Text.')
+    expect(html).toContain('Zwei')
+    expect(html).not.toContain('Erster Text.')
+    expect(html).not.toContain('Dritter Text.')
+  })
+
+  test('clip renders the block the fragment names, without its marker', async () => {
+    const { ctx } = ctxFor(pod())
+    const body = 'Erster Absatz.\n\nZweiter Absatz. ^b1\n\nDritter Absatz.\n'
+    const { html } = await view().render(note(body), ctx, { fragment: '^b1', clip: true })
+    expect(html).toContain('Zweiter Absatz.')
+    expect(html).not.toContain('^b1')
+    expect(html).not.toContain('Erster Absatz.')
+    expect(html).not.toContain('Dritter Absatz.')
+  })
+
+  test('a fragment without clip keeps the whole note', async () => {
+    const { ctx } = ctxFor(pod())
+    const body = '# Eins\n\nErster Text.\n\n## Zwei\n\nZweiter Text.\n'
+    const { html } = await view().render(note(body), ctx, { fragment: 'Zwei' })
+    expect(html).toContain('Erster Text.')
+    expect(html).toContain('Zweiter Text.')
+    expect(html).toContain('is-flashing')
   })
 
   test('renders tags, tasks and callouts', async () => {

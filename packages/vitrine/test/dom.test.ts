@@ -29,7 +29,12 @@ const region = () => {
 describe('instanceContext', () => {
   test('records every IRI resolved through it', async () => {
     const { resolve } = store({ a: '', b: '' })
-    const { ctx, dependencies } = instanceContext(resolve, () => {}, (async function* () {})())
+    const { ctx, dependencies } = instanceContext(
+      resolve,
+      () => {},
+      (async function* () {})(),
+      async () => ''
+    )
     await ctx.resolve('a')
     await ctx.resolve('b')
     await ctx.resolve('a')
@@ -38,7 +43,12 @@ describe('instanceContext', () => {
 
   test('records an IRI whose resolve rejected', async () => {
     const { resolve } = store({})
-    const { ctx, dependencies } = instanceContext(resolve, () => {}, (async function* () {})())
+    const { ctx, dependencies } = instanceContext(
+      resolve,
+      () => {},
+      (async function* () {})(),
+      async () => ''
+    )
     await expect(ctx.resolve('missing')).rejects.toThrow()
     expect(dependencies.has('missing')).toBe(true)
   })

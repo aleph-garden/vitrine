@@ -12,12 +12,24 @@ import {
   type Renderer,
   type Resource
 } from './index.ts'
+import {
+  ERROR_ATTR,
+  errorHtml,
+  mounting,
+  placeholderHtml,
+  readPlaceholder,
+  TRANSCLUDE_ATTR,
+  TRANSCLUDE_DEPTH,
+  transclusionKey
+} from './transclusion.ts'
 
 export type Instance = {
   id: string
   iri: string
   hint: Hint | undefined
   region: Element
+  /** The IRIs this instance hangs under, outermost first, its own last. */
+  readonly chain: readonly string[]
   /** IRIs this instance resolved during its last render. */
   dependencies: ReadonlySet<string>
   dispose(): void
@@ -123,15 +135,27 @@ export function writeHtml(target: Element, html: string): void {
 
 export type Resolve = (iri: string) => Promise<Resource>
 
+export type RuntimeOptions = {
+  /** How deep the runtime mounts children on its own; past it a placeholder
+   *  is deferred. Default TRANSCLUDE_DEPTH. */
+  depth?: number
+}
+
 /** `resolve` is the host's; the runtime wraps it per instance to track
  *  dependencies and provides `emit` and `events` on top. */
-export function createRuntime(renderer: Renderer, resolve: Resolve): Runtime {
+export function createRuntime(
+  renderer: Renderer,
+  resolve: Resolve,
+  options: RuntimeOptions = {}
+): Runtime {
+  const limit = options.depth ?? TRANSCLUDE_DEPTH
   type Live = Instance & {
     ctx: Context
     handle: Handle | void
     off: () => void
     deps: Set<string>
     push: (e: Event) => void
+    children: Set<Live>
   }
   const live = new Map<string, Live>()
   const listeners = new Set<(event: Event) => void>()
@@ -169,33 +193,79 @@ export function createRuntime(renderer: Renderer, resolve: Resolve): Runtime {
     inst.hint = hint
     const resource = await resolve(inst.iri)
     const rendered = await renderer.render(resource, inst.ctx, hint)
+    const held = new Map([...inst.children].map((child) => [keyOf(child), child]))
+    inst.children.clear()
     writeHtml(inst.region, rendered.html)
+    await mountChildren(inst, held)
+    for (const child of held.values()) child.dispose()
     inst.off = linkEvents(inst.region, inst.ctx.emit)
     inst.handle = rendered.hydrate?.(inst.region, inst.ctx)
   }
 
-  const mount = async (region: Element, iri: string, hint?: Hint): Promise<Instance> => {
+  const keyOf = (inst: Live) => transclusionKey(inst.iri, inst.hint)
+
+  /** Every placeholder the instance's own HTML carries becomes a child
+   *  instance, before the instance hydrates, so a parent that reads its
+   *  children in hydrate finds them. A child that cannot be resolved fills
+   *  its own placeholder and leaves the parent standing.
+   *
+   *  `held` are the children of the render this one replaces. A key that is
+   *  still there keeps its instance: its region takes the placeholder's
+   *  place and nothing on the child is called. Without that, one change in a
+   *  parent would cascade into every child below it. */
+  const mountChildren = async (parent: Live, held?: Map<string, Live>): Promise<void> => {
+    for (const element of parent.region.querySelectorAll(`[${TRANSCLUDE_ATTR}]`)) {
+      const found = readPlaceholder(element)
+      if (!found || found.deferred) continue
+      const key = transclusionKey(found.iri, found.hint)
+      const kept = held?.get(key)
+      if (kept) {
+        held?.delete(key)
+        element.replaceWith(kept.region)
+        parent.children.add(kept)
+        continue
+      }
+      try {
+        parent.children.add(await mount(element, found.iri, found.hint, parent))
+      } catch (error) {
+        element.setAttribute(ERROR_ATTR, '')
+        writeHtml(element, errorHtml(found.iri, error))
+      }
+    }
+  }
+
+  const mount = async (region: Element, iri: string, hint?: Hint, parent?: Live): Promise<Live> => {
     for (const inst of [...live.values()]) if (inst.region === region) inst.dispose()
     const id = `instance-${++counter}`
     const queue = eventQueue()
+    const chain = [...(parent?.chain ?? []), iri]
     // Deferred so an emit inside hydrate reaches the emitter’s own handle too.
     const { ctx, dependencies } = instanceContext(
       resolve,
       (e) => queueMicrotask(() => void dispatch(e)),
-      queue.iterable
+      queue.iterable,
+      async (childIri, childHint) => {
+        const how = mounting(chain, childIri, limit)
+        return placeholderHtml(childIri, childHint, how === 'auto' ? undefined : how)
+      }
     )
     const inst = {
       id,
       iri,
       hint,
       region,
+      chain,
       dependencies,
       deps: dependencies as Set<string>,
       ctx,
       handle: undefined as Handle | void,
       off: () => {},
       push: queue.push,
+      children: new Set<Live>(),
       dispose() {
+        for (const child of [...inst.children]) child.dispose()
+        inst.children.clear()
+        parent?.children.delete(inst)
         inst.handle?.dispose?.()
         inst.off()
         queue.close()
@@ -206,13 +276,14 @@ export function createRuntime(renderer: Renderer, resolve: Resolve): Runtime {
     const rendered = await renderer.render(resource, ctx, hint)
     writeHtml(region, rendered.html)
     live.set(id, inst)
+    await mountChildren(inst)
     inst.off = linkEvents(region, ctx.emit)
     inst.handle = rendered.hydrate?.(region, ctx)
     return inst
   }
 
   return {
-    mount,
+    mount: (region, iri, hint) => mount(region, iri, hint),
     dispatch,
     instances: () => [...live.values()],
     listen(listener) {
@@ -234,7 +305,8 @@ function hintFrom(event: Event, previous: Hint | undefined): Hint {
 export function instanceContext(
   resolve: Resolve,
   emit: (event: Event) => void,
-  events: AsyncIterable<Event>
+  events: AsyncIterable<Event>,
+  transclude: (iri: string, hint?: Hint) => Promise<string>
 ): { ctx: Context; dependencies: ReadonlySet<string> } {
   const dependencies = new Set<string>()
   const ctx: Context = {
@@ -243,7 +315,8 @@ export function instanceContext(
       return resolve(iri)
     },
     emit,
-    events
+    events,
+    transclude
   }
   return { ctx, dependencies }
 }

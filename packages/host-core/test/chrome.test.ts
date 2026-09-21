@@ -50,7 +50,7 @@ const fakeRuntime = () => {
   const listeners = new Set<(e: Event) => void>()
   const runtime: Runtime = {
     async mount(region, iri, hint) {
-      return { id: 'i', iri, hint, region, dependencies: new Set(), dispose() {} }
+      return { id: 'i', iri, hint, region, chain: [iri], dependencies: new Set(), dispose() {} }
     },
     async dispatch(event) {
       dispatched.push(event)
@@ -74,7 +74,7 @@ const fakeNavigableRuntime = () => {
   let current: Instance | undefined
   const runtime: Runtime = {
     async mount(region, iri, hint) {
-      current = { id: 'i', iri, hint, region, dependencies: new Set(), dispose() {} }
+      current = { id: 'i', iri, hint, region, chain: [iri], dependencies: new Set(), dispose() {} }
       return current
     },
     async dispatch() {},
