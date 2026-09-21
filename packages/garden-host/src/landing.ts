@@ -34,6 +34,15 @@ const LAB: Repository[] = [
     last: '2026-09-19'
   },
   {
+    name: 'quadpod',
+    what: 'A Solid pod in Rust over Oxigraph. Every resource is a named graph in one quad store, so a question that spans resources is one query. An experiment, and a candidate for the substrate underneath the rest.',
+    commits: 365,
+    last: '2026-09-13',
+    href: 'https://github.com/aleph-garden/quadpod',
+    closed:
+      'Well before a first release. It verifies credentials and issues none, so it needs an identity provider beside it.'
+  },
+  {
     name: 'vocab',
     what: 'The vocabularies the rest of the lab names, in Turtle.',
     commits: 18,
@@ -100,7 +109,7 @@ function html(origin: string): string {
   <p class="next"><a href="/vitrine/docs/" target="_top">Read the Vitrine documentation</a> <a href="/vitrine/docs/run/install/" target="_top">Clone it and build it</a> <a href="https://github.com/aleph-garden/vocab" target="_top">The vocabularies</a></p>
 
   <h2>What is in the lab</h2>
-  <p class="caveat">Eight repositories. The counts and dates were measured on 2026-09-22 from each repository's own history. Two are public and linked; the other six are private today, so their numbers are mine to assert and yours to discount.</p>
+  <p class="caveat">Nine repositories. The counts and dates were measured on 2026-09-22 from each repository's own history. Three are public and linked; the other six are private today, so their numbers are mine to assert and yours to discount.</p>
   <table class="lab">
     <thead>
       <tr><th>Repository</th><th>What it is</th><th>Activity</th><th>Source</th></tr>
