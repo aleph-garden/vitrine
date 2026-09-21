@@ -17,9 +17,8 @@ left out:
 <LiveView iri="https://example.org/people/ada" caption="personCardView over a fixture person" />
 
 ```ts
+import { schema } from '@aleph-garden/terms'
 import { escapeHtml, objects, type View } from '@aleph-garden/vitrine'
-
-const SCHEMA = 'https://schema.org/'
 
 /** A date as the year, with the full value kept machine-readable. */
 const year = (date: string) =>
@@ -34,14 +33,14 @@ function lifespan(born?: string, died?: string): string {
 
 export const personCardView: View = {
   id: 'https://example.org/views#PersonCard',
-  when: [{ type: `${SCHEMA}Person` }],
+  when: [{ type: schema.Person }],
 
   async render(resource, ctx) {
     const graph = resource.graph ?? []
     const value = (predicate: string) => objects(graph, resource.iri, predicate)[0]?.value
-    const name = value(`${SCHEMA}name`) ?? resource.iri
-    const image = value(`${SCHEMA}image`)
-    const employerIri = value(`${SCHEMA}worksFor`)
+    const name = value(schema.name) ?? resource.iri
+    const image = value(schema.image)
+    const employerIri = value(schema.worksFor)
 
     const portrait = image
       ? `<img class="portrait" src="${escapeHtml(image)}" alt="${escapeHtml(name)}" width="72" height="72">`
@@ -50,8 +49,7 @@ export const personCardView: View = {
     let employer = ''
     if (employerIri) {
       const org = await ctx.resolve(employerIri)
-      const orgName =
-        objects(org.graph ?? [], employerIri, `${SCHEMA}name`)[0]?.value ?? employerIri
+      const orgName = objects(org.graph ?? [], employerIri, schema.name)[0]?.value ?? employerIri
       employer = `<p class="employer"><a href="${escapeHtml(employerIri)}">${escapeHtml(orgName)}</a></p>`
     }
 
@@ -59,7 +57,7 @@ export const personCardView: View = {
       html:
         `<article class="person-card">${portrait}<div class="who">` +
         `<h2>${escapeHtml(name)}</h2>` +
-        `${lifespan(value(`${SCHEMA}birthDate`), value(`${SCHEMA}deathDate`))}` +
+        `${lifespan(value(schema.birthDate), value(schema.deathDate))}` +
         `${employer}</div></article>`
     }
   }

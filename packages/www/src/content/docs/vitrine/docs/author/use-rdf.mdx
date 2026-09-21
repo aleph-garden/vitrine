@@ -31,15 +31,38 @@ and that choice stays inside the view.
 One helper covers most of what a card-shaped view needs:
 
 ```ts
+import { schema } from '@aleph-garden/terms'
 import { objects } from '@aleph-garden/vitrine'
 
-const name = objects(resource.graph ?? [], resource.iri, 'https://schema.org/name')[0]?.value
+const name = objects(resource.graph ?? [], resource.iri, schema.name)[0]?.value
 ```
 
 `objects(quads, subject, predicate)` scans the array and returns the object
 terms. `isContainer(resource)` and `typesOf(resource)` are there for the two
 questions that come up constantly. Anything more specific is a filter over
 the array you already have.
+
+## Naming predicates
+
+A predicate is a full IRI, and writing it out at every call site is how
+typos reach production. `@aleph-garden/terms` carries the ones the packages
+here share, and `ns` declares any vocabulary it does not:
+
+```ts
+import { ns, rdf, schema } from '@aleph-garden/terms'
+
+schema.worksFor          // 'https://schema.org/worksFor'
+rdf.type                 // 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'
+
+const recipe = ns('https://example.org/ns/recipe#', 'Recipe', 'cookTime', 'yield')
+recipe.cookTime          // 'https://example.org/ns/recipe#cookTime'
+```
+
+Names are listed one by one, so a typo fails to compile and an editor
+completes them. What comes out is a plain string, since that is what a
+`Term` carries and what every condition compares. A view working in RDF/JS
+wraps it in its own `namedNode`, and nothing here has to agree with it about
+how terms are represented.
 
 ## Selecting
 
@@ -48,10 +71,10 @@ A view that applies to people says so, and the host never has to be told:
 ```ts
 export const personCardView: View = {
   id: 'https://example.org/views#PersonCard',
-  when: [{ type: 'https://schema.org/Person' }],
+  when: [{ type: schema.Person }],
 
   async render (resource) {
-    const name = objects(resource.graph ?? [], resource.iri, `${SCHEMA}name`)[0]?.value
+    const name = objects(resource.graph ?? [], resource.iri, schema.name)[0]?.value
     return { html: `<article class="person-card"><h2>${escapeHtml(name ?? resource.iri)}</h2></article>` }
   }
 }
