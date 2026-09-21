@@ -68,6 +68,29 @@ classDiagram
   Context ..> Event : carries
 ```
 
+## What you call
+
+The types below are what crosses the boundary. These are the functions that
+move things across it, and they are the whole exported surface a view or a
+host uses.
+
+| From | What it does |
+|---|---|
+| `createRenderer(registry)` | parse, select, render over a registry of parsers, views and rules |
+| `createRuntime(renderer, resolve)` | a DOM host's instances: `mount`, `dispatch`, `instances`, `listen` |
+| `instanceContext(resolve, emit, events)` | the `Context` a runtime hands one instance, exposed so a view test can build one |
+| `linkEvents(region, emit)` | turns a click on a link inside a region into an `as:View` event |
+| `writeHtml(target, html)` | the sanitised write every mount and patch goes through |
+| `objects(quads, subject, predicate)` | the object terms of matching quads |
+| `isContainer(resource)`, `typesOf(resource)` | the two questions that come up constantly |
+| `escapeHtml(text)` | escape a value before it lands in HTML |
+| `holds(condition, resource)` | evaluate one condition, the way selection does |
+| `ns(base, ...names)` | declare a vocabulary, from `@aleph-garden/terms` |
+
+`createRenderer` and the quad helpers come from `@aleph-garden/vitrine`;
+`createRuntime`, `instanceContext`, `linkEvents` and `writeHtml` from
+`@aleph-garden/vitrine/dom`, which is the half that touches the DOM.
+
 ## Resource
 
 An IRI is a URL that may also contain characters beyond ASCII, so

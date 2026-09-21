@@ -18,8 +18,10 @@ library that does either behind your back.
 
 ## Why it is the host's
 
-The host holds the credentials, so a view never sees a token. The host holds
-the cache, so ten views asking for the same note cost one request. The host
+The host holds the credentials, so a view never sees a token. The host is
+also where a cache belongs, so ten views asking for one note can cost one
+request; whether they do is that host's decision, and
+[Resolving](/vitrine/docs/host/resolving/) says what it takes. The host
 decides what an IRI even means, which is how the same view runs against a
 pod over the network and against the fixture resources these pages use.
 

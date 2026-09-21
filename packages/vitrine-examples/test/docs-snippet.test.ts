@@ -8,7 +8,7 @@ const PAGE = `${import.meta.dir}/../../www/src/content/docs/vitrine/docs/index.m
 
 test('the overview quotes the view as it is written', async () => {
   const source = await Bun.file(SOURCE).text()
-  const from = source.indexOf('/** A date as the year')
+  const from = source.indexOf('/** An IRI a view may put in an href')
   // The next banner comment ends the view; its width is not load-bearing.
   const to = source.slice(from).search(/\n\/\/ -{3,}/)
   expect(from).toBeGreaterThan(-1)

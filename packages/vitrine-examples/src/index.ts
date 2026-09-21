@@ -77,6 +77,10 @@ export const exampleResources: Record<string, Resource> = {
   'https://example.org/people/nodates': person('https://example.org/people/nodates', {
     name: 'Anon'
   }),
+  'https://example.org/people/tricked': person('https://example.org/people/tricked', {
+    name: 'Mallory',
+    worksFor: 'javascript:alert(1)'
+  }),
   'https://example.org/orgs/aeo': {
     iri: 'https://example.org/orgs/aeo',
     contentType: 'text/turtle',
@@ -125,6 +129,10 @@ export const plainTextView: View = {
 
 export const PERSON_CARD_VIEW = 'https://example.org/views#PersonCard'
 
+/** An IRI a view may put in an href. Escaping says nothing about a scheme,
+ *  and `javascript:` in a graph someone else wrote is the reason to look. */
+const linkable = (iri: string) => /^https?:\/\//i.test(iri)
+
 /** A date as the year, with the full value kept machine-readable. */
 const year = (date: string) =>
   `<time datetime="${escapeHtml(date)}">${escapeHtml(date.slice(0, 4))}</time>`
@@ -152,7 +160,7 @@ export const personCardView: View = {
       : ''
 
     let employer = ''
-    if (employerIri) {
+    if (employerIri && linkable(employerIri)) {
       const org = await ctx.resolve(employerIri)
       const orgName = objects(org.graph ?? [], employerIri, schema.name)[0]?.value ?? employerIri
       employer = `<p class="employer"><a href="${escapeHtml(employerIri)}">${escapeHtml(orgName)}</a></p>`

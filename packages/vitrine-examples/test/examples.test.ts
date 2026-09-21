@@ -30,6 +30,15 @@ describe('personCardView', () => {
     expect([...dependencies]).toContain('https://example.org/orgs/aeo')
   })
 
+  test('does not build a link out of a scheme it cannot vouch for', async () => {
+    const { ctx } = ctxFor()
+    const resource = await exampleResolve('https://example.org/people/tricked')
+    const { html } = await personCardView.render(resource, ctx)
+    expect(html).not.toContain('javascript:')
+    expect(html).not.toContain('<a href')
+    expect(html).toContain('Mallory')
+  })
+
   test('renders without an employer', async () => {
     const { ctx } = ctxFor()
     const resource = await exampleResolve('https://example.org/people/grace')

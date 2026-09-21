@@ -75,9 +75,10 @@ const renderer = createRenderer({
 })
 ```
 
-Order decides: the first view whose own `when` holds wins. Both views above
-claim `text/plain`, so the checklist wins and the plain-text view is only
-reachable by name. The example on this page asks for it by IRI, which is
+Order decides: the first view whose own `when` holds wins. The checklist
+view, which [Interaction](/vitrine/docs/author/interaction/) shows, claims
+`text/plain` as well and is registered first, so it wins and the plain-text
+view above is only reachable by name. The example on this page asks for it by IRI, which is
 what `hint.view` is:
 
 ```ts
@@ -85,6 +86,24 @@ await runtime.mount(region, iri, { view: 'https://example.org/views#PlainText' }
 ```
 
 In a browser host that hint also comes from the URL, as `?view=<iri>`.
+
+## Styling
+
+A view returns class names and no styles. `personCardView` emits
+`class="person-card"` with a `.portrait`, a `.lifespan` and an `.employer`
+inside it, and what those look like is the host's, the same way the page
+around a region is the host's.
+
+That split is deliberate: one view then renders inside a documentation page,
+a pod's own chrome and somebody's application without carrying three
+stylesheets. It also means a view has to pick class names someone else can
+target, and say which ones it emits. The Markdown view takes this to its
+end and emits Obsidian's class names, so a vault's own snippets apply to it
+unchanged.
+
+Nothing in the contract enforces any of it. A view that ships a `<style>`
+element in its HTML works, and it then owns the consequences in every host
+that mounts it.
 
 ## Where to go next
 
@@ -95,5 +114,5 @@ In a browser host that hint also comes from the URL, as `?view=<iri>`.
 - [Interaction](/vitrine/docs/author/interaction/) for behaviour, events and
   partial updates.
 
-Both views on this page live in `packages/view-examples`, with the fixture
-resources they run against and the tests that pin them.
+The views on these pages live in `packages/vitrine-examples`, with the
+fixture resources they run against and the tests that pin them.

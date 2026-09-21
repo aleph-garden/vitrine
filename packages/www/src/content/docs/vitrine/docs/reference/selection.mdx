@@ -41,6 +41,21 @@ flowchart TD
 
 Order is explicit and nothing else decides.
 
+## Every condition of a `when` must hold
+
+A `when` is a list, and the list is an AND. This holds for a rule's `when`
+and for a view's own, which are the same field with the same meaning:
+
+```ts
+// a Turtle document that is also a container
+when: [{ contentType: 'text/turtle' }, { container: true }]
+```
+
+There is no OR. A view that applies to two unrelated shapes is registered
+twice, or reached by two rules, or widens its condition. An empty `when`
+holds for everything, which falls out of the same rule and is how a
+fallback view is registered last.
+
 ## When several views could apply
 
 A subject typed `foaf:Person` and `schema:Person` at once is the normal
@@ -52,9 +67,9 @@ hold are settled by position, the first one in the list.
 That is the whole tie-break, and it puts the burden where it can be seen:
 
 - A host that wants one vocabulary to win registers that view earlier.
-- A view that covers several vocabularies says so, with one condition per
-  vocabulary in its own `when`, since every condition of a rule must hold
-  but a view may be reached by more than one rule.
+- A view that covers several vocabularies needs one registration per
+  vocabulary, since a `when` is an AND and a single view cannot say "either
+  of these" (see below).
 - Collapsing vocabularies onto one canonical form before selection is a
   parser's job or a host's, and the library does not do it for you. An empty `when` holds for
 everything, which is how a fallback view is registered last.
@@ -67,7 +82,7 @@ everything, which is how a fallback view is registered last.
 | `contentType` | the resource's media type, parameters stripped, equals the string or matches the regular expression |
 | `container: true` | `meta` contains `<iri> rdf:type ldp:Container`; `false` holds when it does not |
 | `type` | `graph` contains `<iri> rdf:type <type>`; never holds when `graph` is absent |
-| `ask` | a SPARQL ASK over `graph` and `meta` together, evaluated by an evaluator the host registers; never holds without one |
+| `ask` | a SPARQL ASK over `graph` and `meta` together. **Not usable today:** the core has no RDF engine and `Registry` has no slot to register an evaluator in, so this condition never holds. It is in the grammar because a Fresnel lens with an instance domain becomes one |
 
 `ask` is the condition a Fresnel lens with an instance domain becomes, where
 the lens applies to resources of a certain shape, whatever their class. The

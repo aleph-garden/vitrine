@@ -20,6 +20,10 @@ left out:
 import { schema } from '@aleph-garden/terms'
 import { escapeHtml, objects, type View } from '@aleph-garden/vitrine'
 
+/** An IRI a view may put in an href. Escaping says nothing about a scheme,
+ *  and `javascript:` in a graph someone else wrote is the reason to look. */
+const linkable = (iri: string) => /^https?:\/\//i.test(iri)
+
 /** A date as the year, with the full value kept machine-readable. */
 const year = (date: string) =>
   `<time datetime="${escapeHtml(date)}">${escapeHtml(date.slice(0, 4))}</time>`
@@ -47,7 +51,7 @@ export const personCardView: View = {
       : ''
 
     let employer = ''
-    if (employerIri) {
+    if (employerIri && linkable(employerIri)) {
       const org = await ctx.resolve(employerIri)
       const orgName = objects(org.graph ?? [], employerIri, schema.name)[0]?.value ?? employerIri
       employer = `<p class="employer"><a href="${escapeHtml(employerIri)}">${escapeHtml(orgName)}</a></p>`
@@ -65,9 +69,12 @@ export const personCardView: View = {
 ```
 
 `escapeHtml` is there because everything in a resource came from somewhere
-else. The view escapes, and the runtime sanitises every string it writes
-into the document against a fixed allowlist, under a content security policy
-and Trusted Types where the browser has them. Both, deliberately.
+else, and `linkable` is there because escaping an `href` says nothing about
+its scheme. The view escapes and checks; the runtime then sanitises the HTML
+it writes into the document against a fixed allowlist, under a content
+security policy and Trusted Types where the browser has them. What a view
+writes itself in `hydrate` goes around that chokepoint, which is why the
+view goes first.
 
 Which function runs is decided by a table of rules over the content type,
 the `rdf:type`, or the IRI itself. Write a view, put it in the table, and
