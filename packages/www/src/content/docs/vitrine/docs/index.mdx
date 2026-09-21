@@ -139,11 +139,13 @@ rule rather than the idea.
 ## What exists, and what does not
 
 Three views ship with the library: Obsidian-flavoured Markdown, a container
-listing, and a fallback that puts RDF in a statement table. The browser host
-is a single page a Solid server can hand out as the `text/html`
-representation of every resource, so a note opens at its own URL and renders
-as a note; the same bundle also takes an IRI from its own address and shows
-whatever that names.
+listing, and a fallback that puts RDF in a statement table. Two browser
+hosts are built from the same core. One is a single page a Solid server
+hands out as the `text/html` representation of every resource, so a note
+opens at its own URL and renders as a note. The other takes the IRI from its
+own address, after a `/-/` segment, so
+`https://aleph.garden/-/https://pod.toph.so/notes/a.md` shows that note
+without the pod serving anything but the note.
 
 Not there yet, and each one matters for some use:
 

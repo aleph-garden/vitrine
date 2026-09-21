@@ -14,10 +14,12 @@ library of its own: a host fetches, Vitrine renders.
 
 Vitrine is one component of [Aleph Garden](https://aleph.garden).
 
-The hosts that exist speak Solid. A Community Solid Server can hand the
-browser shell out as the `text/html` representation of every resource it
-serves, and the same bundle also reads an IRI from its own address. A
-deployment differs only in the host document the build embeds.
+The hosts that exist speak Solid. One is a page a Community Solid Server
+hands out as the `text/html` representation of every resource it serves. The
+other reads the IRI from its own address, after a `/-/` segment, so
+`https://aleph.garden/-/<iri>` opens that resource. Both are built from
+`@aleph-garden/host-core` and differ in their address scheme, their views and
+the host document the build embeds.
 
 Status: the pipeline, the Markdown view, the browser shell and the
 aleph.garden host stand. Transclusion, a server-side host and WASM views are
