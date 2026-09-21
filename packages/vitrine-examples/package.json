@@ -1,5 +1,5 @@
 {
-  "name": "@aleph-garden/view-examples",
+  "name": "@aleph-garden/vitrine-examples",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -7,6 +7,6 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@aleph-garden/view": "workspace:*"
+    "@aleph-garden/vitrine": "workspace:*"
   }
 }

@@ -1,5 +1,5 @@
 {
-  "name": "aleph-view-workspace",
+  "name": "vitrine-workspace",
   "private": true,
   "workspaces": [
     "packages/*"

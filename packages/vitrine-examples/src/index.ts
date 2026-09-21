@@ -13,7 +13,7 @@ import {
   type Resource,
   type Term,
   type View
-} from '@aleph-garden/view'
+} from '@aleph-garden/vitrine'
 
 const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'
 const SCHEMA = 'https://schema.org/'

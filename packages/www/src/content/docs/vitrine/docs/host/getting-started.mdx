@@ -11,8 +11,8 @@ A host answers `resolve`, gives the runtime a region, and delivers events.
 Here is one, whole:
 
 ```ts
-import { createRenderer } from '@aleph-garden/view'
-import { createRuntime } from '@aleph-garden/view/dom'
+import { createRenderer } from '@aleph-garden/vitrine'
+import { createRuntime } from '@aleph-garden/vitrine/dom'
 
 const renderer = createRenderer({ parsers: [], views: [personCardView, checklistView] })
 const runtime = createRuntime(renderer, resolve)
@@ -58,7 +58,7 @@ try {
 ```
 
 Building a `Resource` out of a real HTTP response is its own page:
-[Resolving](/docs/view/host/resolving/).
+[Resolving](/vitrine/docs/host/resolving/).
 
 ## What a host owns
 
@@ -68,14 +68,14 @@ decides none of it, and a view can reach none of it.
 Concretely, the decisions are yours:
 
 - **Which views exist**, and in which order. See
-  [Registry](/docs/view/host/registry/).
+  [Registry](/vitrine/docs/host/registry/).
 - **What an IRI means.** The browser shell reads it from `location`, these
   pages read it from an attribute, a desktop host might read it from a
   window.
 - **Whether there is a session at all.** No session is a valid answer:
   these pages have none.
 - **What a click on a link does.** See
-  [Navigation](/docs/view/host/navigation/).
+  [Navigation](/vitrine/docs/host/navigation/).
 
 ## Many regions
 

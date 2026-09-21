@@ -2,7 +2,7 @@
 // two constructors, one per direction; the shell's origin is location.origin
 // on every host, so neither of them takes it.
 
-import type { Hint } from '@aleph-garden/view'
+import type { Hint } from '@aleph-garden/vitrine'
 
 export type Address = {
   /** The resource: no query, no fragment. */

@@ -11,12 +11,19 @@
         "typescript": "^7.0.2",
       },
     },
+    "packages/annotate": {
+      "name": "@aleph-garden/annotate",
+      "version": "0.0.0",
+      "bin": {
+        "annotate-serve": "./src/serve.ts",
+      },
+    },
     "packages/shell": {
       "name": "@aleph-garden/shell",
       "version": "0.0.0",
       "dependencies": {
-        "@aleph-garden/view": "workspace:*",
-        "@aleph-garden/view-markdown": "workspace:*",
+        "@aleph-garden/vitrine": "workspace:*",
+        "@aleph-garden/vitrine-markdown": "workspace:*",
         "@inrupt/solid-client-authn-browser": "^5.0.0",
         "katex": "^0.18.7",
         "n3": "^2.7.12",
@@ -26,25 +33,25 @@
         "vite": "^8.3.0",
       },
     },
-    "packages/view": {
-      "name": "@aleph-garden/view",
+    "packages/vitrine": {
+      "name": "@aleph-garden/vitrine",
       "version": "0.0.0",
       "dependencies": {
         "dompurify": "^3.4.15",
       },
     },
-    "packages/view-examples": {
-      "name": "@aleph-garden/view-examples",
+    "packages/vitrine-examples": {
+      "name": "@aleph-garden/vitrine-examples",
       "version": "0.0.0",
       "dependencies": {
-        "@aleph-garden/view": "workspace:*",
+        "@aleph-garden/vitrine": "workspace:*",
       },
     },
-    "packages/view-markdown": {
-      "name": "@aleph-garden/view-markdown",
+    "packages/vitrine-markdown": {
+      "name": "@aleph-garden/vitrine-markdown",
       "version": "0.0.0",
       "dependencies": {
-        "@aleph-garden/view": "workspace:*",
+        "@aleph-garden/vitrine": "workspace:*",
         "@mdit/plugin-katex": "^1.1.1",
         "katex": "^0.18.7",
         "markdown-it": "^15.0.2",
@@ -59,8 +66,8 @@
     "packages/www": {
       "name": "@aleph-garden/www",
       "dependencies": {
-        "@aleph-garden/view": "workspace:*",
-        "@aleph-garden/view-examples": "workspace:*",
+        "@aleph-garden/vitrine": "workspace:*",
+        "@aleph-garden/vitrine-examples": "workspace:*",
         "@astrojs/starlight": "^0.42.1",
         "astro": "^7.3.3",
         "astro-mermaid": "^2.1.0",
@@ -75,13 +82,15 @@
     },
   },
   "packages": {
+    "@aleph-garden/annotate": ["@aleph-garden/annotate@workspace:packages/annotate"],
+
     "@aleph-garden/shell": ["@aleph-garden/shell@workspace:packages/shell"],
 
-    "@aleph-garden/view": ["@aleph-garden/view@workspace:packages/view"],
+    "@aleph-garden/vitrine": ["@aleph-garden/vitrine@workspace:packages/vitrine"],
 
-    "@aleph-garden/view-examples": ["@aleph-garden/view-examples@workspace:packages/view-examples"],
+    "@aleph-garden/vitrine-examples": ["@aleph-garden/vitrine-examples@workspace:packages/vitrine-examples"],
 
-    "@aleph-garden/view-markdown": ["@aleph-garden/view-markdown@workspace:packages/view-markdown"],
+    "@aleph-garden/vitrine-markdown": ["@aleph-garden/vitrine-markdown@workspace:packages/vitrine-markdown"],
 
     "@aleph-garden/www": ["@aleph-garden/www@workspace:packages/www"],
 

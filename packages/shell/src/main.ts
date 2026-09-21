@@ -14,9 +14,9 @@ import {
   type Resource,
   type Term,
   type View
-} from '@aleph-garden/view'
-import { createRuntime, type Runtime, writeHtml } from '@aleph-garden/view/dom'
-import { markdownView } from '@aleph-garden/view-markdown'
+} from '@aleph-garden/vitrine'
+import { createRuntime, type Runtime, writeHtml } from '@aleph-garden/vitrine/dom'
+import { markdownView } from '@aleph-garden/vitrine-markdown'
 import { EVENTS, Session as OidcSession } from '@inrupt/solid-client-authn-browser'
 import { Parser as N3Parser } from 'n3'
 import { addressFor, addressOf } from './address.ts'

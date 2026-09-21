@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@aleph-garden/view": "workspace:*",
-    "@aleph-garden/view-markdown": "workspace:*",
+    "@aleph-garden/vitrine": "workspace:*",
+    "@aleph-garden/vitrine-markdown": "workspace:*",
     "@inrupt/solid-client-authn-browser": "^5.0.0",
     "katex": "^0.18.7",
     "n3": "^2.7.12"

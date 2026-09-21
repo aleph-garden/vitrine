@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import { AS, type Event } from '@aleph-garden/view'
-import type { Instance, Runtime } from '@aleph-garden/view/dom'
+import { AS, type Event } from '@aleph-garden/vitrine'
+import type { Instance, Runtime } from '@aleph-garden/vitrine/dom'
 import { installChrome } from '../src/chrome.ts'
 import { anonymousSession, type Fetch, installNavigation, type Session } from '../src/main.ts'
 

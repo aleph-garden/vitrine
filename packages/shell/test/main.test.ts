@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { AS, type Event, isContainer, objects, typesOf } from '@aleph-garden/view'
-import type { Instance, Runtime } from '@aleph-garden/view/dom'
+import { AS, type Event, isContainer, objects, typesOf } from '@aleph-garden/vitrine'
+import type { Instance, Runtime } from '@aleph-garden/vitrine/dom'
 import {
   anonymousSession,
   type Fetch,

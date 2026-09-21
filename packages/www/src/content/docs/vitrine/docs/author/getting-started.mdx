@@ -10,7 +10,7 @@ import LiveView from '../../../../../components/LiveView.astro'
 A view takes a resource and returns HTML. Here is a whole one:
 
 ```ts
-import { escapeHtml, type View } from '@aleph-garden/view'
+import { escapeHtml, type View } from '@aleph-garden/vitrine'
 
 export const plainTextView: View = {
   id: 'https://example.org/views#PlainText',
@@ -40,12 +40,12 @@ anything.
 **`when` says where it applies.** A `contentType` condition holds when the
 resource's media type matches. The host checks it; the view is never asked
 whether it should run. Other conditions match an `rdf:type`, a container, or
-an IRI pattern, and [Selection](/docs/view/reference/selection/) has the
+an IRI pattern, and [Selection](/vitrine/docs/reference/selection/) has the
 list.
 
 **`render` gets the resource and returns HTML as a string.** No DOM, because
 a view may run where there is none. Anything that needs elements happens
-later, in [`hydrate`](/docs/view/author/interaction/).
+later, in [`hydrate`](/vitrine/docs/author/interaction/).
 
 ## Escaping is yours
 
@@ -58,7 +58,7 @@ as a second line of defence. Both are wanted, and the view goes first.
 A view reaches a page through a host's registry:
 
 ```ts
-import { createRenderer } from '@aleph-garden/view'
+import { createRenderer } from '@aleph-garden/vitrine'
 
 const renderer = createRenderer({
   parsers: [],
@@ -79,11 +79,11 @@ In a browser host that hint also comes from the URL, as `?view=<iri>`.
 
 ## Where to go next
 
-- [Use RDF](/docs/view/author/use-rdf/) for reading a graph without an RDF
+- [Use RDF](/vitrine/docs/author/use-rdf/) for reading a graph without an RDF
   library.
-- [Fetch resources](/docs/view/author/fetch-resources/) for reaching
+- [Fetch resources](/vitrine/docs/author/fetch-resources/) for reaching
   anything beyond the resource you were handed.
-- [Interaction](/docs/view/author/interaction/) for behaviour, events and
+- [Interaction](/vitrine/docs/author/interaction/) for behaviour, events and
   partial updates.
 
 Both views on this page live in `packages/view-examples`, with the fixture

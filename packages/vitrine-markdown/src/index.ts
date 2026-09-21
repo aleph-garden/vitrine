@@ -10,7 +10,7 @@ import {
   type Rendered,
   type Resource,
   type View
-} from '@aleph-garden/view'
+} from '@aleph-garden/vitrine'
 import { katex } from '@mdit/plugin-katex'
 import MarkdownIt, {
   type MarkdownIt as Md,

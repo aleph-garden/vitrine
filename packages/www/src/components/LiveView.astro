@@ -1,6 +1,6 @@
 ---
 // Runs an example view in the page. The docs are a host: they answer
-// `resolve` from the fixture pod in @aleph-garden/view-examples and give the
+// `resolve` from the fixture pod in @aleph-garden/vitrine-examples and give the
 // runtime one region, which is everything a host owes.
 interface Props {
   /** The IRI to show. Must exist in the examples' fixture pod. */
@@ -18,14 +18,14 @@ const { iri, view, caption } = Astro.props
 </figure>
 
 <script>
-  import { createRenderer } from '@aleph-garden/view'
-  import { createRuntime } from '@aleph-garden/view/dom'
+  import { createRenderer } from '@aleph-garden/vitrine'
+  import { createRuntime } from '@aleph-garden/vitrine/dom'
   import {
     checklistView,
     exampleResolve,
     personCardView,
     plainTextView
-  } from '@aleph-garden/view-examples'
+  } from '@aleph-garden/vitrine-examples'
 
   const renderer = createRenderer({
     parsers: [],

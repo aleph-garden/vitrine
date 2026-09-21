@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import type { Context, Event, Quad, Resource } from '@aleph-garden/view'
+import type { Context, Event, Quad, Resource } from '@aleph-garden/vitrine'
 import { invalidateWikilinkIndex, markdownView, NOTE_CLASS, wikilinkIndex } from '../src/index.ts'
 
 const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'

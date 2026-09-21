@@ -2,7 +2,7 @@
 // index.html. The shell reads the keys as they are and never expands the
 // document; the context is what makes them IRIs when it is read as RDF.
 
-import type { Rule } from '@aleph-garden/view'
+import type { Rule } from '@aleph-garden/vitrine'
 
 export type Config = {
   issuer?: string

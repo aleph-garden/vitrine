@@ -5,8 +5,8 @@
 // an IRI, and login. Session belongs to the host, so no view ever renders
 // these, and credentials are typed at the issuer.
 
-import { AS } from '@aleph-garden/view'
-import type { Runtime } from '@aleph-garden/view/dom'
+import { AS } from '@aleph-garden/vitrine'
+import type { Runtime } from '@aleph-garden/vitrine/dom'
 import { addressOf } from './address.ts'
 import { issuerOf, type Session } from './main.ts'
 

@@ -31,7 +31,7 @@ and that choice stays inside the view.
 One helper covers most of what a card-shaped view needs:
 
 ```ts
-import { objects } from '@aleph-garden/view'
+import { objects } from '@aleph-garden/vitrine'
 
 const name = objects(resource.graph ?? [], resource.iri, 'https://schema.org/name')[0]?.value
 ```
@@ -87,4 +87,4 @@ what transclusion is for, and it is being built.
 
 Until then, a view that meets a vocabulary it does not know should render
 what it does know and leave the rest to the
-[fallback](/docs/view/reference/selection/), rather than guess.
+[fallback](/vitrine/docs/reference/selection/), rather than guess.

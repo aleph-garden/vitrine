@@ -1,14 +1,15 @@
 ---
-title: view
+title: Vitrine
 description: A rendering layer for IRIs. One IRI in, HTML out, and a rule table decides how.
 ---
 
 import LiveView from '../../../../components/LiveView.astro'
 
-An IRI goes in, HTML comes out. A rule table maps the resource to a view;
-the view returns a string. That is the whole idea, and the live box below is
-it running in this page, over a fixture resource, through the same library a
-pod serves:
+Vitrine renders IRIs. One goes in, HTML comes out: a rule table maps the
+resource to a view, and the view returns a string. It is one component of
+[Aleph Garden](https://aleph.garden), and the live box below is it running
+in this page, over a fixture resource, through the same library a pod
+serves:
 
 <LiveView iri="https://example.org/people/ada" caption="a person resource, rendered by a twenty-line view" />
 
@@ -34,7 +35,7 @@ For RDF this is worse than elsewhere, since the tools that do exist are
 enterprise tooling or they look like the decade they were written in, and
 the answer to "I want this to look different" is another whole application.
 
-This library is the missing socket. A resource arrives, a rule table picks a
+Vitrine is the missing socket. A resource arrives, a rule table picks a
 view, the view renders it. The frame stops being the work: an application
 keeps its shell, its session and its navigation, and the piece you replace
 is a function. Your replacement then applies everywhere a resource of that
@@ -49,21 +50,21 @@ twenty attempts that came before this one, in the repository.
 
 ## Two ways in
 
-**[Author a view](/docs/view/author/getting-started/)** when you want a
+**[Author a view](/vitrine/docs/author/getting-started/)** when you want a
 resource to look different. A view is an object with an id, the conditions
 under which it applies, and `render`. No framework, no base class, no build
-step of its own. Then: [use RDF](/docs/view/author/use-rdf/), [fetch
-resources](/docs/view/author/fetch-resources/),
-[interaction](/docs/view/author/interaction/).
+step of its own. Then: [use RDF](/vitrine/docs/author/use-rdf/), [fetch
+resources](/vitrine/docs/author/fetch-resources/),
+[interaction](/vitrine/docs/author/interaction/).
 
-**[Create a host](/docs/view/host/getting-started/)** when you want views
+**[Create a host](/vitrine/docs/host/getting-started/)** when you want views
 somewhere new: a page, an application, a server, a desktop. A host answers
 `resolve`, gives the runtime a region, and delivers events. Then:
-[resolving](/docs/view/host/resolving/), [navigation and
-events](/docs/view/host/navigation/), [registry and
-configuration](/docs/view/host/registry/).
+[resolving](/vitrine/docs/host/resolving/), [navigation and
+events](/vitrine/docs/host/navigation/), [registry and
+configuration](/vitrine/docs/host/registry/).
 
-The [reference](/docs/view/reference/contracts/) has the types, the
+The [reference](/vitrine/docs/reference/contracts/) has the types, the
 selection order and the re-render protocol, for when you need the exact
 rule rather than the idea.
 
@@ -84,10 +85,13 @@ and being built.
 
 | Package | Holds | Knows about |
 |---|---|---|
-| `@aleph-garden/view` | contracts, renderer, selection, DOM runtime | IRIs and quads |
-| `@aleph-garden/view-markdown` | the Markdown view | Obsidian, a Solid type index |
+| `@aleph-garden/vitrine` | contracts, renderer, selection, DOM runtime | IRIs and quads |
+| `@aleph-garden/vitrine-markdown` | the Markdown view | Obsidian, a Solid type index |
 | `@aleph-garden/shell` | the browser host | Solid-OIDC, WAC, LDP, Turtle |
-| `@aleph-garden/view-examples` | the views on these pages, and their fixture resources | nothing beyond the contract |
+| `@aleph-garden/vitrine-examples` | the views on these pages, and their fixture resources | nothing beyond the contract |
+
+The unit stays a view: you write one, register it, and a rule picks it.
+Vitrine is what runs them.
 
 View ids and the event types the library defines live under
 `https://w3id.org/aleph/ns/view#`.

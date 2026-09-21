@@ -28,7 +28,7 @@
   # costs the fleet a fresh fetch. The upgrade path is a scoped install
   # (`bun install --filter`) or a lockfile of the shell's own.
   node_modules = stdenvNoCC.mkDerivation {
-    pname = "aleph-view-node-modules";
+    pname = "vitrine-node-modules";
     inherit version src;
     nativeBuildInputs = [bun];
     dontConfigure = true;
@@ -58,7 +58,7 @@
   };
 in
   stdenvNoCC.mkDerivation {
-    pname = "aleph-view-shell";
+    pname = "vitrine-shell";
     inherit version src;
     nativeBuildInputs = [bun];
     dontConfigure = true;
@@ -84,8 +84,8 @@ in
     '';
 
     meta = {
-      description = "Browser host of @aleph-garden/view: renders any IRI, and a Solid server hands it out as the HTML view of every resource";
-      homepage = "https://github.com/aleph-garden/view";
+      description = "Browser host of @aleph-garden/vitrine: renders any IRI, and a Solid server hands it out as the HTML view of every resource";
+      homepage = "https://github.com/aleph-garden/vitrine";
       platforms = lib.platforms.unix;
     };
   }

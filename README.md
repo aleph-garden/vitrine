@@ -1,7 +1,8 @@
-# view
+# Vitrine
 
-A rendering layer for IRIs. One IRI goes in, HTML comes out, and the piece
-that decides how is a plain rule table over a list of views.
+A rendering layer for IRIs, and one component of [Aleph
+Garden](https://aleph.garden). One IRI goes in, HTML comes out, and the
+piece that decides how is a plain rule table over a list of views.
 
 What the library sees of a resource is its body, its content type, what the
 server says about it, and quads when the body carries RDF. The core knows no
@@ -111,7 +112,7 @@ a patch for one `data-slot` element.
 ### What a host owns
 
 Fetching, session, navigation, the address, the chrome, and the regions.
-`@aleph-garden/view/dom` ships the instance bookkeeping so every browser
+`@aleph-garden/vitrine/dom` ships the instance bookkeeping so every browser
 host runs the same protocol, and it is the only code that writes a view's
 HTML into the document: through a sanitizer with an allowlist, under Trusted
 Types where the browser has them. The resource is untrusted input, and the
@@ -127,8 +128,8 @@ which views and rules it registers. That surface is the shell's, and
 
 | Package | Holds | Knows about |
 |---|---|---|
-| `@aleph-garden/view` | contracts, renderer, selection, the DOM runtime | IRIs and quads |
-| `@aleph-garden/view-markdown` | the Markdown view | Obsidian, a Solid type index |
+| `@aleph-garden/vitrine` | contracts, renderer, selection, the DOM runtime | IRIs and quads |
+| `@aleph-garden/vitrine-markdown` | the Markdown view | Obsidian, a Solid type index |
 | `@aleph-garden/shell` | the browser host | Solid-OIDC, WAC, LDP, Turtle |
 | `packages/www` | aleph.garden: the docs site the shell is deployed with | |
 
@@ -152,5 +153,5 @@ the pod's bundle from this flake with its own configuration.
 ## Documentation
 
 The contracts in full are at
-[aleph.garden/docs/view/](https://aleph.garden/docs/view/), and the design
+[aleph.garden/vitrine/docs/](https://aleph.garden/vitrine/docs/), and the design
 documents behind them are in `docs/superpowers/specs/`.

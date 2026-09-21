@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { ALEPH, createRenderer } from '@aleph-garden/view'
-import { createRuntime, instanceContext } from '@aleph-garden/view/dom'
+import { ALEPH, createRenderer } from '@aleph-garden/vitrine'
+import { createRuntime, instanceContext } from '@aleph-garden/vitrine/dom'
 import {
   checklistView,
   exampleResolve,

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { type Context, createRenderer, fallbackView, type Resource } from '@aleph-garden/view'
+import { type Context, createRenderer, fallbackView, type Resource } from '@aleph-garden/vitrine'
 import { LANDING_VIEW, landingView } from '../src/landing.ts'
 
 const noop: Context = {
@@ -20,7 +20,7 @@ describe('landingView', () => {
   test('renders the greeting from nothing', async () => {
     const rendered = await landingView.render(resource('https://pod.example/'), noop)
     expect(rendered.html).toContain('<h1>Aleph Garden</h1>')
-    expect(rendered.html).toContain('href="/docs/view/" target="_top"')
+    expect(rendered.html).toContain('href="/vitrine/docs/" target="_top"')
     expect(rendered.hydrate).toBeUndefined()
   })
 
