@@ -1,0 +1,14 @@
+---
+// Starlight's own callout, reachable from the documents. They live at the
+// repository root, so a bare specifier does not resolve from where they sit;
+// this file is inside the package and the `@components` alias reaches it.
+import { Aside as StarlightAside } from '@astrojs/starlight/components'
+
+interface Props {
+  type?: 'note' | 'tip' | 'caution' | 'danger'
+  title?: string
+}
+const { type, title } = Astro.props
+---
+
+<StarlightAside type={type} title={title}><slot /></StarlightAside>

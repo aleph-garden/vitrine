@@ -1,0 +1,71 @@
+---
+title: Sandboxing views
+description: What a view can reach today, why that is a problem once views come from elsewhere, and the shapes an answer could take.
+---
+
+import Aside from '@components/Aside.astro'
+
+<Aside type="danger" title="A design, and nothing here is built">
+No sandboxing exists. This page states the problem and the options so that the
+next person to open it does not have to work them out again. Nothing on it has
+been implemented, prototyped or decided, and the page will be wrong in places
+that only an implementation can find.
+</Aside>
+
+## What a view can reach today
+
+A view is a function in the page. It is handed `resolve`, bound to whatever
+session the host opened, and it returns a string of HTML.
+
+Two of those facts are load-bearing. `resolve` reaches every origin the
+visitor's token reaches, so a view can read anything its reader can read. And a
+view runs in the page's own origin, so it has the page's storage, its network
+and its globals, whatever its own `render` claims to do.
+
+What is guarded today is the output. HTML a view returns goes through a
+sanitizer with an allowlist, under Trusted Types where the browser has them,
+because the resource is untrusted input and a renderer that inlines it has been
+an injection hole in every system that tried. That protects the reader from the
+**data**. It does nothing about the **view**.
+
+So the honest position: a view is a dependency you run in your own page, with
+your own credentials, and installing one from a stranger is the same act as
+adding a script tag.
+
+## Why this stops being acceptable
+
+The whole argument for a rule table is that a reader replaces a row. A row
+names a view, and a view that has to be written by the deployment's own author
+is a plugin system with one plugin author. The moment views are shared, the
+paragraph above becomes the reason nobody shares them.
+
+## Shapes an answer could take
+
+**A region that is its own origin.** The view renders inside a sandboxed
+iframe on a null origin, and reaches the outside through a narrow channel. This
+is the only option on the list that actually contains the code rather than
+asking it to behave. It costs: two documents to style consistently, a message
+protocol for every call the view makes, and a real question about how a
+transcluded child inside a sandboxed parent gets mounted.
+
+**A narrowed `resolve`.** A view declares the IRIs or origins it intends to
+read, the host hands it a `resolve` that answers for those and refuses the
+rest, and the declaration is visible before installation. This is cheap and it
+constrains reading rather than execution, so it helps only against a view that
+plays by the rules.
+
+**Views as data rather than code.** A view that is a template over a resource,
+evaluated by the runtime, cannot call anything. That is Fresnel's answer, and
+it buys safety by giving up the thing this project exists for, which is that a
+view is an ordinary function you can write.
+
+**Nothing, stated plainly.** Keep views as code, document that installing one
+is running code, and let deployments pin the ones they ship. This is where the
+project stands now by omission rather than by choice, and writing it down is
+the minimum honest step.
+
+## What has to be decided first
+
+Whether a view may be installed by a reader at all, or only by whoever deploys
+a host. Every option above collapses to a different answer depending on that
+one, and it has not been answered.

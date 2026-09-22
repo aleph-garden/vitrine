@@ -1,0 +1,72 @@
+---
+title: Writing
+description: One more call on the context, the change shaped as an activity, and the host doing the transport.
+---
+
+import Aside from '@components/Aside.astro'
+
+<Aside type="caution" title="A design, and none of it is built">
+Vitrine reads and never writes today. The contract below is argued out in
+`docs/drafts/write.md` in the repository and has no implementation, so the
+shapes here are proposals. Nothing that ships depends on them.
+</Aside>
+
+## One call on the context
+
+A view that wants to change something is given one more method on the context:
+
+```ts
+type Context = {
+  resolve(iri: string): Promise<Resource>
+  act(activity: Activity): Promise<Outcome>   // new
+  emit(event: Event): void
+  events: AsyncIterable<Event>
+}
+```
+
+`Activity` is the `Event` the bus already carries, sent the other way. An
+`as:Update` with an `object` changes a resource, an `as:Create` with a `target`
+puts something into a collection, an `as:Delete` removes one. Those are
+ActivityStreams types rather than protocol calls, so a host maps them onto
+whatever it speaks: LDP, a SPARQL update, a local file, a queue.
+
+```ts
+type Activity = Event & {
+  contentType?: string
+  body?: string | Uint8Array
+  basedOn?: string
+}
+
+type Outcome =
+  | { ok: true; iri: string; version?: string }
+  | { ok: false; reason: 'denied' | 'conflict' | 'invalid' | 'unsupported'; detail?: Resource }
+```
+
+The payload carries its own content type, which is what keeps the core out of
+it. A Markdown view sends `text/markdown` and never learns what a quad is. A
+form over RDF sends a patch. A host that understands neither answers
+`unsupported`, and the view is told.
+
+## Versions without an ETag in the contract
+
+Two tabs on one resource overwrite each other unless a change can say what it
+was based on. `basedOn` carries the version the host handed out with the
+resource, and the host decides what a version is: a revision number, a content
+hash, a CRDT vector and an ETag are the same thing at this boundary.
+
+A host that cannot answer the question answers `conflict`, and a view that
+cares shows the reader what happened rather than guessing.
+
+## What stays with the host
+
+Authorisation, transport, retries, and whether a change is allowed at all. A
+view asks; the host answers or refuses. `denied` is an ordinary outcome and not
+an error, because a reader without write access is the common case rather than
+a failure.
+
+## What it costs
+
+Every view that writes is a view that can be wrong about what it wrote, and the
+page for that is [sandboxing](/vitrine/docs/design/sandboxing/), which is also
+unbuilt. Reading has a safe failure mode: a bad view draws nothing useful.
+Writing does not.

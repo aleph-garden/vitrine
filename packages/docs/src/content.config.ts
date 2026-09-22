@@ -8,7 +8,7 @@ const DOCS = '../../docs'
 
 // Only the published tree. An allowlist rather than an exclusion, so a new
 // directory beside these cannot reach the site by being added.
-const PUBLISHED = ['[^_]*.mdx', '{run,author,host,reference}/**/[^_]*.mdx']
+const PUBLISHED = ['[^_]*.mdx', '{run,author,host,reference,design}/**/[^_]*.mdx']
 
 // The deployment answers `/vitrine/docs/*` and the sources are flat, so the
 // path segment is put on the entry id. Expressing it as Astro's `base`

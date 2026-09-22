@@ -1,0 +1,67 @@
+---
+title: Sessions
+description: Who the visitor is, which origins their token reaches, and why a view never sees a credential.
+---
+
+import Aside from '@components/Aside.astro'
+
+A session is two things: a `fetch` that carries the visitor's Solid-OIDC token,
+and the WebID that token names. A host that wants neither uses
+`anonymousSession()`, whose `fetch` is the browser's own and whose WebID is
+absent. The aleph.garden host runs anonymous; the pod host carries a session.
+
+```ts
+type Session = {
+  webId: string | undefined
+  fetch: Fetch
+  login?(issuer: string): Promise<never>
+}
+```
+
+A session without `login` is a session the visitor cannot start. The shell then
+shows no login control, which is how a host declares that its visitors stay
+anonymous.
+
+## The token does not go everywhere
+
+A DPoP token names the visitor and their issuer to whoever receives it. Sending
+it to every origin a view happens to reference would tell each of those servers
+who is reading. So the host works out, once, which origins the token may reach,
+and every other IRI is fetched bare:
+
+- the host's own origin,
+- the origin of the visitor's WebID,
+- the origin of the issuer the host document names,
+- the origins the visitor's profile gives as their issuer (`solid:oidcIssuer`)
+  and their storage (`pim:storage`).
+
+The profile is read with an uncredentialed fetch and the result is kept in
+`sessionStorage` for the tab, so the decision costs one request per visitor.
+
+## Logging in
+
+`login` redirects to the issuer and the page comes back with a session. A host
+that names an issuer in its host document sends the visitor straight there; one
+that names none asks for a WebID and resolves the issuer from the profile with
+`issuerOf`, which needs a Turtle parser and is why the host supplies one.
+
+A restored session lands back on whichever resource the visitor was on when
+they logged in, and the runtime puts that address back without a navigation.
+
+## What a view is given
+
+Nothing. A view receives `resolve`, and `resolve` is already bound to the
+session the host opened. No credential, no token, no WebID reaches a view
+unless the host chooses to put it in the host document.
+
+<Aside type="caution" title="The boundary this draws has not been tested">
+`resolve` reaches whatever the session reaches. A view is ordinary code in the
+page, so a view from someone else can read every resource the visitor could
+read, and return whatever it likes about them. The sanitizer stops that HTML
+from executing; it does nothing about what the view already read.
+
+No part of this is mitigated today. The shape of an answer is in
+[sandboxing](/vitrine/docs/design/sandboxing/), which is a design and not code.
+Until it exists, treat a view as you would treat any dependency you run in your
+own page.
+</Aside>

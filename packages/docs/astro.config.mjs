@@ -61,13 +61,21 @@ export default defineConfig({
           ]
         },
         {
+          label: 'Designed, not built',
+          items: [
+            { label: 'Writing', link: '/vitrine/docs/design/writes/' },
+            { label: 'Sandboxing views', link: '/vitrine/docs/design/sandboxing/' }
+          ]
+        },
+        {
           label: 'Reference',
           items: [
             { label: 'Contracts', link: '/vitrine/docs/reference/contracts/' },
             { label: 'Selection', link: '/vitrine/docs/reference/selection/' },
             { label: 'Rendering and re-render', link: '/vitrine/docs/reference/rendering/' },
             { label: 'Representations', link: '/vitrine/docs/reference/representations/' },
-            { label: 'Transclusion', link: '/vitrine/docs/reference/transclusion/' }
+            { label: 'Transclusion', link: '/vitrine/docs/reference/transclusion/' },
+            { label: 'Sessions', link: '/vitrine/docs/reference/sessions/' }
           ]
         }
       ]
