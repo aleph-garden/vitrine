@@ -7,7 +7,11 @@
       Markdown view emits Obsidian's class names, so a vault snippet such as
       noctalia.css overrides these under .theme-dark / .theme-light and wins
       on source order, which is the same contract as before.
-   3. The shell's own rules, reading the tokens.
+   3. The shell's own rules, reading the tokens. Rules for what a view
+      emits sit in `@scope` on the view's id, which the runtime writes on
+      the region as `data-aleph-view`; the lower bound stops them at a
+      transcluded child. A scope root adds no specificity, so a vault
+      snippet still wins on source order.
 
    Mode resolution follows tokens.md section 7.3: an explicit theme on an
    ancestor first, then the reader's preference. `.theme-dark` and
@@ -331,71 +335,7 @@ input:focus-visible {
   color: var(--text-error);
 }
 
-/* Markdown */
-.markdown-preview-view h1,
-.markdown-preview-view h2,
-.markdown-preview-view h3 {
-  font-family: var(--ag-font-display);
-  font-weight: 600;
-  line-height: 1.25;
-  margin: 1.5em 0 0.5em;
-}
-.markdown-preview-view h1 {
-  font-size: var(--ag-type-h1);
-  letter-spacing: -0.015em;
-}
-.markdown-preview-view h2 {
-  font-size: var(--ag-type-h2);
-  letter-spacing: -0.01em;
-}
-.markdown-preview-view h3 {
-  font-size: var(--ag-type-h3);
-  letter-spacing: -0.005em;
-}
-.markdown-preview-view pre {
-  background: var(--background-primary-alt);
-  border: var(--ag-stroke-hair) solid var(--background-modifier-border);
-  border-radius: var(--radius-s);
-  padding: 0.8em 1em;
-  overflow-x: auto;
-  font-family: var(--font-monospace);
-  font-size: var(--ag-type-code);
-  line-height: var(--ag-leading-code);
-}
-.markdown-preview-view code {
-  font-family: var(--font-monospace);
-  font-size: 1em;
-  background: var(--background-primary-alt);
-  border-radius: var(--radius-s);
-  padding: 0.1em 0.3em;
-}
-.markdown-preview-view pre code {
-  background: none;
-  padding: 0;
-}
-.markdown-preview-view blockquote {
-  border-left: 3px solid var(--interactive-accent);
-  color: var(--text-muted);
-  margin: 1em 0;
-  padding: 0 1em;
-}
-.markdown-preview-view table {
-  border-collapse: collapse;
-  margin: 1em 0;
-}
-.markdown-preview-view th,
-.markdown-preview-view td {
-  border: var(--ag-stroke-hair) solid var(--background-modifier-border);
-  padding: 0.3em 0.7em;
-  text-align: left;
-}
-.markdown-preview-view img {
-  max-width: 100%;
-}
-
-.is-flashing {
-  animation: flash var(--ag-motion-settle) var(--ag-ease-exit);
-}
+/* Markdown, the view https://aleph.garden/views/markdown. */
 @keyframes flash {
   from {
     background: var(--text-highlight-bg);
@@ -405,123 +345,194 @@ input:focus-visible {
   }
 }
 
-.internal-link.is-unresolved {
-  color: var(--text-muted);
-  text-decoration: underline dotted;
+@scope ([data-aleph-view="https://aleph.garden/views/markdown"]) to ([data-aleph-view]) {
+  .markdown-preview-view h1,
+  .markdown-preview-view h2,
+  .markdown-preview-view h3 {
+    font-family: var(--ag-font-display);
+    font-weight: 600;
+    line-height: 1.25;
+    margin: 1.5em 0 0.5em;
+  }
+  .markdown-preview-view h1 {
+    font-size: var(--ag-type-h1);
+    letter-spacing: -0.015em;
+  }
+  .markdown-preview-view h2 {
+    font-size: var(--ag-type-h2);
+    letter-spacing: -0.01em;
+  }
+  .markdown-preview-view h3 {
+    font-size: var(--ag-type-h3);
+    letter-spacing: -0.005em;
+  }
+  .markdown-preview-view pre {
+    background: var(--background-primary-alt);
+    border: var(--ag-stroke-hair) solid var(--background-modifier-border);
+    border-radius: var(--radius-s);
+    padding: 0.8em 1em;
+    overflow-x: auto;
+    font-family: var(--font-monospace);
+    font-size: var(--ag-type-code);
+    line-height: var(--ag-leading-code);
+  }
+  .markdown-preview-view code {
+    font-family: var(--font-monospace);
+    font-size: 1em;
+    background: var(--background-primary-alt);
+    border-radius: var(--radius-s);
+    padding: 0.1em 0.3em;
+  }
+  .markdown-preview-view pre code {
+    background: none;
+    padding: 0;
+  }
+  .markdown-preview-view blockquote {
+    border-left: 3px solid var(--interactive-accent);
+    color: var(--text-muted);
+    margin: 1em 0;
+    padding: 0 1em;
+  }
+  .markdown-preview-view table {
+    border-collapse: collapse;
+    margin: 1em 0;
+  }
+  .markdown-preview-view th,
+  .markdown-preview-view td {
+    border: var(--ag-stroke-hair) solid var(--background-modifier-border);
+    padding: 0.3em 0.7em;
+    text-align: left;
+  }
+  .markdown-preview-view img {
+    max-width: 100%;
+  }
+
+  .is-flashing {
+    animation: flash var(--ag-motion-settle) var(--ag-ease-exit);
+  }
+  .internal-link.is-unresolved {
+    color: var(--text-muted);
+    text-decoration: underline dotted;
+  }
+
+  .tag {
+    display: inline-block;
+    background: var(--ag-accent-surface);
+    color: var(--text-accent);
+    border-radius: 1em;
+    padding: 0 0.6em;
+    font-size: var(--ag-type-sm);
+  }
+
+  .task-list-item {
+    list-style: none;
+    margin-left: -1.2em;
+  }
+  .task-list-item input {
+    margin-right: 0.4em;
+    accent-color: var(--ag-accent);
+  }
+  .task-list-item.is-checked {
+    color: var(--text-muted);
+    text-decoration: line-through;
+  }
+
+  .callout {
+    background: var(--background-secondary);
+    border-left: 3px solid var(--interactive-accent);
+    border-radius: var(--radius-s);
+    margin: 1em 0;
+    padding: 0.6em 1em;
+  }
+  .callout-title {
+    font-weight: 600;
+    margin-bottom: 0.3em;
+  }
+  .callout[data-callout="warning"],
+  .callout[data-callout="danger"],
+  .callout[data-callout="error"] {
+    border-left-color: var(--text-error);
+  }
+
+  .metadata-container {
+    border: var(--ag-stroke-hair) solid var(--background-modifier-border);
+    border-radius: var(--radius-m);
+    padding: 0.5em 1em;
+    margin-bottom: 1.5em;
+    font-size: var(--ag-type-ui);
+  }
+  .metadata-property {
+    display: flex;
+    gap: 1em;
+    padding: 0.15em 0;
+  }
+  .metadata-property-key {
+    color: var(--text-muted);
+    min-width: 8em;
+  }
+
+  .markdown-embed {
+    border-left: 2px solid var(--background-modifier-border);
+    padding-left: 1em;
+    margin: 1em 0;
+  }
 }
 
-.tag {
-  display: inline-block;
-  background: var(--ag-accent-surface);
-  color: var(--text-accent);
-  border-radius: 1em;
-  padding: 0 0.6em;
-  font-size: var(--ag-type-sm);
+/* Container listing, the view https://aleph.garden/views/container. */
+@scope ([data-aleph-view="https://aleph.garden/views/container"]) to ([data-aleph-view]) {
+  .container-listing {
+    list-style: none;
+    padding: 0;
+  }
+  .container-listing .child {
+    padding: 0.3em 0;
+    border-bottom: var(--ag-stroke-hair) solid var(--background-modifier-border);
+  }
+  .container-listing .is-container a::before {
+    content: "▸ ";
+    color: var(--text-muted);
+  }
+  /* Muted rather than faint: faint fails AA for body text on both grounds and
+     a modified date is information. Same for the language tag below. */
+  .container-listing time {
+    float: right;
+    color: var(--text-muted);
+    font-size: var(--ag-type-sm);
+  }
 }
 
-.task-list-item {
-  list-style: none;
-  margin-left: -1.2em;
-}
-.task-list-item input {
-  margin-right: 0.4em;
-  accent-color: var(--ag-accent);
-}
-.task-list-item.is-checked {
-  color: var(--text-muted);
-  text-decoration: line-through;
-}
-
-.callout {
-  background: var(--background-secondary);
-  border-left: 3px solid var(--interactive-accent);
-  border-radius: var(--radius-s);
-  margin: 1em 0;
-  padding: 0.6em 1em;
-}
-.callout-title {
-  font-weight: 600;
-  margin-bottom: 0.3em;
-}
-.callout[data-callout="warning"],
-.callout[data-callout="danger"],
-.callout[data-callout="error"] {
-  border-left-color: var(--text-error);
-}
-
-.metadata-container {
-  border: var(--ag-stroke-hair) solid var(--background-modifier-border);
-  border-radius: var(--radius-m);
-  padding: 0.5em 1em;
-  margin-bottom: 1.5em;
-  font-size: var(--ag-type-ui);
-}
-.metadata-property {
-  display: flex;
-  gap: 1em;
-  padding: 0.15em 0;
-}
-.metadata-property-key {
-  color: var(--text-muted);
-  min-width: 8em;
-}
-
-.markdown-embed {
-  border-left: 2px solid var(--background-modifier-border);
-  padding-left: 1em;
-  margin: 1em 0;
-}
-
-/* Container listing and statement table */
-.container-listing {
-  list-style: none;
-  padding: 0;
-}
-.container-listing .child {
-  padding: 0.3em 0;
-  border-bottom: var(--ag-stroke-hair) solid var(--background-modifier-border);
-}
-.container-listing .is-container a::before {
-  content: "▸ ";
-  color: var(--text-muted);
-}
-/* Muted rather than faint: faint fails AA for body text on both grounds and
-   a modified date is information. Same for the language tag below. */
-.container-listing time {
-  float: right;
-  color: var(--text-muted);
-  font-size: var(--ag-type-sm);
-}
-
-.statements {
-  border-collapse: collapse;
-  width: 100%;
-  font-size: var(--ag-type-ui);
-}
-.statements th {
-  text-align: left;
-  padding: 0.6em 0.5em 0.2em;
-}
-.statements td {
-  padding: 0.15em 0.5em;
-  vertical-align: top;
-  word-break: break-all;
-}
-/* Mono for identifiers, the text face for literals: a name is read as a word
-   and an IRI is read character by character. */
-.statements a,
-.statements .bnode {
-  font-family: var(--font-monospace);
-}
-.statements .lang {
-  color: var(--text-muted);
-  margin-left: 0.3em;
-}
-.raw {
-  white-space: pre-wrap;
-  font-family: var(--font-monospace);
-  font-size: var(--ag-type-code);
-  line-height: var(--ag-leading-code);
+/* Statement table and raw text, the view https://aleph.garden/views/fallback. */
+@scope ([data-aleph-view="https://aleph.garden/views/fallback"]) to ([data-aleph-view]) {
+  .statements {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: var(--ag-type-ui);
+  }
+  .statements th {
+    text-align: left;
+    padding: 0.6em 0.5em 0.2em;
+  }
+  .statements td {
+    padding: 0.15em 0.5em;
+    vertical-align: top;
+    word-break: break-all;
+  }
+  /* Mono for identifiers, the text face for literals: a name is read as a word
+     and an IRI is read character by character. */
+  .statements a,
+  .statements .bnode {
+    font-family: var(--font-monospace);
+  }
+  .statements .lang {
+    color: var(--text-muted);
+    margin-left: 0.3em;
+  }
+  .raw {
+    white-space: pre-wrap;
+    font-family: var(--font-monospace);
+    font-size: var(--ag-type-code);
+    line-height: var(--ag-leading-code);
+  }
 }
 
 /* The shell's chrome: a frame of four corner slots over the region. Only the
@@ -655,116 +666,119 @@ input:focus-visible {
   text-align: left;
 }
 
-/* The landing view, which is the page at the host's own IRI. */
-.landing h1,
-.landing h2 {
-  font-family: var(--ag-font-display);
-  font-weight: 600;
-  color: var(--ag-text);
-}
-.landing h1 {
-  margin: 0 0 var(--ag-space-5);
-  font-size: var(--ag-type-display);
-  line-height: var(--ag-leading-display);
-  letter-spacing: -0.02em;
-}
-.landing h2 {
-  margin: var(--ag-space-7) 0 var(--ag-space-4);
-  font-size: var(--ag-type-h2);
-  line-height: var(--ag-leading-h2);
-  letter-spacing: -0.01em;
-}
-.landing p {
-  max-width: var(--ag-measure-prose);
-}
-.landing .lede {
-  font-size: var(--ag-type-h3);
-  line-height: var(--ag-leading-h3);
-}
-/* An IRI in running prose moves to the next line whole where it fits there,
-   and breaks mid-token only when it fits on no line at all. */
-.landing p > code {
-  font-family: var(--font-monospace);
-  font-size: 1em;
-  overflow-wrap: anywhere;
-}
-.landing .next {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--ag-space-2) var(--ag-space-5);
-  max-width: none;
-  margin-top: var(--ag-space-6);
-}
-.landing .caveat {
-  color: var(--text-muted);
-  font-size: var(--ag-type-ui);
-  line-height: var(--ag-leading-ui);
-  max-width: var(--ag-measure-code);
-}
+/* The landing view, https://aleph.garden/views/landing, which is the page at
+   the host's own IRI. */
+@scope ([data-aleph-view="https://aleph.garden/views/landing"]) to ([data-aleph-view]) {
+  .landing h1,
+  .landing h2 {
+    font-family: var(--ag-font-display);
+    font-weight: 600;
+    color: var(--ag-text);
+  }
+  .landing h1 {
+    margin: 0 0 var(--ag-space-5);
+    font-size: var(--ag-type-display);
+    line-height: var(--ag-leading-display);
+    letter-spacing: -0.02em;
+  }
+  .landing h2 {
+    margin: var(--ag-space-7) 0 var(--ag-space-4);
+    font-size: var(--ag-type-h2);
+    line-height: var(--ag-leading-h2);
+    letter-spacing: -0.01em;
+  }
+  .landing p {
+    max-width: var(--ag-measure-prose);
+  }
+  .landing .lede {
+    font-size: var(--ag-type-h3);
+    line-height: var(--ag-leading-h3);
+  }
+  /* An IRI in running prose moves to the next line whole where it fits there,
+     and breaks mid-token only when it fits on no line at all. */
+  .landing p > code {
+    font-family: var(--font-monospace);
+    font-size: 1em;
+    overflow-wrap: anywhere;
+  }
+  .landing .next {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ag-space-2) var(--ag-space-5);
+    max-width: none;
+    margin-top: var(--ag-space-6);
+  }
+  .landing .caveat {
+    color: var(--text-muted);
+    font-size: var(--ag-type-ui);
+    line-height: var(--ag-leading-ui);
+    max-width: var(--ag-measure-code);
+  }
 
-.lab {
-  border-collapse: collapse;
-  width: 100%;
-  font-size: var(--ag-type-ui);
-  line-height: var(--ag-leading-ui);
-}
-.lab th {
-  text-align: left;
-  font-size: var(--ag-type-xs);
-  line-height: var(--ag-leading-xs);
-  letter-spacing: 0.01em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  font-weight: 600;
-  padding: 0 var(--ag-space-3) var(--ag-space-2) 0;
-  border-bottom: var(--ag-stroke-hair) solid var(--ag-border-strong);
-}
-.lab td {
-  padding: var(--ag-space-3) var(--ag-space-3) var(--ag-space-3) 0;
-  border-bottom: var(--ag-stroke-hair) solid var(--background-modifier-border);
-  vertical-align: top;
-}
-.lab th:last-child,
-.lab td:last-child {
-  padding-right: 0;
-}
-.lab .name {
-  font-family: var(--font-monospace);
-  white-space: nowrap;
-}
-.lab .when {
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-.lab .closed {
-  color: var(--text-muted);
-}
-.lab td:last-child {
-  white-space: nowrap;
-}
-
-/* Below the table's measure the columns stop being a table: each row becomes
-   a block, and the names stay in the reading order they had. */
-@media (max-width: 44rem) {
-  .lab,
-  .lab tbody,
-  .lab tr,
+  .lab {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: var(--ag-type-ui);
+    line-height: var(--ag-leading-ui);
+  }
+  .lab th {
+    text-align: left;
+    font-size: var(--ag-type-xs);
+    line-height: var(--ag-leading-xs);
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 600;
+    padding: 0 var(--ag-space-3) var(--ag-space-2) 0;
+    border-bottom: var(--ag-stroke-hair) solid var(--ag-border-strong);
+  }
   .lab td {
-    display: block;
-    width: auto;
-  }
-  .lab thead {
-    display: none;
-  }
-  .lab tr {
-    padding: var(--ag-space-4) 0;
+    padding: var(--ag-space-3) var(--ag-space-3) var(--ag-space-3) 0;
     border-bottom: var(--ag-stroke-hair) solid var(--background-modifier-border);
+    vertical-align: top;
   }
-  .lab td {
-    border: 0;
-    padding: 0 0 var(--ag-space-1);
+  .lab th:last-child,
+  .lab td:last-child {
+    padding-right: 0;
   }
   .lab .name {
-    font-size: var(--ag-type-base);
+    font-family: var(--font-monospace);
+    white-space: nowrap;
+  }
+  .lab .when {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .lab .closed {
+    color: var(--text-muted);
+  }
+  .lab td:last-child {
+    white-space: nowrap;
+  }
+
+  /* Below the table's measure the columns stop being a table: each row becomes
+     a block, and the names stay in the reading order they had. */
+  @media (max-width: 44rem) {
+    .lab,
+    .lab tbody,
+    .lab tr,
+    .lab td {
+      display: block;
+      width: auto;
+    }
+    .lab thead {
+      display: none;
+    }
+    .lab tr {
+      padding: var(--ag-space-4) 0;
+      border-bottom: var(--ag-stroke-hair) solid var(--background-modifier-border);
+    }
+    .lab td {
+      border: 0;
+      padding: 0 0 var(--ag-space-1);
+    }
+    .lab .name {
+      font-size: var(--ag-type-base);
+    }
   }
 }
