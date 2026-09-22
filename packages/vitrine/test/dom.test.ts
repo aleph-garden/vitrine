@@ -273,6 +273,33 @@ describe('createRuntime', () => {
     expect(runtime.instances()).toHaveLength(1)
   })
 
+  test('ctx.resolve answers the resource parsed, with its graph', async () => {
+    const parser = {
+      contentType: 'text/markdown',
+      parse: async (r: Resource) => [
+        {
+          subject: { termType: 'NamedNode' as const, value: r.iri },
+          predicate: { termType: 'NamedNode' as const, value: 'urn:p' },
+          object: { termType: 'Literal' as const, value: r.body as string }
+        }
+      ]
+    }
+    const view: View = {
+      id: 'urn:g',
+      when: [{ contentType: 'text/markdown' }],
+      render: async (r, ctx) => {
+        if (!r.body) return { html: '' }
+        const other = await ctx.resolve(r.body as string)
+        return { html: `<p>${other.graph?.length ?? 'none'}</p>` }
+      }
+    }
+    const { resolve } = store({ a: 'dep', dep: '' })
+    const runtime = createRuntime(createRenderer({ parsers: [parser], views: [view] }), resolve)
+    const el = region()
+    await runtime.mount(el, 'a')
+    expect(el.innerHTML).toBe('<p>1</p>')
+  })
+
   test('mount writes the rendered HTML through the sanitizer', async () => {
     const view: View = {
       id: 'urn:s',

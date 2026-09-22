@@ -263,7 +263,7 @@ export function createRuntime(
     const chain = [...(parent?.chain ?? []), iri]
     // Deferred so an emit inside hydrate reaches the emitter’s own handle too.
     const { ctx, dependencies } = instanceContext(
-      resolve,
+      (target) => resolve(target).then(renderer.parse),
       (e) => queueMicrotask(() => void dispatch(e)),
       queue.iterable,
       async (childIri, childHint) => {

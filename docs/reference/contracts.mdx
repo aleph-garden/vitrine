@@ -153,6 +153,11 @@ GET on an endpoint IRI with the query in the query string, so it goes
 through `resolve` like everything else. Whether the host answers that IRI
 over the network or from a store it holds in memory is the host's business.
 
+The resource `resolve` answers is parsed the same way as the one a view is
+handed: when a registered parser reads its content type, `graph` holds the
+quads. A view that needs another document as RDF reads `graph` and never
+parses `body` itself.
+
 ## Event
 
 An event is an ActivityStreams 2.0 activity as a plain object: the same

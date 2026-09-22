@@ -33,7 +33,7 @@ export async function renderInline(
   ): Promise<string> => {
     const resource = await resolve(target)
     const ctx: Context = {
-      resolve,
+      resolve: (childIri) => resolve(childIri).then(renderer.parse),
       emit: () => {},
       events: nothing,
       async transclude(childIri, childHint) {

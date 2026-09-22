@@ -52,6 +52,8 @@ export const ALEPH = {
 // ------------------------------------------------------------- context
 
 export type Context = {
+  /** Answers the resource at `iri`, parsed the way a rendered one is: when a
+   *  registered parser reads its content type, `graph` holds the quads. */
   resolve(iri: string): Promise<Resource>
   emit(event: Event): void
   events: AsyncIterable<Event>

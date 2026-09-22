@@ -54,6 +54,29 @@ describe('renderInline', () => {
     expect(html).toContain('<p class="own">a</p>')
   })
 
+  test('ctx.resolve answers the resource parsed, with its graph', async () => {
+    const parser = {
+      contentType: 'text/markdown',
+      parse: async (r: Resource) => [
+        {
+          subject: { termType: 'NamedNode' as const, value: r.iri },
+          predicate: { termType: 'NamedNode' as const, value: 'urn:p' },
+          object: { termType: 'Literal' as const, value: r.body as string }
+        }
+      ]
+    }
+    const counting: View = {
+      id: 'urn:g',
+      when: [{ contentType: 'text/markdown' }],
+      render: async (r, ctx) => {
+        const other = await ctx.resolve(r.body as string)
+        return { html: `<p>${other.graph?.length ?? 'none'}</p>` }
+      }
+    }
+    const parsing = createRenderer({ parsers: [parser], views: [counting] })
+    expect(await renderInline(parsing, notes({ a: 'b', b: '' }), 'a')).toBe('<p>1</p>')
+  })
+
   test('rejects when the document itself cannot be resolved', async () => {
     await expect(renderInline(renderer, notes({}), 'a')).rejects.toMatchObject({ status: 404 })
   })
