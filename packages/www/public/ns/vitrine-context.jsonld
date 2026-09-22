@@ -1,0 +1,16 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "vitrine": "https://w3id.org/vitrine/ns#",
+    "View": "vitrine:View",
+    "Host": "vitrine:Host",
+    "Rule": "vitrine:Rule",
+    "Select": "vitrine:Select",
+    "issuer": { "@id": "vitrine:issuer", "@type": "@id" },
+    "sparqlEndpoint": { "@id": "vitrine:sparqlEndpoint", "@type": "@id" },
+    "views": { "@id": "vitrine:views", "@type": "@id", "@container": "@list" },
+    "rules": { "@id": "vitrine:rules", "@container": "@list" },
+    "view": { "@id": "vitrine:view", "@type": "@id" },
+    "when": { "@id": "vitrine:when", "@type": "@json" }
+  }
+}

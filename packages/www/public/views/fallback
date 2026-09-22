@@ -1,0 +1,23 @@
+{
+  "@context": {
+    "vitrine": "https://w3id.org/vitrine/ns#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "label": {
+      "@id": "rdfs:label",
+      "@language": "en"
+    },
+    "comment": {
+      "@id": "rdfs:comment",
+      "@language": "en"
+    },
+    "note": {
+      "@id": "rdfs:comment",
+      "@language": "en"
+    }
+  },
+  "@id": "https://aleph.garden/views/fallback",
+  "@type": "vitrine:View",
+  "label": "Fallback view",
+  "comment": "What is shown when no other view applies: RDF as statements grouped by subject, text as it is, anything else as a download.",
+  "note": "Ships inside the host bundle. It is compiled into the hosts that carry it, and no module exists to fetch, so this descriptor names no implementation. A host whose bundle lacks this view cannot obtain it from this document."
+}

@@ -150,8 +150,10 @@ resource are properties of the host package, not keys in that document.
 An application that embeds a region needs neither host package: a renderer,
 a `Resolve`, and `runtime.mount` are the whole surface.
 
-View ids and the event types the library defines live under
-`https://w3id.org/vitrine/ns#`.
+The terms the library defines live under `https://w3id.org/vitrine/ns#`:
+`View`, `Host` and `Select`. A view itself is a resource rather than a term,
+and the views shipped here carry ids under `https://aleph.garden/views/`,
+where each one describes itself.
 
 ## Development
 

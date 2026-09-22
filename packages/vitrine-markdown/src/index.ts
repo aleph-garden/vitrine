@@ -30,7 +30,7 @@ export type MarkdownOptions = {
   webId: string
 }
 
-export const MARKDOWN_VIEW = 'https://w3id.org/vitrine/ns#Markdown'
+export const MARKDOWN_VIEW = 'https://aleph.garden/views/markdown'
 
 const IMAGE = /\.(png|jpe?g|gif|svg|webp|avif)$/i
 

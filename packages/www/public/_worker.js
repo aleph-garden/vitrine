@@ -19,11 +19,23 @@ const POLICY = [
 
 const IRI_PATH = /^\/-\//
 
-// The vocabulary document, served under the media type the client asked for.
-// There is one Turtle representation and no HTML one, so a browser gets it as
-// text/plain and reads it rather than downloading it. Pages guesses a content
-// type from the extension and this path has none, so the type is set here.
+// The vocabulary document and the view descriptors. Pages guesses a content
+// type from the extension and these paths have none, so the type is set here.
 const VOCABULARY = '/ns/vitrine'
+const DESCRIPTOR = /^\/views\/[a-z-]+$/
+
+// Each document has one representation and no HTML one, so a browser gets it
+// as text/plain and reads it rather than downloading it.
+function typed(doc, request, contentType) {
+  const accept = request.headers.get('accept') ?? ''
+  const html = accept.includes('text/html') && !accept.includes(contentType)
+  const response = new Response(doc.body, doc)
+  response.headers.set(
+    'content-type',
+    html ? 'text/plain; charset=utf-8' : `${contentType}; charset=utf-8`
+  )
+  return response
+}
 
 export default {
   async fetch(request, env) {
@@ -35,15 +47,11 @@ export default {
       return response
     }
     if (url.pathname === VOCABULARY) {
+      return typed(await env.ASSETS.fetch(request), request, 'text/turtle')
+    }
+    if (DESCRIPTOR.test(url.pathname)) {
       const doc = await env.ASSETS.fetch(request)
-      const accept = request.headers.get('accept') ?? ''
-      const html = accept.includes('text/html') && !accept.includes('text/turtle')
-      const response = new Response(doc.body, doc)
-      response.headers.set(
-        'content-type',
-        html ? 'text/plain; charset=utf-8' : 'text/turtle; charset=utf-8'
-      )
-      return response
+      return doc.ok ? typed(doc, request, 'application/ld+json') : doc
     }
     return env.ASSETS.fetch(request)
   }

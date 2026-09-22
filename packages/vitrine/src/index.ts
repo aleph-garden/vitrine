@@ -273,7 +273,7 @@ function childName(parent: string, child: string): string {
 }
 
 export const containerView: View = {
-  id: 'https://w3id.org/vitrine/ns#Container',
+  id: 'https://aleph.garden/views/container',
   when: [{ container: true }],
   async render(resource) {
     // Containment arrives in the envelope or in the body, the two places
@@ -319,7 +319,7 @@ function graphHtml(graph: Quad[]): string {
 }
 
 export const fallbackView: View = {
-  id: 'https://w3id.org/vitrine/ns#Fallback',
+  id: 'https://aleph.garden/views/fallback',
   when: [],
   async render(resource) {
     if (resource.graph) return { html: graphHtml(resource.graph) }

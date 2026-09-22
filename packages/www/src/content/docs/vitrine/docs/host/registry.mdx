@@ -54,7 +54,7 @@ document it serves, which the host reads and never expands:
 
 ```json
 {
-  "@context": "https://w3id.org/vitrine/ns",
+  "@context": "https://aleph.garden/ns/vitrine-context.jsonld",
   "@type": "Host",
   "issuer": "https://pod.example/",
   "sparqlEndpoint": "https://sparql.example"
@@ -70,6 +70,11 @@ document it serves, which the host reads and never expands:
 
 Every key is optional, and a deployment that names none gets the host's own
 defaults.
+
+The `@context` resolves to a JSON-LD context document, which maps these keys
+to terms under `https://w3id.org/vitrine/ns#`. The host never fetches it and
+reads the keys as they are; the context is there for an RDF reader of the
+page.
 
 This document holds what varies between deployments of one host. What
 varies between hosts is not here: whether a session exists, what opens in

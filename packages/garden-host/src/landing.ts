@@ -5,7 +5,7 @@
 
 import { escapeHtml, type View } from '@aleph-garden/vitrine'
 
-export const LANDING_VIEW = 'https://w3id.org/vitrine/ns#Landing'
+export const LANDING_VIEW = 'https://aleph.garden/views/landing'
 
 /** A repository in the lab, with what a reader can check. `commits` and
  *  `last` were measured 2026-09-22 from each repository's own history and

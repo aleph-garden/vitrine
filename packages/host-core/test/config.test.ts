@@ -16,7 +16,7 @@ describe('readConfig', () => {
   test('reads the keys of the Host node', () => {
     embed(
       JSON.stringify({
-        '@context': 'https://w3id.org/vitrine/ns',
+        '@context': 'https://aleph.garden/ns/vitrine-context.jsonld',
         '@id': 'https://pod.example/',
         '@type': 'Host',
         issuer: 'https://pod.example/',
@@ -33,19 +33,19 @@ describe('readConfig', () => {
     embed(
       JSON.stringify({
         '@type': HOST_TYPE,
-        views: ['https://w3id.org/vitrine/ns#Landing'],
+        views: ['https://aleph.garden/views/landing'],
         rules: [
           {
-            view: 'https://w3id.org/vitrine/ns#Landing',
+            view: 'https://aleph.garden/views/landing',
             when: [{ iri: 'https://aleph.garden/' }]
           }
         ]
       })
     )
     expect(readConfig(document)).toEqual({
-      views: ['https://w3id.org/vitrine/ns#Landing'],
+      views: ['https://aleph.garden/views/landing'],
       rules: [
-        { view: 'https://w3id.org/vitrine/ns#Landing', when: [{ iri: 'https://aleph.garden/' }] }
+        { view: 'https://aleph.garden/views/landing', when: [{ iri: 'https://aleph.garden/' }] }
       ]
     })
   })

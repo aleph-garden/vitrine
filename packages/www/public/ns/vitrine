@@ -1,16 +1,29 @@
 @prefix vitrine: <https://w3id.org/vitrine/ns#> .
 @prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:     <http://www.w3.org/2002/07/owl#> .
+@prefix vann:    <http://purl.org/vocab/vann/> .
 @prefix as:      <https://www.w3.org/ns/activitystreams#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 
-# The Vitrine rendering vocabulary: the views a rendering host can select
-# for a resource, and the one event type the rendering layer adds to
+# The Vitrine rendering vocabulary: what a view is, what configures a host
+# that selects one, and the one event type the rendering layer adds to
 # ActivityStreams.
 #
 # A view turns one resource into HTML. Which view applies is decided by a
-# rule table the host holds, so a view is named here and never bound to a
-# class of resource; that binding is the host's.
+# rule table the host holds, so a view is never bound here to a class of
+# resource; that binding is the host's.
+#
+# Which views exist is a set of resources. `vitrine:View` is the class they
+# instantiate, and each view this project ships carries its own IRI under
+# https://aleph.garden/views/, where it describes itself. A view named in a
+# rule table is one of those resources and never a term of this document.
+#
+# The properties below are the keys a deployment's Host document carries. A
+# host reads them as plain JSON and never expands the document, so the JSON-LD
+# context published at https://aleph.garden/ns/vitrine-context.jsonld is what
+# makes them these IRIs for every other reader. That context is a serving
+# location for one syntax; the terms it maps stay under w3id.
 #
 # The lens terms belong under this namespace. `lens` gets no namespace of its
 # own, and the merge is open: `lens:Renderer` and Vitrine's `View` state
@@ -23,9 +36,14 @@
 # domain, so an implementation may move and an identity may not.
 
 <https://w3id.org/vitrine/ns#>
+    a owl:Ontology ;
     rdfs:label   "Vitrine rendering vocabulary"@en ;
-    rdfs:comment """Terms naming the views a rendering host can select for a
-resource, and the event a view emits when it marks one."""@en ;
+    rdfs:comment """Terms for the rendering contract: the class a view
+instantiates, the document that configures a host selecting one, and the event
+a view emits when it marks a resource."""@en ;
+    vann:preferredNamespacePrefix "vitrine" ;
+    vann:preferredNamespaceUri    "https://w3id.org/vitrine/ns#" ;
+    rdfs:seeAlso <https://github.com/aleph-garden/vitrine> ;
     dcterms:creator <https://toph.so/profile#me> ;
     dcterms:license <http://creativecommons.org/licenses/by/4.0/> .
 
@@ -38,45 +56,82 @@ vitrine:View a rdfs:Class ;
     rdfs:comment """Something that renders one resource to HTML. A host hands
 it the resource, a context to reach other resources and the event bus, and an
 optional hint; it answers with HTML and, when it needs behaviour after
-placement, a hydrate step."""@en .
+placement, a hydrate step."""@en ;
+    rdfs:isDefinedBy <https://w3id.org/vitrine/ns#> .
 
 vitrine:Host a rdfs:Class ;
     rdfs:label   "Host"@en ;
     rdfs:comment """What configures a rendering host: the rule table it
 selects views with, and where it reaches an identity provider and a query
 endpoint. A page carries one as JSON-LD, and a reader can keep their own as a
-resource in a store they control."""@en .
+resource in a store they control."""@en ;
+    rdfs:isDefinedBy <https://w3id.org/vitrine/ns#> .
+
+vitrine:Rule a rdfs:Class ;
+    rdfs:label   "Rule"@en ;
+    rdfs:comment """One row of a host's rule table: the view to select, and the
+conditions under which it is selected. A rule occurs inside a Host document,
+where it carries no type of its own."""@en ;
+    rdfs:isDefinedBy <https://w3id.org/vitrine/ns#> .
 
 vitrine:Select a rdfs:Class ;
     rdfs:subClassOf as:Activity ;
     rdfs:label   "Select"@en ;
     rdfs:comment """A view marked a resource, for the other views on the same
 page to react to. ActivityStreams has no activity for it. The object is the
-resource marked, the actor the view instance that marked it."""@en .
+resource marked, the actor the view instance that marked it."""@en ;
+    rdfs:isDefinedBy <https://w3id.org/vitrine/ns#> .
 
 #################################################################
-# Views
+# Properties
 #################################################################
 
-vitrine:Markdown a vitrine:View ;
-    rdfs:label   "Markdown view"@en ;
-    rdfs:comment """Obsidian-flavoured Markdown: frontmatter as properties,
-wikilinks resolved through the pod's type index, embeds, tags, tasks, callouts,
-math, diagrams, and SPARQL blocks run through the host."""@en .
+vitrine:issuer a rdf:Property ;
+    rdfs:label   "issuer"@en ;
+    rdfs:comment """The Solid-OIDC issuer a reader of this host logs in at, as
+an IRI. A host whose document omits it asks for a WebID and reads
+solid:oidcIssuer from that profile."""@en ;
+    rdfs:domain  vitrine:Host ;
+    rdfs:isDefinedBy <https://w3id.org/vitrine/ns#> .
 
-vitrine:Container a vitrine:View ;
-    rdfs:label   "Container view"@en ;
-    rdfs:comment """The members of an LDP container, as the server lists
-them."""@en .
+vitrine:sparqlEndpoint a rdf:Property ;
+    rdfs:label   "SPARQL endpoint"@en ;
+    rdfs:comment """Where the views of this host send a query, as an IRI. A
+host whose document omits it leaves query blocks standing as code."""@en ;
+    rdfs:domain  vitrine:Host ;
+    rdfs:isDefinedBy <https://w3id.org/vitrine/ns#> .
 
-vitrine:Fallback a vitrine:View ;
-    rdfs:label   "Fallback view"@en ;
-    rdfs:comment """What is shown when no other view applies: RDF as
-statements grouped by subject, text as it is, anything else as a
-download."""@en .
+vitrine:views a rdf:Property ;
+    rdfs:label   "views"@en ;
+    rdfs:comment """The views this host registers, each by its IRI. Selection
+walks them in registration order, so the value is an ordered list and the order
+carries meaning. A host whose document omits it registers every view its bundle
+carries."""@en ;
+    rdfs:domain  vitrine:Host ;
+    rdfs:isDefinedBy <https://w3id.org/vitrine/ns#> .
 
-vitrine:Landing a vitrine:View ;
-    rdfs:label   "Landing view"@en ;
-    rdfs:comment """What a host shows at its own address, where there is no
-resource to read. The rule that selects it matches the deployment's own IRI,
-so a preview deployment and a local run greet as well."""@en .
+vitrine:rules a rdf:Property ;
+    rdfs:label   "rules"@en ;
+    rdfs:comment """The rule table this host selects with. A host consults these
+in order, before the conditions a view states about itself, so the value is an
+ordered list and the order carries meaning."""@en ;
+    rdfs:domain  vitrine:Host ;
+    rdfs:isDefinedBy <https://w3id.org/vitrine/ns#> .
+
+vitrine:view a rdf:Property ;
+    rdfs:label   "view"@en ;
+    rdfs:comment """The view a rule selects, by its IRI."""@en ;
+    rdfs:domain  vitrine:Rule ;
+    rdfs:range   vitrine:View ;
+    rdfs:isDefinedBy <https://w3id.org/vitrine/ns#> .
+
+vitrine:when a rdf:Property ;
+    rdfs:label   "when"@en ;
+    rdfs:comment """The conditions under which a rule holds, all of which must
+hold for the rule to apply. The value is a match expression over the resource,
+covering its IRI, its media type, whether it is a container and the types it
+carries. It describes a resource rather than naming one, so it has no range,
+and the JSON-LD context reads it as a JSON literal so that the expression
+survives into RDF as written."""@en ;
+    rdfs:domain  vitrine:Rule ;
+    rdfs:isDefinedBy <https://w3id.org/vitrine/ns#> .
