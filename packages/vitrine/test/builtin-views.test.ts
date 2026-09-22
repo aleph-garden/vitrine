@@ -69,6 +69,40 @@ describe('containerView', () => {
     expect(html).not.toContain('<b>')
     expect(html).toContain('a&lt;b&gt;.md')
   })
+
+  // A server that states containment in the body and sends no
+  // `Link; rel="type"` leaves `meta` empty of it, so a listing read from
+  // `meta` alone comes back with nothing in it.
+  test('lists children stated only in the body', async () => {
+    const r: Resource = {
+      iri: root,
+      contentType: 'text/turtle',
+      body: '',
+      meta: [],
+      graph: [
+        q(root, RDF_TYPE, LDP_CONTAINER),
+        q(root, LDP_CONTAINS, `${root}a.md`),
+        q(root, LDP_CONTAINS, `${root}sub/`),
+        q(`${root}sub/`, RDF_TYPE, LDP_CONTAINER)
+      ],
+      allow: ['read']
+    }
+    const { html } = await containerView.render(r, noop)
+    expect(html).toContain(`href="${root}a.md"`)
+    expect(html).toMatch(/<li[^>]*class="[^"]*\bis-container\b[^"]*"[^>]*>[\s\S]*sub\//)
+  })
+
+  // Both sources carry the same statements when the server sends the header
+  // and a parser reads the body. One member, one entry.
+  test('lists a child stated in both meta and graph once', async () => {
+    const r: Resource = {
+      ...container,
+      meta: [q(root, RDF_TYPE, LDP_CONTAINER), q(root, LDP_CONTAINS, `${root}a.md`)],
+      graph: [q(root, RDF_TYPE, LDP_CONTAINER), q(root, LDP_CONTAINS, `${root}a.md`)]
+    }
+    const { html } = await containerView.render(r, noop)
+    expect(html.match(new RegExp(`href="${root}a\\.md"`, 'g'))).toHaveLength(1)
+  })
 })
 
 describe('fallbackView', () => {

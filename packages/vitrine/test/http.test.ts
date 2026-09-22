@@ -1,8 +1,25 @@
 import { describe, expect, test } from 'bun:test'
-import { dcterms, ldp } from '@aleph-garden/terms'
+import { dcterms, ldp, rdf } from '@aleph-garden/terms'
 import type { Fetch } from '../src/http.ts'
 import { fetchResource } from '../src/http.ts'
-import { about, holds, isContainer } from '../src/index.ts'
+import {
+  about,
+  type Context,
+  containerView,
+  createRenderer,
+  fallbackView,
+  holds,
+  isContainer
+} from '../src/index.ts'
+
+const RDF_TYPE = rdf.type
+
+const noop: Context = {
+  resolve: () => Promise.reject(new Error('no resolve')),
+  emit: () => {},
+  events: (async function* () {})(),
+  transclude: async () => ''
+}
 
 /** Enough of a Turtle reader for the one container fixture below: the point
  *  here is that fetchResource calls what it was handed and folds the quads
@@ -110,5 +127,57 @@ describe('fetchResource', () => {
         'https://pod.example/p'
       )
     ).rejects.toMatchObject({ status: 401 })
+  })
+})
+
+// A conforming Solid server may state a container's type in the body and send
+// no `Link; rel="type"`. quadpod does exactly that, measured 2026-09-22. The
+// resource then reaches the pipeline with an empty `meta` and everything in
+// `graph`, so containment has to be readable from there end to end.
+describe('a container typed only in its body', () => {
+  const root = 'https://pod.example/notes/'
+  // The statements quadpod's own listing carries, written one per line
+  // because the reader above is a regular expression rather than a parser.
+  const turtle = [
+    `<${root}> <${RDF_TYPE}> <${ldp.BasicContainer}> .`,
+    `<${root}> <${RDF_TYPE}> <${ldp.Container}> .`,
+    `<${root}> <${ldp.contains}> <${root}a.md> .`,
+    `<${root}> <${ldp.contains}> <${root}sub/> .`,
+    `<${root}sub/> <${RDF_TYPE}> <${ldp.Container}> .`
+  ].join('\n')
+
+  const fetched = () =>
+    fetchResource(
+      fetchOf(
+        response(turtle, {
+          'content-type': 'text/turtle',
+          link: `<${root}.aux/notes/.acl>; rel="acl"`,
+          'wac-allow': 'user="read write append control",public=""'
+        })
+      ),
+      root,
+      parseMeta
+    )
+
+  test('reaches containerView and lists its children', async () => {
+    const r = await fetched()
+    expect(r.meta.some((q) => q.predicate.value === ldp.contains)).toBe(false)
+
+    const renderer = createRenderer({
+      parsers: [
+        { contentType: 'text/turtle', parse: async (res) => parseMeta(res.body as string, res.iri) }
+      ],
+      views: [containerView, fallbackView]
+    })
+    const parsed = await renderer.parse(r)
+    expect(renderer.select(parsed)?.id).toBe(containerView.id)
+
+    const { html } = await renderer.render(r, noop)
+    expect(html).toContain(`href="${root}a.md"`)
+    expect(html).toContain(`href="${root}sub/"`)
+  })
+
+  test('still reports the requester modes it was sent', async () => {
+    expect((await fetched()).allow).toEqual(['read', 'write', 'append', 'control'])
   })
 })

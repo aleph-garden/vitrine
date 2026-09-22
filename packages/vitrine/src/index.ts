@@ -238,8 +238,12 @@ function byLanguage(terms: Term[], lang?: string): Term[] {
   return tagged.length > 0 ? tagged : terms.filter((t) => t.language === undefined)
 }
 
+/** Whether the response states that this resource is an `ldp:Container`.
+ *  Reads `typesOf`, so a `Link; rel="type"` header and an `rdf:type`
+ *  statement in the body are the same claim: a server is free to make it in
+ *  either place, and LDP asks for the header rather than requiring it. */
 export function isContainer(resource: Resource): boolean {
-  return about(resource.meta, resource.iri).all(rdf.type).includes(ldp.Container)
+  return typesOf(resource).includes(ldp.Container)
 }
 
 /** Every `rdf:type` the response states of the resource's own subject, from
@@ -272,18 +276,21 @@ export const containerView: View = {
   id: 'https://w3id.org/aleph/ns/view#Container',
   when: [{ container: true }],
   async render(resource) {
-    const items = about(resource.meta, resource.iri)
-      .all(ldp.contains)
-      .map((iri) => {
-        const child = about(resource.meta, iri)
-        const container = child.all(rdf.type).includes(ldp.Container)
-        const modified = child.one(dcterms.modified)
-        const cls = container ? 'child is-container' : 'child'
-        const time = modified
-          ? ` <time datetime="${escapeHtml(modified)}">${escapeHtml(modified)}</time>`
-          : ''
-        return `<li class="${cls}"><a href="${escapeHtml(iri)}">${escapeHtml(childName(resource.iri, iri))}</a>${time}</li>`
-      })
+    // Containment arrives in the envelope or in the body, the two places
+    // `typesOf` reads a type from, and both carry it when the server sent the
+    // type link and a parser read the body. Hence the union and the dedup:
+    // one member, one entry, wherever the statement came from.
+    const stated = [...resource.meta, ...(resource.graph ?? [])]
+    const items = [...new Set(about(stated, resource.iri).all(ldp.contains))].map((iri) => {
+      const child = about(stated, iri)
+      const container = child.all(rdf.type).includes(ldp.Container)
+      const modified = child.one(dcterms.modified)
+      const cls = container ? 'child is-container' : 'child'
+      const time = modified
+        ? ` <time datetime="${escapeHtml(modified)}">${escapeHtml(modified)}</time>`
+        : ''
+      return `<li class="${cls}"><a href="${escapeHtml(iri)}">${escapeHtml(childName(resource.iri, iri))}</a>${time}</li>`
+    })
     return { html: `<ul class="container-listing">${items.join('')}</ul>` }
   }
 }

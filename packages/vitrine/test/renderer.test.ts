@@ -65,6 +65,18 @@ describe('quad helpers', () => {
     expect(isContainer(resource())).toBe(false)
   })
 
+  test('isContainer reads rdf:type ldp:Container from graph as well', () => {
+    const bodyTyped = resource({
+      iri: 'https://pod.example/notes/',
+      contentType: 'text/turtle',
+      graph: [
+        q('https://pod.example/notes/', RDF_TYPE, LDP_CONTAINER),
+        q('https://pod.example/notes/', LDP_CONTAINS, 'https://pod.example/notes/a.md')
+      ]
+    })
+    expect(isContainer(bodyTyped)).toBe(true)
+  })
+
   test("typesOf reads the subject's rdf:type from graph, empty without graph", () => {
     const typed = resource({
       graph: [q('https://pod.example/notes/a.md', RDF_TYPE, 'https://schema.org/Note')]
