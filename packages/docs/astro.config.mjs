@@ -1,5 +1,6 @@
 // @ts-check
 import { fileURLToPath } from 'node:url'
+import aleph from '@aleph-garden/starlight-theme'
 import starlight from '@astrojs/starlight'
 import { defineConfig } from 'astro/config'
 import mermaid from 'astro-mermaid'
@@ -24,9 +25,10 @@ export default defineConfig({
       title: 'Vitrine',
       description: 'A rendering layer for IRIs, part of Aleph Garden. One IRI in, HTML out.',
       social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/aleph-garden' }],
+      plugins: [aleph({ project: 'vitrine' })],
       sidebar: [
         {
-          label: 'Vitrine',
+          label: 'Start',
           items: [
             { label: 'Overview', link: '/vitrine/docs/' },
             { label: 'Why this exists', link: '/vitrine/docs/why/' },
