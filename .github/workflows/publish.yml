@@ -23,6 +23,11 @@ jobs:
   publish:
     if: vars.NPM_TRUSTED_PUBLISHING == 'enabled'
     runs-on: ubuntu-latest
+    # The npm trusted publisher for each package names this environment, so a
+    # token is minted only inside it. The environment restricts deployments to
+    # v* tags and requires a reviewer, which is what stops any other run of
+    # this workflow from publishing.
+    environment: npm
     permissions:
       contents: read
       # The OIDC token npm exchanges for a short-lived publish credential.
