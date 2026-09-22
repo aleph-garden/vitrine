@@ -81,6 +81,7 @@ host uses.
 | `instanceContext(resolve, emit, events)` | the `Context` a runtime hands one instance, exposed so a view test can build one |
 | `linkEvents(region, emit)` | turns a click on a link inside a region into an `as:View` event |
 | `writeHtml(target, html)` | the sanitised write every mount and patch goes through |
+| `VIEW_ATTR`, `IRI_ATTR` | the attributes the runtime writes on every region it holds: the view's id and the resource |
 | `objects(quads, subject, predicate)` | the object terms of matching quads |
 | `isContainer(resource)`, `typesOf(resource)` | the two questions that come up constantly |
 | `escapeHtml(text)` | escape a value before it lands in HTML |

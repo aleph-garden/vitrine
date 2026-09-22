@@ -97,7 +97,9 @@ around a region is the host's.
 That split is deliberate: one view then renders inside a documentation page,
 a pod's own chrome and somebody's application without carrying three
 stylesheets. It also means a view has to pick class names someone else can
-target, and say which ones it emits. The Markdown view takes this to its
+target, and say which ones it emits. A host scopes those rules to the view's
+`id`, which the runtime writes on the region as `data-aleph-view`, so a name
+has to be unique inside the view's own output and nowhere else. The Markdown view takes this to its
 end and emits Obsidian's class names, so a vault's own snippets apply to it
 unchanged.
 

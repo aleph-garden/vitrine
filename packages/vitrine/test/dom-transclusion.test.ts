@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { createRuntime } from '../src/dom.ts'
+import { createRuntime, IRI_ATTR, VIEW_ATTR } from '../src/dom.ts'
 import { AS, createRenderer, type Resource, type View } from '../src/index.ts'
 import { DEFERRED_ATTR, ERROR_ATTR, TRANSCLUDE_ATTR } from '../src/transclusion.ts'
 
@@ -61,6 +61,16 @@ describe('transclusion', () => {
     expect(rendered).toEqual(['a', 'b'])
     expect(el.querySelector(`[${TRANSCLUDE_ATTR}] .own`)?.textContent).toBe('b')
     expect(hydratedWith.a).toBe(1)
+  })
+
+  test('marks the child region with its own view and resource', async () => {
+    const { view } = nesting()
+    const runtime = runtimeFor(view, { a: 'b', b: '' })
+    const el = region()
+    await runtime.mount(el, 'a')
+    const child = el.querySelector(`[${TRANSCLUDE_ATTR}]`)
+    expect(child?.getAttribute(VIEW_ATTR)).toBe('urn:nesting')
+    expect(child?.getAttribute(IRI_ATTR)).toBe('b')
   })
 
   test('gives the child its own instance, with the parent in its chain', async () => {

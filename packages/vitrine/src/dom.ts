@@ -51,6 +51,14 @@ export type Runtime = {
   listen(listener: (event: Event) => void): () => void
 }
 
+/** Set by the runtime on every region it holds: the id of the view that drew
+ *  it, and the IRI of the resource. A stylesheet scopes a view's rules with
+ *  `@scope ([data-aleph-view="<view id>"]) to ([data-aleph-view])`, which
+ *  keeps them out of a transcluded child. A region whose mount failed
+ *  carries neither. */
+export const VIEW_ATTR = 'data-aleph-view'
+export const IRI_ATTR = 'data-aleph-iri'
+
 /** Inside a region, a click on an `<a href>` whose URL is `http:` or
  *  `https:` becomes an as:View event, whatever its origin, with the link's
  *  IRI as object and its fragment in the hint. The runtime installs this on
@@ -191,11 +199,10 @@ export function createRuntime(
     inst.off()
     inst.deps.clear()
     inst.hint = hint
-    const resource = await resolve(inst.iri)
-    const rendered = await renderer.render(resource, inst.ctx, hint)
+    const { view, rendered } = await draw(await resolve(inst.iri), inst.ctx, hint)
     const held = new Map([...inst.children].map((child) => [keyOf(child), child]))
     inst.children.clear()
-    writeHtml(inst.region, rendered.html)
+    paint(inst.region, view, inst.iri, rendered.html)
     await mountChildren(inst, held)
     for (const child of held.values()) child.dispose()
     inst.off = linkEvents(inst.region, inst.ctx.emit)
@@ -203,6 +210,21 @@ export function createRuntime(
   }
 
   const keyOf = (inst: Live) => transclusionKey(inst.iri, inst.hint)
+
+  /** `renderer.render`, with the view it selected kept for the region's
+   *  mark. The two must select the same way. */
+  const draw = async (resource: Resource, ctx: Context, hint: Hint | undefined) => {
+    const parsed = await renderer.parse(resource)
+    const view = renderer.select(parsed, hint)
+    if (!view) throw new Error(`no view applies to ${resource.iri} (${resource.contentType})`)
+    return { view: view.id, rendered: await view.render(parsed, ctx, hint) }
+  }
+
+  const paint = (region: Element, view: string, iri: string, html: string) => {
+    writeHtml(region, html)
+    region.setAttribute(VIEW_ATTR, view)
+    region.setAttribute(IRI_ATTR, iri)
+  }
 
   /** Every placeholder the instance's own HTML carries becomes a child
    *  instance, before the instance hydrates, so a parent that reads its
@@ -272,9 +294,14 @@ export function createRuntime(
         live.delete(id)
       }
     } satisfies Live
-    const resource = await resolve(iri)
-    const rendered = await renderer.render(resource, ctx, hint)
-    writeHtml(region, rendered.html)
+    const { view, rendered } = await resolve(iri)
+      .then((resource) => draw(resource, ctx, hint))
+      .catch((error: unknown) => {
+        region.removeAttribute(VIEW_ATTR)
+        region.removeAttribute(IRI_ATTR)
+        throw error
+      })
+    paint(region, view, iri, rendered.html)
     live.set(id, inst)
     await mountChildren(inst)
     inst.off = linkEvents(region, ctx.emit)

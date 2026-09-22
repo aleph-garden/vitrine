@@ -79,6 +79,16 @@ renders inside these pages, a pod's chrome and your application without
 carrying three stylesheets. Scope your rules to the region so that a view's
 `h2` does not inherit whatever your application does to headings.
 
+The runtime marks every region it holds with `data-aleph-view`, the id of
+the view that drew it. Scoping on that id keeps one view's rules off
+another, a transcluded child included:
+
+```css
+@scope ([data-aleph-view="https://example.org/views#PersonCard"]) to ([data-aleph-view]) {
+  .portrait { border-radius: 50%; }
+}
+```
+
 ## What this costs you
 
 Rendering happens in the browser: a crawler sees the region empty, since

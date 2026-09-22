@@ -1,5 +1,12 @@
 import { describe, expect, test } from 'bun:test'
-import { createRuntime, instanceContext, linkEvents, writeHtml } from '../src/dom.ts'
+import {
+  createRuntime,
+  IRI_ATTR,
+  instanceContext,
+  linkEvents,
+  VIEW_ATTR,
+  writeHtml
+} from '../src/dom.ts'
 import { AS, createRenderer, type Event, type Resource, type View } from '../src/index.ts'
 
 const resource = (iri: string, body = ''): Resource => ({
@@ -278,6 +285,38 @@ describe('createRuntime', () => {
     await runtime.mount(el, 'a')
     expect(el.innerHTML).toContain('<b>ok</b>')
     expect(el.querySelector('script')).toBeNull()
+  })
+
+  test('mount marks the region with the view it chose and the resource', async () => {
+    const { view } = counting()
+    const { resolve } = store({ a: '' })
+    const runtime = createRuntime(createRenderer({ parsers: [], views: [view] }), resolve)
+    const el = region()
+    await runtime.mount(el, 'a')
+    expect(el.getAttribute(VIEW_ATTR)).toBe('urn:v')
+    expect(el.getAttribute(IRI_ATTR)).toBe('a')
+  })
+
+  test('a re-render under another view hint moves the view mark', async () => {
+    const { view } = counting()
+    const other: View = { id: 'urn:other', render: async () => ({ html: '<p>other</p>' }) }
+    const { resolve } = store({ a: '' })
+    const runtime = createRuntime(createRenderer({ parsers: [], views: [view, other] }), resolve)
+    const el = region()
+    await runtime.mount(el, 'a')
+    await runtime.dispatch({ type: AS.View, object: 'a', view: 'urn:other' })
+    expect(el.getAttribute(VIEW_ATTR)).toBe('urn:other')
+  })
+
+  test('a failed mount leaves no mark from the instance it replaced', async () => {
+    const { view } = counting()
+    const { resolve } = store({ a: '' })
+    const runtime = createRuntime(createRenderer({ parsers: [], views: [view] }), resolve)
+    const el = region()
+    await runtime.mount(el, 'a')
+    await expect(runtime.mount(el, 'missing')).rejects.toMatchObject({ status: 404 })
+    expect(el.hasAttribute(VIEW_ATTR)).toBe(false)
+    expect(el.hasAttribute(IRI_ATTR)).toBe(false)
   })
 
   test('mount rejects with the resolve error so the host can act on it', async () => {

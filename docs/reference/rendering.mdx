@@ -38,19 +38,35 @@ sequenceDiagram
   Runtime->>Runtime: dispose the instance that held region
   Runtime->>Host: resolve(iri)
   Host-->>Runtime: Resource
-  Runtime->>Renderer: render(resource, ctx, hint)
-  Renderer->>Renderer: parse, select
-  Renderer->>View: render(resource, ctx, hint)
+  Runtime->>Renderer: parse(resource), select(resource, hint)
+  Renderer-->>Runtime: View
+  Runtime->>View: render(resource, ctx, hint)
   View->>Runtime: ctx.resolve(other)   (recorded as a dependency)
-  View-->>Renderer: Rendered
-  Renderer-->>Runtime: Rendered
-  Runtime->>Runtime: writeHtml(region, html)
+  View-->>Runtime: Rendered
+  Runtime->>Runtime: writeHtml(region, html), mark region
   Runtime->>View: hydrate(region, ctx)
   View-->>Runtime: Handle
   Runtime-->>Host: Instance
 ```
 
 `mount` rejects when `resolve` rejects, so the host can act on a `401`.
+
+Every region the runtime holds carries two attributes: `data-aleph-view` with
+the id of the view that drew it, and `data-aleph-iri` with the resource. A
+re-render under another view moves the first, and a mount that rejects
+removes both. The browser's element inspector then shows which view drew
+what, transcluded children included, and a stylesheet can scope a view's
+rules to it:
+
+```css
+@scope ([data-aleph-view="https://aleph.garden/views/container"]) to ([data-aleph-view]) {
+  .child { padding: 0.3em 0; }
+}
+```
+
+The lower bound stops the rules at the next region down, so a view's `.child`
+does not style a transcluded child's `.child`. Both names are exported as
+`VIEW_ATTR` and `IRI_ATTR`.
 
 Mount and every patch go through `writeHtml`, the one place view HTML
 enters the document. It sanitizes against a fixed allowlist and, where the
