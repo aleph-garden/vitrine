@@ -40,6 +40,13 @@ it the resource, a context to reach other resources and the event bus, and an
 optional hint; it answers with HTML and, when it needs behaviour after
 placement, a hydrate step."""@en .
 
+vitrine:Host a rdfs:Class ;
+    rdfs:label   "Host"@en ;
+    rdfs:comment """What configures a rendering host: the rule table it
+selects views with, and where it reaches an identity provider and a query
+endpoint. A page carries one as JSON-LD, and a reader can keep their own as a
+resource in a store they control."""@en .
+
 vitrine:Select a rdfs:Class ;
     rdfs:subClassOf as:Activity ;
     rdfs:label   "Select"@en ;
@@ -67,3 +74,9 @@ vitrine:Fallback a vitrine:View ;
     rdfs:comment """What is shown when no other view applies: RDF as
 statements grouped by subject, text as it is, anything else as a
 download."""@en .
+
+vitrine:Landing a vitrine:View ;
+    rdfs:label   "Landing view"@en ;
+    rdfs:comment """What a host shows at its own address, where there is no
+resource to read. The rule that selects it matches the deployment's own IRI,
+so a preview deployment and a local run greet as well."""@en .
