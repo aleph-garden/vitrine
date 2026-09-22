@@ -125,3 +125,27 @@ package's Settings: GitHub Actions, repository `aleph-garden/vitrine`, workflow
 Version numbers live in `packages/<name>/package.json`. The cross-package
 `workspace:*` ranges are rewritten to the exact version at build time, so all
 six move together. Change all six, then tag.
+
+## Configuring the trusted publishers
+
+Done once per package, on npmjs.com, after the package exists. The fields are
+case-sensitive and the workflow file has to exist under that exact name.
+
+| Field | Value |
+| --- | --- |
+| Owner | `aleph-garden` |
+| Repository | `vitrine` |
+| Workflow filename | `publish.yml` |
+| Environment | `npm` |
+
+**Fill the environment field.** Left empty, any run of `publish.yml` in this
+repository can mint an OIDC token and publish. Filled, the token is minted only
+inside the `npm` environment, whose rules gate it.
+
+That environment exists on the repository already, created 2026-09-22 with two
+rules: a required reviewer, and a deployment policy restricting it to `v*`
+tags. So a release stops for an approval, and a run from anything other than a
+version tag cannot enter the environment at all.
+
+`.github/workflows/publish.yml` names `environment: npm` in its publish job,
+and `vars.NPM_TRUSTED_PUBLISHING` is set to `enabled`.
