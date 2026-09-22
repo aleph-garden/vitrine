@@ -1,10 +1,21 @@
 // @ts-check
+import { fileURLToPath } from 'node:url'
 import starlight from '@astrojs/starlight'
 import { defineConfig } from 'astro/config'
 import mermaid from 'astro-mermaid'
 
 export default defineConfig({
   site: 'https://aleph.garden',
+  // The documents live at the repository root and are addressed by the site
+  // rather than the other way round, so they name components through an
+  // alias instead of a path that counts levels out of the content tree.
+  vite: {
+    resolve: {
+      alias: {
+        '@components': fileURLToPath(new URL('./src/components', import.meta.url))
+      }
+    }
+  },
   integrations: [
     // Before Starlight, so the ```mermaid fences are claimed before
     // Expressive Code sees them.
