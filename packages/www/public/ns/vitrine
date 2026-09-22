@@ -1,0 +1,69 @@
+@prefix vitrine: <https://w3id.org/vitrine/ns#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix as:      <https://www.w3.org/ns/activitystreams#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+# The Vitrine rendering vocabulary: the views a rendering host can select
+# for a resource, and the one event type the rendering layer adds to
+# ActivityStreams.
+#
+# A view turns one resource into HTML. Which view applies is decided by a
+# rule table the host holds, so a view is named here and never bound to a
+# class of resource; that binding is the host's.
+#
+# The lens terms belong under this namespace. `lens` gets no namespace of its
+# own, and the merge is open: `lens:Renderer` and Vitrine's `View` state
+# different contracts for the same job, and nothing is merged here until that
+# is settled. See planning/decisions/vocabulary-namespaces.md and
+# planning/decisions/substrate.md section 10.
+#
+# Identity is an IRI, implementation is a URL. Terms are minted under
+# https://w3id.org/vitrine/ns# and never under the application's own
+# domain, so an implementation may move and an identity may not.
+
+<https://w3id.org/vitrine/ns#>
+    rdfs:label   "Vitrine rendering vocabulary"@en ;
+    rdfs:comment """Terms naming the views a rendering host can select for a
+resource, and the event a view emits when it marks one."""@en ;
+    dcterms:creator <https://toph.so/profile#me> ;
+    dcterms:license <http://creativecommons.org/licenses/by/4.0/> .
+
+#################################################################
+# Classes
+#################################################################
+
+vitrine:View a rdfs:Class ;
+    rdfs:label   "View"@en ;
+    rdfs:comment """Something that renders one resource to HTML. A host hands
+it the resource, a context to reach other resources and the event bus, and an
+optional hint; it answers with HTML and, when it needs behaviour after
+placement, a hydrate step."""@en .
+
+vitrine:Select a rdfs:Class ;
+    rdfs:subClassOf as:Activity ;
+    rdfs:label   "Select"@en ;
+    rdfs:comment """A view marked a resource, for the other views on the same
+page to react to. ActivityStreams has no activity for it. The object is the
+resource marked, the actor the view instance that marked it."""@en .
+
+#################################################################
+# Views
+#################################################################
+
+vitrine:Markdown a vitrine:View ;
+    rdfs:label   "Markdown view"@en ;
+    rdfs:comment """Obsidian-flavoured Markdown: frontmatter as properties,
+wikilinks resolved through the pod's type index, embeds, tags, tasks, callouts,
+math, diagrams, and SPARQL blocks run through the host."""@en .
+
+vitrine:Container a vitrine:View ;
+    rdfs:label   "Container view"@en ;
+    rdfs:comment """The members of an LDP container, as the server lists
+them."""@en .
+
+vitrine:Fallback a vitrine:View ;
+    rdfs:label   "Fallback view"@en ;
+    rdfs:comment """What is shown when no other view applies: RDF as
+statements grouped by subject, text as it is, anything else as a
+download."""@en .
