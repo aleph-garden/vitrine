@@ -65,7 +65,8 @@ export default defineConfig({
           items: [
             { label: 'Contracts', link: '/vitrine/docs/reference/contracts/' },
             { label: 'Selection', link: '/vitrine/docs/reference/selection/' },
-            { label: 'Rendering and re-render', link: '/vitrine/docs/reference/rendering/' }
+            { label: 'Rendering and re-render', link: '/vitrine/docs/reference/rendering/' },
+            { label: 'Representations', link: '/vitrine/docs/reference/representations/' }
           ]
         }
       ]

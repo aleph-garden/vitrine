@@ -1,0 +1,72 @@
+---
+title: Representations
+description: One resource read several ways, who chooses which, and how a representation wraps another.
+---
+
+A resource is a set of statements. Turtle is one way to read it, JSON-LD is
+another, a table of its statements is a third, and a card with a heading and a
+date is a fourth. Nothing about the resource changes between them.
+
+HTTP has carried that idea since content negotiation: one address, several
+representations, and the request says which it wants. So the plain statement
+that a thing can be read several ways is old, and Vitrine claims none of it.
+
+Three things sit on top of it here.
+
+## The choice is data, and it belongs to the reader
+
+Negotiation decides at the server, once, for whoever asks. A view is chosen
+where the resource is read, out of a table the host holds, and the table is a
+list of conditions rather than code. A reader who disagrees with a row changes
+the row.
+
+Two people can therefore open the same IRI, get the same bytes, and see
+different documents on purpose. `selection.mdx` has the order the table is
+tested in.
+
+## A representation can wrap another
+
+A view is handed a subject and answers HTML. The subject is usually a
+resource, and it can as easily be what another view produced. An inspector
+draws a view's output together with the rule that picked it. A selector draws
+an inspector and adds a control that changes the choice:
+
+```
+Card
+Inspector(Card)
+Selector(Inspector(Card))
+```
+
+Each layer is a representation of the layer below it, and each one is chosen
+the same way any view is chosen.
+
+## A view knows its own children and no further
+
+A view that meets an address inside its subject hands it back rather than
+deciding what it is. `Context.transclude` answers the HTML to put in place,
+and whether that HTML is the finished child or a placeholder the host fills in
+later is the host's business. The parent inlines the string and is done.
+
+So depth is never a view's concern. The runtime carries the chain of IRIs an
+instance came through, mounts a child per placeholder, and stops on two
+conditions: an IRI already in the chain, and the depth limit. A placeholder it
+declined to mount stays a placeholder and records which of the two stopped it.
+
+Two words, kept apart:
+
+- **Transclusion** is the act. A child is brought in and keeps its own
+  identity, its own resolve, and its own life.
+- **Deferral** is what the runtime does when it declines to mount one. It is
+  the cut-off, not the practice.
+
+## What it costs
+
+A parent cannot ask what its child became. That is the same property as the
+one above, seen from the other side: a view that needed to know would have to
+branch on the child's type, and then the child could no longer live somewhere
+the parent has never heard of.
+
+A table that belongs to the reader also means a support answer cannot assume
+what the reader saw. The rules a deployment ships are in its host document,
+which is the first thing to read when two people describe one resource
+differently.
