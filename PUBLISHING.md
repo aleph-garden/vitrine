@@ -80,6 +80,25 @@ mv ~/.npmrc.agenix ~/.npmrc
 
 The loops are fish syntax, matching the login shell here.
 
+### What the first publish did, 2026-09-22
+
+All six went up and both tags point at `0.1.0-dev`:
+
+```
+terms  vitrine  host-core  vitrine-turtle  vitrine-jsonld  vitrine-markdown
+  dev=0.1.0-dev  latest=0.1.0-dev
+```
+
+`publishConfig.tag: dev` did not keep `latest` off the prerelease, because a
+package with no versions yet gets its first one as `latest` whatever tag the
+publish names. The registry protects `latest` and answers `npm dist-tag rm`
+with HTTP 400, so it cannot be taken back.
+
+What follows from that, correcting the paragraph below: a bare
+`npm install @aleph-garden/vitrine` resolves to `0.1.0-dev` today rather than
+failing with `ETARGET`. It stops doing so once a version without a prerelease
+suffix is published, which moves `latest` to that version.
+
 ### Why the `dev` tag
 
 `0.1.0-dev` is a prerelease. npm 11 refuses to publish a prerelease under the
