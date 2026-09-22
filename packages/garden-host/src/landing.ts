@@ -25,7 +25,8 @@ const LAB: Repository[] = [
     name: 'vitrine',
     what: 'Turns an address into HTML. A rule table picks the view, the view returns the markup. It draws this page.',
     commits: 97,
-    last: '2026-09-21'
+    last: '2026-09-21',
+    href: 'https://github.com/aleph-garden/vitrine'
   },
   {
     name: 'marginalia',
@@ -109,7 +110,7 @@ function html(origin: string): string {
   <p class="next"><a href="/vitrine/docs/" target="_top">Read the Vitrine documentation</a> <a href="/vitrine/docs/run/install/" target="_top">Clone it and build it</a> <a href="https://github.com/aleph-garden/vocab" target="_top">The vocabularies</a></p>
 
   <h2>What is in the lab</h2>
-  <p class="caveat">Nine repositories. The counts and dates were measured on 2026-09-22 from each repository's own history. Three are public and linked; the other six are private today, so their numbers are mine to assert and yours to discount.</p>
+  <p class="caveat">Nine repositories. The counts and dates were measured on 2026-09-22 from each repository's own history. Four are public and linked; the other five are private today, so their numbers are mine to assert and yours to discount.</p>
   <table class="lab">
     <thead>
       <tr><th>Repository</th><th>What it is</th><th>Activity</th><th>Source</th></tr>

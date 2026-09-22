@@ -35,7 +35,8 @@ describe('landingView', () => {
   test('links a repository only where the source is public', async () => {
     const rendered = await landing.render(resource('https://pod.example/'), noop)
     expect(rendered.html).toContain('href="https://github.com/aleph-garden/vocab"')
-    expect(rendered.html).not.toContain('github.com/aleph-garden/vitrine')
+    expect(rendered.html).toContain('href="https://github.com/aleph-garden/vitrine"')
+    expect(rendered.html).not.toContain('github.com/aleph-garden/memex')
   })
 
   test("applies to the host's own IRI and nowhere else", () => {
