@@ -1,0 +1,70 @@
+---
+title: Transclusion
+description: How a view brings another resource into its own output without learning what that resource is.
+---
+
+A view names an IRI in its output and gets back content. It never learns what
+was behind the IRI: a note, a container listing, a photo, a page on another
+origin. The rule table picks the view for the child, and the calling view
+branches on nothing.
+
+```ts
+const html = await ctx.transclude('https://pod.example/notes/Setup.md')
+return { html: `<article>${body}${html}</article>` }
+```
+
+`transclude` takes the IRI and an optional hint, the same hint selection reads
+elsewhere, and answers a string to put into the output as it is.
+
+## What comes back
+
+The string is either the finished child or a placeholder for it, and the view
+is not told which. A browser host answers with a placeholder and fills it
+afterwards; a host that renders ahead of time can answer with the child
+inline. Either way the view inlines the string and is done.
+
+The placeholder a browser host answers with:
+
+```html
+<div data-aleph-transclude="https://pod.example/notes/Setup.md"></div>
+```
+
+After the parent's HTML is in the document and before the parent's `hydrate`
+runs, the runtime walks the region and mounts a child instance into every
+placeholder. A child is an instance like any other: its own region, its own
+handle, its own dependencies, its own events. An `as:Update` naming the child
+re-renders the child alone and the parent does not move.
+
+## When the parent re-renders
+
+The parent's new placeholders are matched against the children it already has,
+keyed by the IRI and the hint together. A key that is still there keeps its
+instance, and the runtime moves that child's region into the new placeholder
+without calling anything on the child. A key that has gone is disposed, and a
+key that is new is mounted.
+
+Without that matching, a parent repainting for its own reasons would throw away
+every child below it and refetch the lot.
+
+**A known limitation.** Two placeholders under one parent that carry the same
+IRI and the same hint share one key, so the reconciliation keeps one of them
+and leaks the other: it stays live, keeps answering events, and its region is
+no longer in the document. Each re-render adds one. Until
+[issue 1](https://github.com/aleph-garden/vitrine/issues/1) is fixed, a view
+that wants one resource in two places under itself needs two different hints.
+
+## Cycles and depth belong to the runtime
+
+Every instance carries the chain of IRIs it came through. A transclusion of an
+IRI already in that chain, or one past the depth limit, is answered with a
+marker and never mounted, and the marker records which of the two stopped it.
+A view carries no guard of its own, and a view written without either in mind
+cannot hang the page.
+
+## What a host owes
+
+A host that mounts children owes them the same two things it owes any
+instance: a `resolve` that reaches the child's origin, and a region to draw in.
+Nothing else. A host that wants no transclusion at all answers the call with an
+empty string, and every view keeps working with a gap where the child would
+have been.

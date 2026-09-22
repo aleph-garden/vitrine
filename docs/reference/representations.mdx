@@ -1,35 +1,49 @@
 ---
 title: Representations
-description: One resource read several ways, who chooses which, and how a representation wraps another.
+description: One resource read several ways, and how a view wraps another.
 ---
 
-A resource is a set of statements. Turtle is one way to read it, JSON-LD is
-another, a table of its statements is a third, and a card with a heading and a
-date is a fourth. Nothing about the resource changes between them.
+import LiveView from '@components/LiveView.astro'
 
-HTTP has carried that idea since content negotiation: one address, several
-representations, and the request says which it wants. So the plain statement
-that a thing can be read several ways is old, and Vitrine claims none of it.
+A resource is a set of bytes, a content type, and, where the bytes carry RDF, a
+set of statements. A view is one way to read that. The same note can arrive as
+a checklist, as its own text, as a table of statements, or as a card, and the
+resource is the same in every case.
 
-Three things sit on top of it here.
+Two views are registered here for `text/plain`, and both of their conditions
+hold for this note. The first one registered wins:
 
-## The choice is data, and it belongs to the reader
+<LiveView iri="https://example.org/notes/packing.txt" caption="the rules chose, and the checklist view was registered first" />
 
-Negotiation decides at the server, once, for whoever asks. A view is chosen
-where the resource is read, out of a table the host holds, and the table is a
-list of conditions rather than code. A reader who disagrees with a row changes
-the row.
+Naming a view in the hint asks for a different reading of the same bytes:
 
-Two people can therefore open the same IRI, get the same bytes, and see
-different documents on purpose. `selection.mdx` has the order the table is
-tested in.
+<LiveView
+  iri="https://example.org/notes/packing.txt"
+  view="https://example.org/views#PlainText"
+  caption="the same resource, with the plain text view named"
+/>
 
-## A representation can wrap another
+Nothing was fetched twice and nothing about the note changed. What differs is
+which function drew it.
 
-A view is handed a subject and answers HTML. The subject is usually a
+## Choosing one
+
+A hint names a view directly, as above, and on a browser host `?view=<iri>` on
+the address does the same. Without a hint the host document's rules are tested
+in order, and then each registered view's own `when`. `selection.mdx` has the
+full order.
+
+A rule is a condition over the content type, the `rdf:type`, the IRI, or
+whether the resource is a container. So a deployment says "every recipe looks
+like this" in one row, and a reader who wants another reading changes that row
+rather than the view.
+
+## A view over a view
+
+A view is handed a subject and answers HTML. That subject is usually a
 resource, and it can as easily be what another view produced. An inspector
-draws a view's output together with the rule that picked it. A selector draws
-an inspector and adds a control that changes the choice:
+takes a view's output and shows it together with the rule that picked it. A
+selector takes an inspector and adds a control that changes the choice:
 
 ```
 Card
@@ -37,36 +51,18 @@ Inspector(Card)
 Selector(Inspector(Card))
 ```
 
-Each layer is a representation of the layer below it, and each one is chosen
-the same way any view is chosen.
+Each layer reads the layer below it the way any view reads a resource, so a
+wrapper is registered, selected and replaced like anything else. None of them
+is a special kind of view.
 
-## A view knows its own children and no further
+## What a view assumes about its children
 
 A view that meets an address inside its subject hands it back rather than
-deciding what it is. `Context.transclude` answers the HTML to put in place,
-and whether that HTML is the finished child or a placeholder the host fills in
-later is the host's business. The parent inlines the string and is done.
+deciding what is there. `transclusion.mdx` has the call and what the runtime
+does with it; what matters here is the boundary it draws. A parent knows its
+direct children and nothing below them, so a child can be a kind the parent
+has never heard of, served from an origin the parent cannot reach.
 
-So depth is never a view's concern. The runtime carries the chain of IRIs an
-instance came through, mounts a child per placeholder, and stops on two
-conditions: an IRI already in the chain, and the depth limit. A placeholder it
-declined to mount stays a placeholder and records which of the two stopped it.
-
-Two words, kept apart:
-
-- **Transclusion** is the act. A child is brought in and keeps its own
-  identity, its own resolve, and its own life.
-- **Deferral** is what the runtime does when it declines to mount one. It is
-  the cut-off, not the practice.
-
-## What it costs
-
-A parent cannot ask what its child became. That is the same property as the
-one above, seen from the other side: a view that needed to know would have to
-branch on the child's type, and then the child could no longer live somewhere
-the parent has never heard of.
-
-A table that belongs to the reader also means a support answer cannot assume
-what the reader saw. The rules a deployment ships are in its host document,
-which is the first thing to read when two people describe one resource
-differently.
+The cost is the same property from the other side: a parent cannot ask what
+its child became. A view that needed to know would have to branch on the
+child's type, and a child that can be branched on can no longer be anything.

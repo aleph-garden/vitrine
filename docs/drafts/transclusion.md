@@ -1,4 +1,8 @@
-# Transcluding resources (draft, nothing of this is built yet)
+# Transcluding resources
+
+Superseded by `docs/reference/transclusion.mdx`, which describes what ships.
+This page is kept for the argument in "The case", which the reference does not
+repeat.
 
 A view names an IRI in its output and gets back rendered content. It never
 learns what was behind the IRI: a note, a spreadsheet, a photo, a container
