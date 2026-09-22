@@ -46,7 +46,7 @@ export const AS = {
 } as const
 
 export const ALEPH = {
-  Select: 'https://w3id.org/aleph/ns/view#Select'
+  Select: 'https://w3id.org/vitrine/ns#Select'
 } as const
 
 // ------------------------------------------------------------- context
@@ -273,7 +273,7 @@ function childName(parent: string, child: string): string {
 }
 
 export const containerView: View = {
-  id: 'https://w3id.org/aleph/ns/view#Container',
+  id: 'https://w3id.org/vitrine/ns#Container',
   when: [{ container: true }],
   async render(resource) {
     // Containment arrives in the envelope or in the body, the two places
@@ -319,7 +319,7 @@ function graphHtml(graph: Quad[]): string {
 }
 
 export const fallbackView: View = {
-  id: 'https://w3id.org/aleph/ns/view#Fallback',
+  id: 'https://w3id.org/vitrine/ns#Fallback',
   when: [],
   async render(resource) {
     if (resource.graph) return { html: graphHtml(resource.graph) }

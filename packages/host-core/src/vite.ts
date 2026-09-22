@@ -4,7 +4,7 @@
 import { readFileSync } from 'node:fs'
 import type { Plugin } from 'vite'
 
-const EMPTY_HOST = '{"@context":"https://w3id.org/aleph/ns/view","@type":"Host"}'
+const EMPTY_HOST = '{"@context":"https://w3id.org/vitrine/ns","@type":"Host"}'
 
 /** Embeds the deployment's Host document into index.html. ALEPH_HOST names
  *  the file, relative to the process cwd; without it the host gets an empty

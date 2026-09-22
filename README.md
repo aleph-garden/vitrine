@@ -151,7 +151,7 @@ An application that embeds a region needs neither host package: a renderer,
 a `Resolve`, and `runtime.mount` are the whole surface.
 
 View ids and the event types the library defines live under
-`https://w3id.org/aleph/ns/view#`.
+`https://w3id.org/vitrine/ns#`.
 
 ## Development
 

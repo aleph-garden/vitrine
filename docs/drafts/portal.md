@@ -41,7 +41,7 @@ build embeds into `index.html` today:
 
 ```jsonld
 {
-  "@context": "https://w3id.org/aleph/ns/view",
+  "@context": "https://w3id.org/vitrine/ns",
   "@type": "Host",
   "rules": [
     { "view": "…#Timeline", "when": [{ "type": "https://schema.org/Event" }] }

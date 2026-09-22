@@ -20,7 +20,7 @@ export type Config = {
   rules?: Rule[]
 }
 
-export const HOST_TYPE = 'https://w3id.org/aleph/ns/view#Host'
+export const HOST_TYPE = 'https://w3id.org/vitrine/ns#Host'
 
 /** The node a `<script type="application/ld+json">` carries, as far as the
  *  shell reads it. */

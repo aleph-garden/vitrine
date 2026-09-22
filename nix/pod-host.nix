@@ -21,7 +21,7 @@
   hostDocument =
     writeText "host.jsonld" (builtins.toJSON (host
       // {
-        "@context" = "https://w3id.org/aleph/ns/view";
+        "@context" = "https://w3id.org/vitrine/ns";
         "@type" = "Host";
       }));
 
