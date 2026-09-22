@@ -239,8 +239,8 @@ describe('installChrome', () => {
     installChrome(host, chromeFor(fakeSession().session, undefined, runtime, everywhere))
     icon().click()
     const form = host.querySelector<HTMLFormElement>('form.open')!
-    expect(submit(form, 'https://pod.toph.so/public/')).toBe(false)
-    expect(dispatched).toEqual([{ type: AS.View, object: 'https://pod.toph.so/public/' }])
+    expect(submit(form, 'https://other.example/public/')).toBe(false)
+    expect(dispatched).toEqual([{ type: AS.View, object: 'https://other.example/public/' }])
   })
 
   test('names the WebID in place of a login control when logged in', () => {
@@ -304,8 +304,8 @@ describe('installChrome', () => {
     expect(host.querySelector('.host')?.textContent).toBe('pod.example')
     expect(host.querySelector('.panel .iri')?.textContent).toBe('https://pod.example/notes/a.md')
     const form = host.querySelector<HTMLFormElement>('form.open')!
-    expect(submit(form, 'https://pod.toph.so/public/')).toBe(false)
-    expect(dispatched).toEqual([{ type: AS.View, object: 'https://pod.toph.so/public/' }])
+    expect(submit(form, 'https://other.example/public/')).toBe(false)
+    expect(dispatched).toEqual([{ type: AS.View, object: 'https://other.example/public/' }])
   })
 
   test('installed after installNavigation, the chrome shows the resource navigation mounts', async () => {

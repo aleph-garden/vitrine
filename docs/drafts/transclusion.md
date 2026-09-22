@@ -124,7 +124,7 @@ whether it is a placeholder or the finished child, so a server-side host can
 answer the same call with the child's HTML inline.
 
 ```html
-<div data-aleph-transclude="https://pod.toph.so/notes/Setup.md"></div>
+<div data-aleph-transclude="https://pod.example/notes/Setup.md"></div>
 ```
 
 After the parent's HTML is in the document and before the parent's

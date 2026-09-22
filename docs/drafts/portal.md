@@ -5,8 +5,8 @@ One script tag and one custom element put the rendering layer on any page:
 ```html
 <script type="module" src="https://aleph.garden/portal.js"></script>
 
-<aleph-portal url="https://pod.toph.so/life/wohnen-sailauf.jsonld">
-  <a href="https://pod.toph.so/life/wohnen-sailauf.jsonld">Sailauf, 2010–2013</a>
+<aleph-portal url="https://pod.example/life/wohnen-sailauf.jsonld">
+  <a href="https://pod.example/life/wohnen-sailauf.jsonld">Sailauf, 2010–2013</a>
 </aleph-portal>
 ```
 

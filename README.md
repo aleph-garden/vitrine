@@ -29,9 +29,9 @@ depend on. Clone and build.
 
 ## What it allows
 
-- **Open a resource at its own URL.** `https://pod.toph.so/notes/Matrix.md`
+- **Open a resource at its own URL.** `https://pod.example/notes/Matrix.md`
   renders the note, and so does
-  `https://aleph.garden/-/https://pod.toph.so/notes/Matrix.md` from the other
+  `https://aleph.garden/-/https://pod.example/notes/Matrix.md` from the other
   host. The address bar stays the resource, and the browser's history works.
 - **Read a note the way Obsidian shows it.** The Markdown view resolves
   wikilinks across the vault, renders embeds, math, diagrams and `sparql`

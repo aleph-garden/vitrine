@@ -17,15 +17,15 @@ describe('readConfig', () => {
     embed(
       JSON.stringify({
         '@context': 'https://w3id.org/vitrine/ns',
-        '@id': 'https://pod.toph.so/',
+        '@id': 'https://pod.example/',
         '@type': 'Host',
-        issuer: 'https://pod.toph.so/',
-        sparqlEndpoint: 'https://sparql.toph.so'
+        issuer: 'https://pod.example/',
+        sparqlEndpoint: 'https://sparql.example'
       })
     )
     expect(readConfig(document)).toEqual({
-      issuer: 'https://pod.toph.so/',
-      sparqlEndpoint: 'https://sparql.toph.so'
+      issuer: 'https://pod.example/',
+      sparqlEndpoint: 'https://sparql.example'
     })
   })
 

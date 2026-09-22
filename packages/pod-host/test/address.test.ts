@@ -6,10 +6,10 @@ import { podAddress } from '../src/address.ts'
 
 describe('podAddress.of', () => {
   test('takes the location itself as the IRI', () => {
-    expect(podAddress.of('https://pod.toph.so/notes/a.md#Setup')).toEqual({
-      iri: 'https://pod.toph.so/notes/a.md',
+    expect(podAddress.of('https://other.example/notes/a.md#Setup')).toEqual({
+      iri: 'https://other.example/notes/a.md',
       hint: { fragment: 'Setup' },
-      href: 'https://pod.toph.so/notes/a.md#Setup'
+      href: 'https://other.example/notes/a.md#Setup'
     })
   })
 

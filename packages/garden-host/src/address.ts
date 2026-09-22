@@ -1,7 +1,7 @@
 // aleph.garden opens any IRI, so a location has to carry one that is not its
 // own. It goes behind a reserved first segment:
 //
-//   https://aleph.garden/-/https://pod.toph.so/notes/a.md
+//   https://aleph.garden/-/https://pod.example/notes/a.md
 //
 // The segment, rather than the IRI's scheme, is what marks a viewer location.
 // The routing that picks between the host and a static file then tests one

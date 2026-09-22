@@ -6,9 +6,9 @@ import { gardenAddress, PREFIX } from '../src/address.ts'
 
 describe('gardenAddress.of', () => {
   test('takes the path behind the reserved segment as the IRI', () => {
-    const href = `https://aleph.garden${PREFIX}https://pod.toph.so/notes/a.md?view=urn:x`
+    const href = `https://aleph.garden${PREFIX}https://other.example/notes/a.md?view=urn:x`
     expect(gardenAddress.of(href)).toEqual({
-      iri: 'https://pod.toph.so/notes/a.md',
+      iri: 'https://other.example/notes/a.md',
       hint: { view: 'urn:x' },
       href
     })
@@ -37,10 +37,10 @@ describe('gardenAddress.of', () => {
 
 describe('gardenAddress.for', () => {
   test('puts an IRI from another origin behind the reserved segment', () => {
-    expect(gardenAddress.for('https://pod.toph.so/notes/b.md#Intro')).toEqual({
-      iri: 'https://pod.toph.so/notes/b.md',
+    expect(gardenAddress.for('https://other.example/notes/b.md#Intro')).toEqual({
+      iri: 'https://other.example/notes/b.md',
       hint: { fragment: 'Intro' },
-      href: `https://pod.example${PREFIX}https://pod.toph.so/notes/b.md#Intro`
+      href: `https://pod.example${PREFIX}https://other.example/notes/b.md#Intro`
     })
   })
 
@@ -53,18 +53,17 @@ describe('gardenAddress.for', () => {
   })
 
   test('a location already behind the segment resolves to the resource it names', () => {
-    const href = `https://pod.example${PREFIX}https://pod.toph.so/notes/b.md`
-    expect(gardenAddress.for(href).iri).toBe('https://pod.toph.so/notes/b.md')
+    const href = `https://pod.example${PREFIX}https://other.example/notes/b.md`
+    expect(gardenAddress.for(href).iri).toBe('https://other.example/notes/b.md')
   })
 
   test('the location it builds reads back as the same resource and hint', () => {
     for (const url of [
       'https://pod.example/notes/b.md#Intro',
       'https://pod.example/docs/view/',
-      'https://pod.toph.so/notes/b.md#Intro',
-      'https://pod.toph.so/notes/b.md?view=urn:x',
-      'https://pod.toph.so/public/',
-      'https://pod.toph.so',
+      'https://other.example/notes/b.md#Intro',
+      'https://other.example/notes/b.md?view=urn:x',
+      'https://other.example/public/',
       'https://other.example'
     ]) {
       const address = gardenAddress.for(url)
