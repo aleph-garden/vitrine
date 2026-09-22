@@ -1,10 +1,28 @@
 {
   "name": "@aleph-garden/vitrine-turtle",
-  "version": "0.0.0",
+  "version": "0.1.0-dev",
+  "description": "Turtle and TriG as quads for Vitrine",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aleph-garden/vitrine.git",
+    "directory": "packages/vitrine-turtle"
+  },
+  "homepage": "https://aleph.garden",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "tag": "dev"
+  },
+  "scripts": {
+    "build": "bun ../../scripts/build-package.ts vitrine-turtle",
+    "prepublishOnly": "echo 'Publish packages/vitrine-turtle/dist, see PUBLISHING.md' >&2 && exit 1"
   },
   "dependencies": {
     "@aleph-garden/vitrine": "workspace:*",

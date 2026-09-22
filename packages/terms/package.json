@@ -1,9 +1,27 @@
 {
   "name": "@aleph-garden/terms",
-  "version": "0.0.0",
+  "version": "0.1.0-dev",
+  "description": "The RDF vocabulary IRIs the Aleph Garden packages share",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aleph-garden/vitrine.git",
+    "directory": "packages/terms"
+  },
+  "homepage": "https://aleph.garden",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "tag": "dev"
+  },
+  "scripts": {
+    "build": "bun ../../scripts/build-package.ts terms",
+    "prepublishOnly": "echo 'Publish packages/terms/dist, see PUBLISHING.md' >&2 && exit 1"
   }
 }

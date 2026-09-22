@@ -1,7 +1,14 @@
 {
   "name": "@aleph-garden/vitrine",
-  "version": "0.0.0",
+  "version": "0.1.0-dev",
+  "description": "Renders an addressed resource as HTML: a rule table picks the view, the host does the fetching",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aleph-garden/vitrine.git",
+    "directory": "packages/vitrine"
+  },
+  "homepage": "https://aleph.garden",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
@@ -10,6 +17,17 @@
     "./ssr": "./src/ssr.ts",
     "./http": "./src/http.ts",
     "./rdfjs": "./src/rdfjs.ts"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "tag": "dev"
+  },
+  "scripts": {
+    "build": "bun ../../scripts/build-package.ts vitrine",
+    "prepublishOnly": "echo 'Publish packages/vitrine/dist, see PUBLISHING.md' >&2 && exit 1"
   },
   "dependencies": {
     "@aleph-garden/terms": "workspace:*",

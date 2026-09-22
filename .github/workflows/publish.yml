@@ -1,0 +1,70 @@
+# This workflow cannot publish anything until each of the six packages already
+# exists on the registry and has a trusted publisher configured for it. npm's
+# OIDC exchange authenticates against a package that is already there, so it
+# cannot perform a package's first publish. Do those by hand once, following
+# PUBLISHING.md, configure the trusted publishers, then set the repository
+# variable NPM_TRUSTED_PUBLISHING to `enabled` to turn the job on. Until then
+# the guard on the job keeps it from running.
+
+name: Publish to npm
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-aleph-garden
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: vars.NPM_TRUSTED_PUBLISHING == 'enabled'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # The OIDC token npm exchanges for a short-lived publish credential.
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+      # No frozen lockfile: the platform binding rolldown needs on the runner
+      # is an optional dependency bun resolves at install time.
+      - run: bun install
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      # The runner ships an npm older than the OIDC exchange. Publishing runs
+      # through npm rather than `bun publish` because bun does not implement
+      # the exchange (oven-sh/bun#22423).
+      - run: npm install -g npm@^11.5.1
+      - run: npm --version
+
+      - run: bun run check:ci
+      - run: bun run build:packages
+
+      - name: Check the tag against the built versions
+        run: |
+          expected="${GITHUB_REF_NAME#v}"
+          for pkg in terms vitrine host-core vitrine-turtle vitrine-jsonld vitrine-markdown; do
+            found=$(node -p "require('./packages/$pkg/dist/package.json').version")
+            [ "$found" = "$expected" ] || {
+              echo "$pkg is $found, tag says $expected" >&2
+              exit 1
+            }
+          done
+
+      # Dependency order, so no package is on the registry before the ones it
+      # needs. Each built manifest carries publishConfig.access=public and
+      # publishConfig.tag=dev, which keeps the prerelease off the `latest` tag.
+      - name: Publish
+        run: |
+          for pkg in terms vitrine host-core vitrine-turtle vitrine-jsonld vitrine-markdown; do
+            npm publish "packages/$pkg/dist" --provenance
+          done

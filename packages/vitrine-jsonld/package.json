@@ -1,10 +1,28 @@
 {
   "name": "@aleph-garden/vitrine-jsonld",
-  "version": "0.0.0",
+  "version": "0.1.0-dev",
+  "description": "JSON-LD as quads for Vitrine",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aleph-garden/vitrine.git",
+    "directory": "packages/vitrine-jsonld"
+  },
+  "homepage": "https://aleph.garden",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "tag": "dev"
+  },
+  "scripts": {
+    "build": "bun ../../scripts/build-package.ts vitrine-jsonld",
+    "prepublishOnly": "echo 'Publish packages/vitrine-jsonld/dist, see PUBLISHING.md' >&2 && exit 1"
   },
   "dependencies": {
     "@aleph-garden/vitrine": "workspace:*",

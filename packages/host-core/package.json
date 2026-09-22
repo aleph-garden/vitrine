@@ -1,17 +1,43 @@
 {
   "name": "@aleph-garden/host-core",
-  "version": "0.0.0",
+  "version": "0.1.0-dev",
+  "description": "A browser host over Vitrine: Solid session, navigation, chrome and the region a resource renders into",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aleph-garden/vitrine.git",
+    "directory": "packages/host-core"
+  },
+  "homepage": "https://aleph.garden",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
     "./style.css": "./src/style.css",
     "./vite": "./src/vite.ts"
   },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "tag": "dev"
+  },
+  "scripts": {
+    "build": "bun ../../scripts/build-package.ts host-core",
+    "prepublishOnly": "echo 'Publish packages/host-core/dist, see PUBLISHING.md' >&2 && exit 1"
+  },
   "dependencies": {
     "@aleph-garden/terms": "workspace:*",
     "@aleph-garden/vitrine": "workspace:*",
     "@inrupt/solid-client-authn-browser": "^5.0.0"
+  },
+  "peerDependencies": {
+    "vite": "^8.0.0"
+  },
+  "peerDependenciesMeta": {
+    "vite": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@aleph-garden/vitrine-turtle": "workspace:*",

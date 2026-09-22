@@ -12,6 +12,11 @@
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true
   },
-  "include": ["packages/*/src/**/*.ts", "packages/*/test/**/*.ts", "test-setup.ts"],
+  "include": [
+    "packages/*/src/**/*.ts",
+    "packages/*/test/**/*.ts",
+    "test-setup.ts",
+    "scripts/**/*.ts"
+  ],
   "exclude": ["packages/www"]
 }
