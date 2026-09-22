@@ -29,4 +29,8 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # The action ships its own Wrangler and ignores the one the package
+          # depends on. Before 4, Wrangler refuses a route with a path
+          # component for a Worker that carries static assets.
+          wranglerVersion: '4.136.2'
           command: deploy --config packages/docs/wrangler.toml
