@@ -18,5 +18,5 @@
     "test-setup.ts",
     "scripts/**/*.ts"
   ],
-  "exclude": ["packages/www"]
+  "exclude": ["packages/docs"]
 }

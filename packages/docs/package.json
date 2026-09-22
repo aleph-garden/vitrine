@@ -1,5 +1,5 @@
 {
-  "name": "@aleph-garden/www",
+  "name": "@aleph-garden/docs",
   "private": true,
   "type": "module",
   "scripts": {

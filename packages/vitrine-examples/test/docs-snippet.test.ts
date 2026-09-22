@@ -4,7 +4,7 @@ import { expect, test } from 'bun:test'
 // already, once when the view grew a portrait and once when the packages
 // moved to @aleph-garden/terms, so the quote is pinned to the source.
 const SOURCE = `${import.meta.dir}/../src/index.ts`
-const PAGE = `${import.meta.dir}/../../www/src/content/docs/vitrine/docs/index.mdx`
+const PAGE = `${import.meta.dir}/../../../docs/index.mdx`
 
 test('the overview quotes the view as it is written', async () => {
   const source = await Bun.file(SOURCE).text()

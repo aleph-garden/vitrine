@@ -145,7 +145,7 @@ resource are properties of the host package, not keys in that document.
 | `@aleph-garden/host-core` | session, credentialed origins, chrome, the region's failure states | Solid-OIDC |
 | `@aleph-garden/pod-host` | the host a pod hands out | its own origin, the vault's snippets |
 | `@aleph-garden/garden-host` | the host at aleph.garden | any IRI, no session |
-| `packages/www` | aleph.garden: the docs site the garden host is deployed with | |
+| `@aleph-garden/docs` | the reference documentation, deployed as its own Worker | Starlight, and the example views it runs |
 
 An application that embeds a region needs neither host package: a renderer,
 a `Resolve`, and `runtime.mount` are the whole surface.
@@ -162,7 +162,7 @@ bun install
 bun test
 bun run check                      # biome, typecheck, tests
 bun run --cwd packages/pod-host dev  # vite dev; ALEPH_HOST names a host document
-bun run build:site                   # the garden host and the docs into one dist
+bun run build:docs                   # the reference documentation
 nix build .#pod-host                 # the bundle a pod serves
 ```
 

@@ -1,5 +1,5 @@
-import { docsSchema } from '@astrojs/starlight/schema'
 import { defineCollection } from 'astro:content'
+import { docsSchema } from '@astrojs/starlight/schema'
 import { glob } from 'astro/loaders'
 
 // The documents live at the repository root, so they are found next to the
