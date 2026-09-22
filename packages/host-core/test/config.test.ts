@@ -16,7 +16,7 @@ describe('readConfig', () => {
   test('reads the keys of the Host node', () => {
     embed(
       JSON.stringify({
-        '@context': 'https://aleph.garden/ns/vitrine-context.jsonld',
+        '@context': 'https://w3id.org/vitrine/context',
         '@id': 'https://pod.example/',
         '@type': 'Host',
         issuer: 'https://pod.example/',

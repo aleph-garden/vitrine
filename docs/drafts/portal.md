@@ -41,7 +41,7 @@ build embeds into `index.html` today:
 
 ```jsonld
 {
-  "@context": "https://aleph.garden/ns/vitrine-context.jsonld",
+  "@context": "https://w3id.org/vitrine/context",
   "@type": "Host",
   "rules": [
     { "view": "…#Timeline", "when": [{ "type": "https://schema.org/Event" }] }

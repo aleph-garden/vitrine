@@ -21,7 +21,7 @@
 #
 # The properties below are the keys a deployment's Host document carries. A
 # host reads them as plain JSON and never expands the document, so the JSON-LD
-# context published at https://aleph.garden/ns/vitrine-context.jsonld is what
+# context published at https://w3id.org/vitrine/context is what
 # makes them these IRIs for every other reader. That context is a serving
 # location for one syntax; the terms it maps stay under w3id.
 #
