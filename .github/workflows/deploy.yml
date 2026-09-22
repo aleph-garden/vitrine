@@ -1,4 +1,4 @@
-name: Deploy aleph.garden
+name: Deploy the documentation
 
 on:
   push:
@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: deploy-aleph-garden
+  group: deploy-vitrine-docs
   cancel-in-progress: false
 
 jobs:
@@ -22,11 +22,11 @@ jobs:
       # is an optional dependency bun resolves at install time.
       - run: bun install
       - run: bun run check:ci
-      - run: bun run --cwd packages/www check
-      - run: bun run build:site
-      - name: Deploy to Cloudflare Pages
+      - run: bun run --cwd packages/docs check
+      - run: bun run build:docs
+      - name: Deploy the documentation Worker
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy packages/www/dist --project-name=aleph-garden --branch=main
+          command: deploy --config packages/docs/wrangler.toml
