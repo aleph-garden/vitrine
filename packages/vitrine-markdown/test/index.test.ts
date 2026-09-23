@@ -1,5 +1,12 @@
 import { describe, expect, test } from 'bun:test'
-import type { Context, Event, Quad, Resource, Show } from '@aleph-garden/vitrine'
+import {
+  type Context,
+  type Event,
+  type Quad,
+  type Resource,
+  type Show,
+  stateIn
+} from '@aleph-garden/vitrine'
 import { invalidateWikilinkIndex, markdownView, NOTE_CLASS, wikilinkIndex } from '../src/index.ts'
 
 const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'
@@ -88,7 +95,8 @@ const ctxFor = (entries: Record<string, Resource>) => {
       transcluded.push({ iri: iriValue, show })
       return `<div data-test-transclude="${iriValue}"></div>`
     },
-    inner: () => Promise.reject(new Error('no inner view'))
+    inner: () => Promise.reject(new Error('no inner view')),
+    state: stateIn(new Map())
   }
   return { ctx, calls, events, transcluded }
 }

@@ -37,16 +37,23 @@ export type FieldOf = (
 
 const CORNERS: Corner[] = ['top-start', 'top-end', 'bottom-start', 'bottom-end']
 
+/** The state key under which a frame keeps the view it draws inside. The
+ *  frame reads it and `viewSwitch` sets it; both run with the frame's own
+ *  context, so the key is the frame's and the view inside never sees it. */
+const INSIDE = 'view'
+
 let frames = 0
 
 /** A wrapper view with id `id` that fills `corners`. A corner not named, or
  *  whose field answers undefined, stays empty. It carries no `when`: a rule
- *  or a show picks it. */
+ *  or a show picks it. What it draws inside is the rules' choice until a
+ *  field sets its state otherwise; the fields receive the frame's own
+ *  context for that. */
 export function frameView(id: string, corners: Partial<Record<Corner, FieldOf>>): View {
   return {
     id,
     async render(resource, ctx, show) {
-      const inner = await ctx.inner()
+      const inner = await ctx.inner({ view: ctx.state(INSIDE).get() })
       const filled: [Corner, Field][] = []
       for (const corner of CORNERS) {
         const field = await corners[corner]?.(resource, inner.view, ctx, show)
@@ -117,20 +124,37 @@ function shortId(id: string): string {
 export const viewName: FieldOf = (_resource, view) => escapeHtml(shortId(view.id))
 
 /** A menu naming the view that drew the body and offering `choices`, each a
- *  view id and a label. Picking one emits `as:View` on the resource with the
- *  choice as the inner view, so the runtime draws the frame again around the
- *  view picked. */
+ *  view id and a label. Picking one sets the frame's state, so the frame is
+ *  drawn again around the view picked and keeps it through later re-renders.
+ *
+ *  The entries carry `as:View` events, since that is what a pick means, but
+ *  none of them is emitted: the menu is handed a context whose `emit` takes
+ *  them in, so the choice stays with this frame and no other instance of the
+ *  resource, nor the view inside, hears about it. */
 export function viewSwitch(choices: [view: string, label: string][]): FieldOf {
-  return (resource, view) => {
+  return (resource, view, ctx) => {
+    const inside = ctx.state(INSIDE)
     const current = choices.find(([id]) => id === view.id)?.[1] ?? shortId(view.id)
-    return menu(
+    const picker = menu(
       current,
       choices.map(([id, label]) => ({
         label,
-        event: { type: AS.View, object: resource.iri, inner: { view: id } },
+        event: { type: AS.View, object: resource.iri, view: id },
         checked: id === view.id
       })),
       'View'
     )
+    return {
+      html: picker.html,
+      hydrate: (corner, hydrating) =>
+        picker.hydrate?.(corner, {
+          ...hydrating,
+          emit(event) {
+            const picked = event.type === AS.View && event.object === resource.iri
+            if (picked && typeof event.view === 'string') inside.set(event.view)
+            else hydrating.emit(event)
+          }
+        })
+    }
   }
 }

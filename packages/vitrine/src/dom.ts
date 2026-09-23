@@ -10,7 +10,8 @@ import {
   type Handle,
   type Renderer,
   type Resource,
-  type Show
+  type Show,
+  stateIn
 } from './index.ts'
 import {
   ERROR_ATTR,
@@ -189,12 +190,7 @@ export function createRuntime(
           await rerender(inst, inst.show)
       } else if (event.type === AS.View && event.object === inst.iri) {
         const show = showFrom(event, inst.show)
-        const inner = (s: Show | undefined) => transclusionKey(inst.iri, s?.inner)
-        if (
-          show.fragment !== inst.show?.fragment ||
-          show.view !== inst.show?.view ||
-          inner(show) !== inner(inst.show)
-        )
+        if (show.fragment !== inst.show?.fragment || show.view !== inst.show?.view)
           await rerender(inst, show)
       }
     }
@@ -217,10 +213,10 @@ export function createRuntime(
 
   const keyOf = (inst: Live) => transclusionKey(inst.iri, inst.show)
 
-  /** Parse and draw, keeping the outermost view's id for the region's mark. */
+  /** Render, keeping the outermost view's id for the region's mark. */
   const draw = async (resource: Resource, ctx: Context, show: Show | undefined) => {
-    const { view, rendered } = await renderer.draw(await renderer.parse(resource), ctx, show)
-    return { view: view.id, rendered }
+    const rendered = await renderer.render(resource, ctx, show)
+    return { view: rendered.view.id, rendered }
   }
 
   const paint = (region: Element, view: string, iri: string, html: string) => {
@@ -272,7 +268,15 @@ export function createRuntime(
       async (childIri, childShow) => {
         const how = mounting(chain, childIri, limit)
         return placeholderHtml(childIri, childShow, how === 'auto' ? undefined : how)
-      }
+      },
+      // A set re-renders the instance once the handler that set it returns.
+      // The values live in this closure, so they outlast every re-render and
+      // go with the instance.
+      stateIn(new Map(), () =>
+        queueMicrotask(() => {
+          if (live.has(id)) void rerender(inst, inst.show)
+        })
+      )
     )
     const inst = {
       id,
@@ -323,31 +327,23 @@ export function createRuntime(
   }
 }
 
-/** The show an as:View asks for. `view` and `inner` replace the previous ones
- *  when the event carries them, so a switch of the inner view keeps whatever
- *  wrapper drew the instance. */
+/** The show an as:View asks for. */
 function showFrom(event: Event, previous: Show | undefined): Show {
   const target = typeof event.target === 'string' ? event.target : undefined
   const hash = target?.split('#')[1]
   const view = typeof event.view === 'string' ? event.view : previous?.view
-  const inner = isShow(event.inner) ? event.inner : previous?.inner
-  const show: Show = {
-    view,
-    fragment: hash === undefined ? previous?.fragment : decodeURIComponent(hash)
-  }
-  if (inner !== undefined) show.inner = inner
-  return show
+  return { view, fragment: hash === undefined ? previous?.fragment : decodeURIComponent(hash) }
 }
 
-const isShow = (value: unknown): value is Show => typeof value === 'object' && value !== null
-
 /** The context a runtime hands one instance: resolve with tracking, emit
- *  into dispatch, events from it. Exposed so a view test can build one. */
+ *  into dispatch, events from it, and `state` over `state`, which defaults
+ *  to values that re-render nothing. Exposed so a view test can build one. */
 export function instanceContext(
   resolve: Resolve,
   emit: (event: Event) => void,
   events: AsyncIterable<Event>,
-  transclude: (iri: string, show?: Show) => Promise<string>
+  transclude: (iri: string, show?: Show) => Promise<string>,
+  state: Context['state'] = stateIn(new Map())
 ): { ctx: Context; dependencies: ReadonlySet<string> } {
   const dependencies = new Set<string>()
   const ctx: Context = {
@@ -360,7 +356,8 @@ export function instanceContext(
     transclude,
     // Only a renderer drawing a view can answer this; it replaces `inner` on
     // the context each view receives.
-    inner: () => Promise.reject(new Error('inner is answered only while a view is drawn'))
+    inner: () => Promise.reject(new Error('inner is answered only while a view is drawn')),
+    state
   }
   return { ctx, dependencies }
 }

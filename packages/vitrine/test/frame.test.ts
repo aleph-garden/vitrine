@@ -77,16 +77,21 @@ describe('ctx.inner', () => {
     expect(html).not.toContain('data-view="p"')
   })
 
-  test('reads show.inner when the wrapper names nothing', async () => {
-    const renderer = createRenderer({
-      parsers: [],
-      views: [around('w'), plain('p'), plain('q', [])]
-    })
-    const { html } = await renderer.render(note('https://pod.example/a.md'), context(), {
-      view: 'w',
-      inner: { view: 'q' }
-    })
-    expect(html).toContain('data-view="q"')
+  test('answers the view that drew, as render does for the outermost', async () => {
+    let seen: string | undefined
+    const reporting: View = {
+      id: 'w',
+      when: markdown,
+      async render(_resource, ctx) {
+        const inner = await ctx.inner()
+        seen = inner.view.id
+        return wrap(inner, (body) => body)
+      }
+    }
+    const renderer = createRenderer({ parsers: [], views: [reporting, plain('p')] })
+    const drawn = await renderer.render(note('https://pod.example/a.md'), context())
+    expect(drawn.view.id).toBe('w')
+    expect(seen).toBe('p')
   })
 
   test('nests wrappers, each drawing the one below it', async () => {
@@ -131,6 +136,96 @@ describe('ctx.inner', () => {
     expect(html).toContain('data-words="3"')
     expect(html).toContain('data-other="hello"')
     expect(html).toContain('data-view="p"')
+  })
+})
+
+describe('ctx.state', () => {
+  /** A view counting clicks on its button in state, drawn as the count. */
+  const counter = (id: string, when = markdown): View => ({
+    id,
+    when,
+    async render(_resource, ctx) {
+      const count = ctx.state('count', 0)
+      return {
+        html: `<button data-count="${id}">${count.get()}</button>`,
+        hydrate(root) {
+          const button = root.querySelector<HTMLButtonElement>(`[data-count="${id}"]`)
+          const click = () => count.set(count.get() + 1)
+          button?.addEventListener('click', click)
+          return { dispose: () => button?.removeEventListener('click', click) }
+        }
+      }
+    }
+  })
+
+  const settle = () => new Promise((r) => setTimeout(r, 0))
+
+  test('re-renders the instance on set and keeps the value through later re-renders', async () => {
+    const renderer = createRenderer({ parsers: [], views: [counter('c')] })
+    const runtime = createRuntime(renderer, async (iri) => note(iri))
+    const root = region()
+    await runtime.mount(root, 'https://pod.example/a.md')
+    root.querySelector<HTMLElement>('[data-count="c"]')?.click()
+    await settle()
+    expect(root.querySelector('[data-count="c"]')?.textContent).toBe('1')
+    await runtime.dispatch({ type: AS.Update, object: 'https://pod.example/a.md' })
+    expect(root.querySelector('[data-count="c"]')?.textContent).toBe('1')
+  })
+
+  test('starts over when the region is mounted again', async () => {
+    const renderer = createRenderer({ parsers: [], views: [counter('c')] })
+    const runtime = createRuntime(renderer, async (iri) => note(iri))
+    const root = region()
+    await runtime.mount(root, 'https://pod.example/a.md')
+    root.querySelector<HTMLElement>('[data-count="c"]')?.click()
+    await settle()
+    await runtime.mount(root, 'https://pod.example/a.md')
+    expect(root.querySelector('[data-count="c"]')?.textContent).toBe('0')
+  })
+
+  test('scopes keys to the view, so a wrapper and the view inside keep their own', async () => {
+    const counting: View = {
+      id: 'outer',
+      when: markdown,
+      async render(_resource, ctx) {
+        const count = ctx.state('count', 0)
+        return wrap(
+          await ctx.inner(),
+          (body) => `<button data-count="outer">${count.get()}</button>${body}`,
+          (root) => {
+            const button = root.querySelector<HTMLButtonElement>('[data-count="outer"]')
+            const click = () => count.set(count.get() + 10)
+            button?.addEventListener('click', click)
+            return { dispose: () => button?.removeEventListener('click', click) }
+          }
+        )
+      }
+    }
+    const renderer = createRenderer({ parsers: [], views: [counting, counter('inner')] })
+    const runtime = createRuntime(renderer, async (iri) => note(iri))
+    const root = region()
+    await runtime.mount(root, 'https://pod.example/a.md')
+    root.querySelector<HTMLElement>('[data-count="outer"]')?.click()
+    await settle()
+    root.querySelector<HTMLElement>('[data-count="inner"]')?.click()
+    await settle()
+    expect(root.querySelector('[data-count="outer"]')?.textContent).toBe('10')
+    expect(root.querySelector('[data-count="inner"]')?.textContent).toBe('1')
+  })
+
+  test('answers undefined for a key never set and no initial given', async () => {
+    let read: string | undefined = 'unset'
+    const reading: View = {
+      id: 'r',
+      when: markdown,
+      async render(_resource, ctx) {
+        read = ctx.state('view').get()
+        return { html: '' }
+      }
+    }
+    const renderer = createRenderer({ parsers: [], views: [reading] })
+    await renderer.render(note('https://pod.example/a.md'), context())
+    expect(read).toBeUndefined()
   })
 })
 
@@ -227,6 +322,41 @@ describe('frameView', () => {
     expect(root.querySelector('.aleph-frame')).not.toBeNull()
     expect(root.querySelector('[data-view]')?.getAttribute('data-view')).toBe('q')
     expect(root.querySelector('.aleph-menu-button')?.textContent).toContain('Quote')
+  })
+
+  test('keeps the choice through a re-render and tells no one else', async () => {
+    const renderer = createRenderer({
+      parsers: [],
+      rules: [{ view: 'frame', when: markdown }],
+      views: [
+        frameView('frame', {
+          'top-end': viewSwitch([
+            ['p', 'Paragraph'],
+            ['q', 'Quote']
+          ])
+        }),
+        plain('p'),
+        plain('q', [])
+      ]
+    })
+    const runtime = createRuntime(renderer, async (iri) => note(iri))
+    const heard: Event[] = []
+    runtime.listen((e) => heard.push(e))
+    const first = region()
+    const second = region()
+    await runtime.mount(first, 'https://pod.example/a.md')
+    await runtime.mount(second, 'https://pod.example/a.md')
+
+    const quote = [...first.querySelectorAll<HTMLElement>('.aleph-menu-entry')].find((e) =>
+      e.textContent?.includes('Quote')
+    )
+    quote?.click()
+    await new Promise((r) => setTimeout(r, 0))
+    await runtime.dispatch({ type: AS.Update, object: 'https://pod.example/a.md' })
+
+    expect(first.querySelector('[data-view]')?.getAttribute('data-view')).toBe('q')
+    expect(second.querySelector('[data-view]')?.getAttribute('data-view')).toBe('p')
+    expect(heard.filter((e) => e.type === AS.View)).toEqual([])
   })
 })
 

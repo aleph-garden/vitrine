@@ -4,7 +4,8 @@ import {
   containerView,
   fallbackView,
   type Quad,
-  type Resource
+  type Resource,
+  stateIn
 } from '../src/index.ts'
 
 const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'
@@ -24,7 +25,8 @@ const noop: Context = {
   emit: () => {},
   events: (async function* () {})(),
   transclude: async () => '',
-  inner: () => Promise.reject(new Error('no inner view'))
+  inner: () => Promise.reject(new Error('no inner view')),
+  state: stateIn(new Map())
 }
 
 describe('containerView', () => {

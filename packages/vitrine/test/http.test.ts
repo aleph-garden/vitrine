@@ -9,7 +9,8 @@ import {
   createRenderer,
   fallbackView,
   holds,
-  isContainer
+  isContainer,
+  stateIn
 } from '../src/index.ts'
 
 const RDF_TYPE = rdf.type
@@ -19,7 +20,8 @@ const noop: Context = {
   emit: () => {},
   events: (async function* () {})(),
   transclude: async () => '',
-  inner: () => Promise.reject(new Error('no inner view'))
+  inner: () => Promise.reject(new Error('no inner view')),
+  state: stateIn(new Map())
 }
 
 /** Enough of a Turtle reader for the one container fixture below: the point

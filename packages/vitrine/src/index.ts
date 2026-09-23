@@ -64,13 +64,46 @@ export type Context = {
   /** Draws this resource again with the view that would have drawn it were
    *  the calling view not there: selection skips every view already drawing
    *  it in this render, so a wrapper never picks itself or one around it.
-   *  `show` may name the inner view; left out, it is this render's
-   *  `show.inner`, and fragment and clip default to this render's own. Rejects when no view is left. */
-  inner(show?: Show): Promise<Inner>
+   *  `show` may name the inner view; fragment and clip default to this
+   *  render's own. Rejects when no view is left. */
+  inner(show?: Show): Promise<Drawn>
+  /** A value this view keeps for this instance under `key`, `initial` until
+   *  it is set. It survives every re-render of the instance, and `set`
+   *  re-renders it, so a view reads its state while rendering and sets it
+   *  from a handler, never while rendering. Keys are scoped to the calling
+   *  view: a wrapper and the view inside it never see each other's.
+   *
+   *  The state lives as long as the instance. Mounting the region again, or
+   *  navigating away, starts it over. Values must survive JSON, because a
+   *  host may keep them past the instance one day, in the address or in
+   *  storage. */
+  state<T>(key: string, initial: T): State<T>
+  state<T = string>(key: string): State<T | undefined>
 }
 
-/** What `inner` answers: the inner view's output and the view that drew it. */
-export type Inner = Rendered & { view: View }
+export type State<T> = {
+  get(): T
+  set(value: T): void
+}
+
+/** A `state` over `values`, for a host building its own context. `changed`
+ *  runs after every `set`; a host that re-renders passes that here. */
+export function stateIn(
+  values: Map<string, unknown>,
+  changed: () => void = () => {}
+): Context['state'] {
+  return ((key: string, initial?: unknown) => ({
+    get: () => (values.has(key) ? values.get(key) : initial),
+    set(value: unknown) {
+      values.set(key, value)
+      changed()
+    }
+  })) as Context['state']
+}
+
+/** A view's output together with the view that drew it: what `inner` and
+ *  `Renderer.render` answer. */
+export type Drawn = Rendered & { view: View }
 
 // ----------------------------------------------------------- selection
 
@@ -101,9 +134,6 @@ export type Show = {
   /** Render `fragment` alone, without the rest of the resource. A view that
    *  does not understand it ignores it. */
   clip?: boolean
-  /** What the view inside shows, when the view drawing this is a wrapper:
-   *  its `inner` reads this before the rules. */
-  inner?: Show
 }
 
 export type Patch = {
@@ -192,16 +222,13 @@ export type Renderer = {
   /** Fills `graph` through the first parser whose contentType matches. */
   parse(resource: Resource): Promise<Resource>
   /** Show first, then registry rules in order, then each view's `when`
-   *  in registration order; undefined when nothing holds. A view whose id is
-   *  in `past` is passed over wherever it would have been picked. */
-  select(resource: Resource, show?: Show, past?: readonly string[]): View | undefined
-  /** select and render on a resource that is already parsed, answering the
-   *  outermost view with its output. The context each view receives carries
-   *  `inner`, bound to this resource and to the views drawing it so far.
-   *  Rejects when no view applies. */
-  draw(resource: Resource, ctx: Context, show?: Show): Promise<{ view: View; rendered: Rendered }>
-  /** parse, then draw. */
-  render(resource: Resource, ctx: Context, show?: Show): Promise<Rendered>
+   *  in registration order; undefined when nothing holds. */
+  select(resource: Resource, show?: Show): View | undefined
+  /** parse, select, render, answering the output with the view that drew it,
+   *  the outermost one when that view wraps others. The context each view
+   *  receives carries `inner` for this resource and `state` scoped to that
+   *  view. Rejects when no view applies. */
+  render(resource: Resource, ctx: Context, show?: Show): Promise<Drawn>
 }
 
 export function createRenderer(registry: Registry): Renderer {
@@ -214,11 +241,9 @@ export function createRenderer(registry: Registry): Renderer {
     return { ...resource, graph: await parser.parse(resource) }
   }
 
-  const select = (
-    resource: Resource,
-    show?: Show,
-    past: readonly string[] = []
-  ): View | undefined => {
+  // `past` holds the ids of the views already drawing this resource in this
+  // render; a view in it is passed over wherever it would have been picked.
+  const pick = (resource: Resource, show: Show | undefined, past: readonly string[]) => {
     const open = (v: View | undefined) => (v && !past.includes(v.id) ? v : undefined)
     const shown = show?.view === undefined ? undefined : open(byId.get(show.view))
     if (shown) return shown
@@ -229,36 +254,44 @@ export function createRenderer(registry: Registry): Renderer {
     return registry.views.find((v) => open(v) && v.when !== undefined && all(v.when, resource))
   }
 
-  // One layer of a draw. `past` holds the ids of the views already drawing
-  // this resource, outermost first; the view picked here is handed a context
-  // whose `inner` draws the next layer with this view added to it. The chain
-  // lives in these closures rather than in the context type, so a view never
-  // sees it and a host building its own context never has to carry it.
+  // One layer of a render. The view picked here is handed a context whose
+  // `inner` draws the next layer with this view added to `past`, and whose
+  // `state` keys carry this view's id. The chain lives in these closures
+  // rather than in the context type, so a view never sees it and a host
+  // building its own context never has to carry it.
   const layer = async (
     resource: Resource,
     ctx: Context,
     show: Show | undefined,
     past: readonly string[]
-  ): Promise<{ view: View; rendered: Rendered }> => {
-    const view = select(resource, show, past)
+  ): Promise<Drawn> => {
+    const view = pick(resource, show, past)
     if (!view) throw new Error(`no view applies to ${resource.iri} (${resource.contentType})`)
-    const here: Context = {
-      ...ctx,
-      async inner(innerShow) {
-        const next = { fragment: show?.fragment, clip: show?.clip, ...show?.inner, ...innerShow }
-        const drawn = await layer(resource, ctx, next, [...past, view.id])
-        return { ...drawn.rendered, view: drawn.view }
-      }
-    }
-    return { view, rendered: await view.render(resource, here, show) }
+    const own = (base: Context): Context => ({
+      ...base,
+      inner: (innerShow) =>
+        layer(resource, ctx, { fragment: show?.fragment, clip: show?.clip, ...innerShow }, [
+          ...past,
+          view.id
+        ]),
+      state: ((key: string, initial?: unknown) =>
+        base.state(`${view.id} ${key}`, initial)) as Context['state']
+    })
+    const rendered = await view.render(resource, own(ctx), show)
+    const { hydrate } = rendered
+    // The context a host hydrates with is scoped the same way, so the state a
+    // view sets from a handler is the state it reads while rendering.
+    return hydrate
+      ? { ...rendered, view, hydrate: (root, base) => hydrate(root, own(base)) }
+      : { ...rendered, view }
   }
 
-  const draw = (resource: Resource, ctx: Context, show?: Show) => layer(resource, ctx, show, [])
+  const select = (resource: Resource, show?: Show) => pick(resource, show, [])
 
-  const render = async (resource: Resource, ctx: Context, show?: Show): Promise<Rendered> =>
-    (await draw(await parse(resource), ctx, show)).rendered
+  const render = async (resource: Resource, ctx: Context, show?: Show): Promise<Drawn> =>
+    layer(await parse(resource), ctx, show, [])
 
-  return { parse, select, draw, render }
+  return { parse, select, render }
 }
 
 /** The condition holds for the resource. `iri` equals the resource IRI or,

@@ -7,6 +7,7 @@ import {
   objects,
   type Quad,
   type Resource,
+  stateIn,
   typesOf,
   type View
 } from '../src/index.ts'
@@ -36,7 +37,8 @@ const noop: Context = {
   emit: () => {},
   events: (async function* () {})(),
   transclude: async () => '',
-  inner: () => Promise.reject(new Error('no inner view'))
+  inner: () => Promise.reject(new Error('no inner view')),
+  state: stateIn(new Map())
 }
 
 const view = (id: string, when?: View['when']): View => ({

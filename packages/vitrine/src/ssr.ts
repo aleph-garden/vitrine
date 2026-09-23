@@ -4,7 +4,7 @@
 // placeholders, which a browser expands later.
 
 import type { Resolve } from './dom.ts'
-import { type Context, escapeHtml, type Renderer, type Show } from './index.ts'
+import { type Context, escapeHtml, type Renderer, type Show, stateIn } from './index.ts'
 import {
   ERROR_ATTR,
   errorHtml,
@@ -37,6 +37,9 @@ export async function renderInline(
       emit: () => {},
       events: nothing,
       inner: () => Promise.reject(new Error('inner is answered only while a view is drawn')),
+      // Rendered once and never again, so state holds its initial values and
+      // a set has nothing to re-render.
+      state: stateIn(new Map()),
       async transclude(childIri, childShow) {
         const how = mounting(chain, childIri, depth)
         if (how !== 'auto') return placeholderHtml(childIri, childShow, how)
