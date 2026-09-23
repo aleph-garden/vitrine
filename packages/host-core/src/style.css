@@ -445,6 +445,8 @@ input:focus-visible {
   .aleph-menu {
     top: calc(anchor(bottom) + var(--ag-space-1));
     right: anchor(right);
+    /* Opens above the button when there is no room below. */
+    position-try-fallbacks: flip-block;
   }
 }
 .aleph-menu-heading {

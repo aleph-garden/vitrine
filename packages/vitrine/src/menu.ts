@@ -4,6 +4,7 @@
 
 import type { Field } from './frame.ts'
 import { type Event, escapeHtml } from './index.ts'
+import { placeMenu } from './placement.ts'
 
 /** One entry. `checked` marks it as the current one; `note` is shown muted
  *  after the label. */
@@ -45,9 +46,13 @@ export function menu(label: string, entries: Entry[], heading?: string): Field {
       const anchored = typeof CSS !== 'undefined' && CSS.supports?.('anchor-name', `--${id}`)
       const place = (event: globalThis.Event) => {
         if (anchored || (event as ToggleEvent).newState !== 'open') return
-        const box = button.getBoundingClientRect()
-        list.style.top = `${box.bottom + 4}px`
-        list.style.left = `${Math.max(8, box.right - list.offsetWidth)}px`
+        const { top, left } = placeMenu(
+          button.getBoundingClientRect(),
+          { width: list.offsetWidth, height: list.offsetHeight },
+          { width: window.innerWidth, height: window.innerHeight }
+        )
+        list.style.top = `${top}px`
+        list.style.left = `${left}px`
       }
       const pick = (event: MouseEvent) => {
         const entry = (event.target as Element | null)?.closest<HTMLElement>('[data-entry]')
