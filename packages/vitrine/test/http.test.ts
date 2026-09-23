@@ -9,9 +9,9 @@ import {
   createRenderer,
   fallbackView,
   holds,
-  isContainer,
-  stateIn
+  isContainer
 } from '../src/index.ts'
+import { stateIn } from '../src/state.ts'
 
 const RDF_TYPE = rdf.type
 

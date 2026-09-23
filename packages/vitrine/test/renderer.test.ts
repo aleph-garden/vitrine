@@ -7,10 +7,10 @@ import {
   objects,
   type Quad,
   type Resource,
-  stateIn,
   typesOf,
   type View
 } from '../src/index.ts'
+import { stateIn } from '../src/state.ts'
 
 const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'
 const LDP_CONTAINER = 'http://www.w3.org/ns/ldp#Container'

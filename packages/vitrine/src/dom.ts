@@ -10,9 +10,9 @@ import {
   type Handle,
   type Renderer,
   type Resource,
-  type Show,
-  stateIn
+  type Show
 } from './index.ts'
+import { stateIn } from './state.ts'
 import {
   ERROR_ATTR,
   errorHtml,

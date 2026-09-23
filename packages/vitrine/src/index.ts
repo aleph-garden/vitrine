@@ -86,21 +86,6 @@ export type State<T> = {
   set(value: T): void
 }
 
-/** A `state` over `values`, for a host building its own context. `changed`
- *  runs after every `set`; a host that re-renders passes that here. */
-export function stateIn(
-  values: Map<string, unknown>,
-  changed: () => void = () => {}
-): Context['state'] {
-  return ((key: string, initial?: unknown) => ({
-    get: () => (values.has(key) ? values.get(key) : initial),
-    set(value: unknown) {
-      values.set(key, value)
-      changed()
-    }
-  })) as Context['state']
-}
-
 /** A view's output together with the view that drew it: what `inner` and
  *  `Renderer.render` answer. */
 export type Drawn = Rendered & { view: View }

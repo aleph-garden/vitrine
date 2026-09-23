@@ -4,7 +4,8 @@
 // placeholders, which a browser expands later.
 
 import type { Resolve } from './dom.ts'
-import { type Context, escapeHtml, type Renderer, type Show, stateIn } from './index.ts'
+import { type Context, escapeHtml, type Renderer, type Show } from './index.ts'
+import { stateIn } from './state.ts'
 import {
   ERROR_ATTR,
   errorHtml,
