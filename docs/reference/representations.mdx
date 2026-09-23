@@ -40,9 +40,8 @@ rather than the view.
 
 ## A view over a view
 
-A view is handed a subject and answers HTML. That subject is usually a
-resource, and it can as easily be what another view produced. An inspector
-takes a view's output and shows it together with the rule that picked it. A
+A view can draw another view and add something around its output. An
+inspector shows a view's output together with the rule that picked it. A
 selector takes an inspector and adds a control that changes the choice:
 
 ```
@@ -51,9 +50,11 @@ Inspector(Card)
 Selector(Inspector(Card))
 ```
 
-Each layer reads the layer below it the way any view reads a resource, so a
-wrapper is registered, selected and replaced like anything else. None of them
-is a special kind of view.
+Each layer asks for the layer below it with `ctx.inner`, which selects past
+every view already drawing the resource, so a wrapper is registered, selected
+and replaced like anything else. [Wrapper views](/vitrine/docs/author/wrappers/)
+has the call, the frame that ships with the library, and a wrapper that reads
+the content.
 
 ## What a view assumes about its children
 

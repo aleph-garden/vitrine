@@ -1,0 +1,150 @@
+---
+title: Wrapper views
+description: A view that draws another view and puts something around it, from a frame with four corner fields to a wrapper that reads the content.
+sidebar:
+  order: 5
+---
+
+A wrapper view draws the view that would have drawn the resource without it,
+then adds its own markup around that output. It is registered, picked by a
+rule or named in a `show`, and replaced like any other view. The one thing it
+does that other views do not is call `ctx.inner`.
+
+```ts
+type Context = {
+  // …
+  inner(show?: Show): Promise<Inner>
+}
+
+type Inner = Rendered & { view: View }
+```
+
+`inner` draws the same resource again. Selection runs as it always does,
+except that it passes over every view already drawing this resource in the
+current render, so a wrapper never picks itself or a wrapper around it. The
+answer is the inner view's output together with the view that drew it.
+
+A wrapper can name the view it wants inside with `inner({ view })`. When it
+names nothing, the `inner` part of the `show` it was drawn under decides, and
+after that the rules. Fragment and clip carry through to the inner view
+unless the wrapper sets them.
+
+## Putting the output inside your own markup
+
+The inner view's `hydrate` has to receive its own root, and a patch it
+answers has to land inside the wrapper, where its content now lives. `wrap`
+does both:
+
+```ts
+import { type View, wrap } from '@aleph-garden/vitrine'
+
+export const outlinedView: View = {
+  id: 'https://example.org/views#Outlined',
+  async render(resource, ctx) {
+    return wrap(await ctx.inner(), (body) => `<section class="outlined">${body}</section>`)
+  }
+}
+```
+
+`body` is the inner HTML inside an element `wrap` marks as a slot. The inner
+view hydrates on that element, a patch it answers without naming a slot is
+written into it, and the wrapper's own markup around it stays untouched. A
+third argument to `wrap` is the wrapper's own `hydrate`, which receives the
+whole root.
+
+Wrappers nest. With two wrappers and a card registered for the same type, in
+that order, the result is `Selector(Inspector(Card))`: each layer calls
+`inner` and gets the next one down.
+
+## The frame
+
+`frameView` from `@aleph-garden/vitrine/frame` is a wrapper that draws a box
+around the inner output and fills up to four corners of it. Each corner is a
+function of the resource and of the view that drew the body, so what sits in
+a corner can differ from one resource to the next. A corner that is not named
+stays empty, and so does one whose function answers `undefined`.
+
+```ts
+import { contentType, frameView, name, viewSwitch } from '@aleph-garden/vitrine/frame'
+
+const FILE = 'https://example.org/views#File'
+
+export const fileFrame = frameView(FILE, {
+  'top-start': name,
+  'top-end': viewSwitch([
+    [CHECKLIST, 'Checklist'],
+    [PLAIN_TEXT, 'Plain text']
+  ]),
+  'bottom-start': contentType
+})
+```
+
+The fields that ship with it are `name`, the last segment of the resource's
+IRI with the full IRI as its title; `contentType`, without parameters;
+`viewName`, the last segment of the inner view's id; and `viewSwitch`, a menu
+over the views you list. A field is any function answering a string, a
+`Field` with its own `hydrate`, or nothing.
+
+`frameView` carries no `when`, so it frames only what it is asked to. A view
+that transcludes its children decides whether they are framed:
+
+```ts
+// each file in a frame, drawn by whatever the rules pick inside it
+await ctx.transclude(child, { view: FILE })
+
+// the same file with no frame, exactly as its view draws it
+await ctx.transclude(child)
+```
+
+A rule that names the frame frames everything it matches instead.
+
+`viewSwitch` emits `as:View` on the resource with the choice as the inner
+view. The runtime draws the instance again under the same outer view, so the
+frame stays and only its content changes.
+
+The frame's look comes from the host stylesheet in
+`@aleph-garden/host-core`, under the classes `aleph-frame` and
+`aleph-corner`.
+
+## Menus
+
+`menu` from `@aleph-garden/vitrine/menu` is the list `viewSwitch` opens, and
+it knows nothing about views. It takes a label, a list of entries, and an
+optional heading, and answers a field:
+
+```ts
+import { menu } from '@aleph-garden/vitrine/menu'
+
+const actions: FieldOf = (resource) =>
+  menu('Share', [
+    { label: 'Copy address', event: { type: COPY, object: resource.iri } },
+    { label: 'Open raw', event: { type: AS.View, object: resource.iri, inner: { view: RAW } } }
+  ])
+```
+
+Picking an entry emits that entry's event and closes the list. The list opens
+as a native popover, in the top layer, so a frame or a region that clips its
+content cannot cut it off.
+
+## A wrapper that reads the content
+
+A wrapper has the same context as any view, so it can resolve the resource or
+anything the resource points at before deciding what to draw around the inner
+view. This one counts the words of a note and puts the count above it:
+
+```ts
+export const wordCountView: View = {
+  id: 'https://example.org/views#WordCount',
+  async render(resource, ctx) {
+    const words = String(resource.body).split(/\s+/).filter(Boolean).length
+    return wrap(
+      await ctx.inner(),
+      (body) => `<p class="word-count">${words} words</p>${body}`
+    )
+  }
+}
+```
+
+Every IRI it resolves becomes a dependency of the instance, the same as for
+any view, so an `as:Update` on one of them draws the wrapper and its inner
+view again.
