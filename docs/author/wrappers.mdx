@@ -8,30 +8,34 @@ sidebar:
 A wrapper view draws the view that would have drawn the resource without it,
 then adds its own markup around that output. It is registered, picked by a
 rule or named in a `show`, and replaced like any other view. The one thing it
-does that other views do not is call `ctx.inner`.
+does that other views do not is call `ctx.render` without a resource.
 
 ```ts
 type Context = {
   // …
-  inner(show?: Show, resource?: Resource): Promise<Drawn>
+  render(resource?: Resource, show?: Show): Promise<Drawn>
 }
 
 type Drawn = Rendered & { view: View }
 ```
 
-`inner` draws the same resource again. Selection runs as it always does,
-except that it passes over every view already drawing this resource in the
-current render, so a wrapper never picks itself or a wrapper around it. The
-answer is the inner view's output together with the view that drew it.
+Without a resource, `render` draws the same resource again. Selection runs as
+it always does, except that it passes over every view already drawing this
+resource with this focus in the current render, so a wrapper never picks
+itself or a wrapper around it. The answer is the inner view's output together
+with the view that drew it.
 
-A wrapper can name the view it wants inside with `inner({ view })`. When it
-names nothing, the rules decide. Fragment and clip carry through to the inner
-view unless the wrapper sets them.
+A wrapper can name the view it wants inside with `render(undefined, { view })`.
+When it names nothing, the rules decide. Fragment and clip carry through to
+the inner view unless the wrapper sets them.
 
-Given a second argument, `inner` draws that resource instead of this one. A
+Given a resource, `render` draws that one instead of this one. The same view
+may draw it again, because a different resource or focus is no cycle. A
 wrapper that derives a resource, a graph turned from one shape into another,
 hands it on this way and leaves the drawing to whatever the rules pick for it.
-[Compose views](/vitrine/docs/author/compose/) shows it.
+Nested calls stop after eight levels, or the depth the host sets, and past it
+only a view without conditions is left. [Compose
+views](/vitrine/docs/author/compose/) shows both.
 
 What a wrapper draws inside is its own business. The view that embeds the
 resource names the wrapper and nothing below it, because a view speaks for
@@ -49,7 +53,7 @@ import { type View, wrap } from '@aleph-garden/vitrine'
 export const outlinedView: View = {
   id: 'https://example.org/views#Outlined',
   async render(resource, ctx) {
-    return wrap(await ctx.inner(), (body) => `<section class="outlined">${body}</section>`)
+    return wrap(await ctx.render(), (body) => `<section class="outlined">${body}</section>`)
   }
 }
 ```
@@ -62,7 +66,7 @@ whole root.
 
 Wrappers nest. With two wrappers and a card registered for the same type, in
 that order, the result is `Selector(Inspector(Card))`: each layer calls
-`inner` and gets the next one down.
+`render` and gets the next one down.
 
 ## The frame
 
@@ -152,7 +156,7 @@ export const wordCountView: View = {
   async render(resource, ctx) {
     const words = String(resource.body).split(/\s+/).filter(Boolean).length
     return wrap(
-      await ctx.inner(),
+      await ctx.render(),
       (body) => `<p class="word-count">${words} words</p>${body}`
     )
   }

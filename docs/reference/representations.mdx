@@ -62,7 +62,7 @@ Inspector(Card)
 Selector(Inspector(Card))
 ```
 
-Each layer asks for the layer below it with `ctx.inner`, which selects past
+Each layer asks for the layer below it with `ctx.render`, which selects past
 every view already drawing the resource, so a wrapper is registered, selected
 and replaced like anything else. What a wrapper draws inside is its own
 choice, kept in its own state; the view that embedded the resource named the

@@ -194,7 +194,7 @@ type Context = {
   emit(event: Event): void
   events: AsyncIterable<Event>
   transclude(iri: string, show?: Show): Promise<string>
-  inner(show?: Show, resource?: Resource): Promise<Rendered & { view: View }>
+  render(resource?: Resource, show?: Show): Promise<Rendered & { view: View }>
   state<T>(key: string, initial: T): State<T>
   state<T = string>(key: string): State<T | undefined>
 }
@@ -217,11 +217,15 @@ the body says. A view that needs another document as RDF reads it with
 Given a subject it reads that one instead.
 
 `transclude` is on [Transclusion](/vitrine/docs/reference/transclusion/).
-`inner` draws the same resource with the view that would have drawn it were
-the calling view not there, which is how a view wraps another; [Wrapper
-views](/vitrine/docs/author/wrappers/) has it. Given a `resource`, it draws that
-one instead, which is how a view hands on a graph it derived; [Compose
-views](/vitrine/docs/author/compose/) has it.
+`render` draws a resource the way vitrine draws any, and answers the HTML with
+`hydrate` and the view that drew it. Without a resource it draws the same one
+with the view that would have drawn it were the calling view not there, which
+is how a view wraps another; [Wrapper views](/vitrine/docs/author/wrappers/)
+has it. Given a `resource`, it draws that one, which is how a view hands on a
+graph it derived; [Compose views](/vitrine/docs/author/compose/) has it. A
+view is passed over only where it already draws the same resource with the
+same focus in this render, and nested calls stop after `RENDER_DEPTH`, eight
+unless the host sets `renderDepth`.
 
 `state` keeps a value for this view in this instance. It survives every
 re-render of the instance, `set` draws the instance again, and a remount

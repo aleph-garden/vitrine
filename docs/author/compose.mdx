@@ -19,8 +19,8 @@ flowchart LR
   S --> V[view]
   V --> H([HTML])
   V -. "transclude(child IRI)" .-> R
-  V -. "inner()" .-> S
-  V -. "inner(show, derived resource)" .-> S
+  V -. "render()" .-> S
+  V -. "render(derived resource)" .-> S
 ```
 
 The solid path is one rendering. The dashed edges are the three ways a view
@@ -29,8 +29,8 @@ calls back into it:
 | Call | What goes back in | Where it enters |
 |---|---|---|
 | `ctx.transclude(iri, show?)` | another IRI, or this one with a fragment | resolve: the child is fetched, parsed and chosen for on its own |
-| `ctx.inner(show?)` | this resource | the rules: the view below the calling one is chosen, passing over every view already drawing it |
-| `ctx.inner(show, resource)` | a resource the view derived | the rules: the derived resource is chosen for by its own content type and types |
+| `ctx.render(undefined, show?)` | this resource | the rules: the view below the calling one is chosen, passing over every view already drawing it |
+| `ctx.render(resource, show?)` | a resource the view derived | the rules: the derived resource is chosen for by its own content type and types |
 
 ## A view that draws nothing
 
@@ -83,14 +83,20 @@ export const vcardAsPerson: View = {
         { subject, predicate: { termType: 'NamedNode', value: schema.name }, object: { termType: 'Literal', value: name } }
       ] satisfies Quad[]
     }
-    return ctx.inner({}, person)
+    return ctx.render(person)
   }
 }
 ```
 
-`inner` passes over the mapping view below itself, so a mapping never maps its
-own output again. What comes back is drawn HTML with its `hydrate`, and the
-mapping view answers it as its own.
+The derived person keeps the IRI and the focus of the vCard it came from, so
+`render` passes over the mapping view for it: the same view is never asked
+twice for the same resource and focus.
+
+What comes back is HTML together with its `hydrate`, and the mapping view
+answers it as its own. A view may put it inside its own markup or add to it,
+which is always safe. It may also change the markup the view below drew, but
+that view's `hydrate` and its later patches look for their own elements,
+and may no longer find them.
 
 Mappings compose the way wrappers do. A mapping can hand its result to a
 wrapper, a wrapper can wrap a mapping, and none of them knows what is below it
@@ -107,5 +113,12 @@ same guards apply:
   subject embedding itself is.
 - Past a depth the host sets, children stay placeholders until a reader asks
   for them.
-- `inner` passes over every view already drawing the resource, and rejects
-  when none is left.
+- `render` passes over a view only where that view already draws the same
+  resource with the same focus in this render. That is a cycle. A different
+  resource may be drawn by the same view again, which is how a tree draws its
+  branches with itself.
+- Nested `render` calls stop after eight levels, or the `renderDepth` a host
+  sets in its runtime options. Past it only a view without conditions is left,
+  the registry's last resort, because a view that derives a new resource on
+  every step never meets a cycle.
+- `render` rejects when no view is left at all.
