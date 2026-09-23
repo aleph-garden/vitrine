@@ -44,7 +44,7 @@ classDiagram
   class View {
     id: string
     when?: Condition[]
-    render(resource, ctx, hint?) Promise~Rendered~
+    render(resource, ctx, show?) Promise~Rendered~
   }
   class Rendered {
     html: string
@@ -189,7 +189,7 @@ Events carry meaning, never DOM detail. A view emits `aleph:Select`, never
 type View = {
   id: string                  // an IRI
   when?: Condition[]          // see Selection
-  render(resource: Resource, ctx: Context, hint?: Hint): Promise<Rendered>
+  render(resource: Resource, ctx: Context, show?: Show): Promise<Rendered>
 }
 
 type Rendered = {
@@ -213,19 +213,22 @@ where a view attaches behavior after the host has placed the HTML. A view
 that wants partial updates marks elements in its own HTML with `data-slot`
 and patches by name.
 
-## Hint
+## Show
 
 ```ts
-type Hint = {
+type Show = {
   view?: string       // a View id
   fragment?: string   // the fragment of the requested IRI, without "#"
+  clip?: boolean      // show the fragment alone
 }
 ```
 
-The host sets the hint; a view never does. `view` names how to render,
-`fragment` names what within the resource to bring forward: a heading or
-block in a note, a subject in an RDF document. A hint naming a view that is
-not registered is ignored and the rules decide.
+What of a resource to show, and how. The host sets it for a region, and a
+view sets it for a child it transcludes. `view` names the view to draw with
+and wins over every rule; `fragment` names what within the resource to bring
+forward: a heading or block in a note, a subject in an RDF document; `clip`
+asks for that part alone. A `view` that is not registered is ignored and the
+rules decide.
 
 ## Parser
 

@@ -109,7 +109,7 @@ export async function exampleResolve(iri: string): Promise<Resource> {
 
 // ------------------------------------------------------------ plain text
 // The smallest view there is: no state, no hydration, no graph. Registered
-// after the checklist, so only a hint reaches it.
+// after the checklist, so only a show reaches it.
 
 export const PLAIN_TEXT_VIEW = 'https://example.org/views#PlainText'
 

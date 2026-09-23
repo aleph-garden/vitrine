@@ -37,15 +37,15 @@ export function installNavigation(runtime: Runtime, root: Element, host: Navigat
       return
     }
     history.pushState(null, '', address.href)
-    void mountInto(runtime, root, address.iri, address.hint, host)
+    void mountInto(runtime, root, address.iri, address.show, host)
   })
 
   window.addEventListener('popstate', () => {
-    const { iri, hint } = host.address.of(location.href)
+    const { iri, show } = host.address.of(location.href)
     if (current()?.iri === iri) {
       void runtime.dispatch({ type: AS.View, object: iri, target: location.href })
     } else {
-      void mountInto(runtime, root, iri, hint, host)
+      void mountInto(runtime, root, iri, show, host)
     }
   })
 }

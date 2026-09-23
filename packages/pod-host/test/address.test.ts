@@ -8,20 +8,20 @@ describe('podAddress.of', () => {
   test('takes the location itself as the IRI', () => {
     expect(podAddress.of('https://other.example/notes/a.md#Setup')).toEqual({
       iri: 'https://other.example/notes/a.md',
-      hint: { fragment: 'Setup' },
+      show: { fragment: 'Setup' },
       href: 'https://other.example/notes/a.md#Setup'
     })
   })
 
-  test('reads the view parameter as a hint', () => {
+  test('reads the view parameter as a show', () => {
     expect(podAddress.of('https://pod.example/a.md?view=urn:x')).toEqual({
       iri: 'https://pod.example/a.md',
-      hint: { view: 'urn:x' },
+      show: { view: 'urn:x' },
       href: 'https://pod.example/a.md?view=urn:x'
     })
   })
 
-  test('a location with neither query nor fragment carries no hint', () => {
+  test('a location with neither query nor fragment carries no show', () => {
     expect(podAddress.of('https://pod.example/')).toEqual({
       iri: 'https://pod.example/',
       href: 'https://pod.example/'
@@ -39,7 +39,7 @@ describe('podAddress.for', () => {
   test('an IRI on the host origin is its own location', () => {
     expect(podAddress.for('https://pod.example/notes/b.md#Intro')).toEqual({
       iri: 'https://pod.example/notes/b.md',
-      hint: { fragment: 'Intro' },
+      show: { fragment: 'Intro' },
       href: 'https://pod.example/notes/b.md#Intro'
     })
   })
@@ -48,7 +48,7 @@ describe('podAddress.for', () => {
     expect(podAddress.for('https://other.example/x')).toBeUndefined()
   })
 
-  test('the location it builds reads back as the same resource and hint', () => {
+  test('the location it builds reads back as the same resource and show', () => {
     for (const url of [
       'https://pod.example/notes/b.md#Intro',
       'https://pod.example/docs/view/',

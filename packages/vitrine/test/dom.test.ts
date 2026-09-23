@@ -251,10 +251,10 @@ describe('createRuntime', () => {
     const view: View = {
       id: 'urn:v',
       when: [{ contentType: 'text/markdown' }],
-      render: async (r, ctx, hint) => {
+      render: async (r, ctx, show) => {
         renders += 1
         if (r.body) await ctx.resolve(r.body as string) // body names a dependency
-        return { html: `<p data-slot="n">${renders}</p><i>${hint?.fragment ?? ''}</i>` }
+        return { html: `<p data-slot="n">${renders}</p><i>${show?.fragment ?? ''}</i>` }
       }
     }
     return { view, renders: () => renders }
@@ -324,7 +324,7 @@ describe('createRuntime', () => {
     expect(el.getAttribute(IRI_ATTR)).toBe('a')
   })
 
-  test('a re-render under another view hint moves the view mark', async () => {
+  test('a re-render showing another view moves the view mark', async () => {
     const { view } = counting()
     const other: View = { id: 'urn:other', render: async () => ({ html: '<p>other</p>' }) }
     const { resolve } = store({ a: '' })
@@ -386,7 +386,7 @@ describe('createRuntime', () => {
     expect(renders()).toBe(2)
   })
 
-  test('as:View on the same IRI with a new fragment re-renders with that hint', async () => {
+  test('as:View on the same IRI with a new fragment re-renders with that show', async () => {
     const { view, renders } = counting()
     const { resolve } = store({ a: '' })
     const runtime = createRuntime(createRenderer({ parsers: [], views: [view] }), resolve)

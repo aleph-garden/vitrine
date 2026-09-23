@@ -4,7 +4,7 @@
 // its session; an application that only embeds a region needs none of this.
 
 export type { Address, AddressScheme } from './address.ts'
-export { hintOf, locationAddress } from './address.ts'
+export { locationAddress, showOf } from './address.ts'
 export type { Host } from './boot.ts'
 export { boot } from './boot.ts'
 export type { Chrome, ResolveIssuer } from './chrome.ts'

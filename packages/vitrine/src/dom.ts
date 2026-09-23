@@ -8,9 +8,9 @@ import {
   type Context,
   type Event,
   type Handle,
-  type Hint,
   type Renderer,
-  type Resource
+  type Resource,
+  type Show
 } from './index.ts'
 import {
   ERROR_ATTR,
@@ -26,7 +26,7 @@ import {
 export type Instance = {
   id: string
   iri: string
-  hint: Hint | undefined
+  show: Show | undefined
   region: Element
   /** The IRIs this instance hangs under, outermost first, its own last. */
   readonly chain: readonly string[]
@@ -39,10 +39,10 @@ export type Runtime = {
   /** Resolves `iri`, renders it into `region`, hydrates. Disposes the
    *  instance that held the region before. Rejects when the resolve
    *  rejects, so the host can act on a 401. */
-  mount(region: Element, iri: string, hint?: Hint): Promise<Instance>
+  mount(region: Element, iri: string, show?: Show): Promise<Instance>
   /** Delivers the event to every instance. A handle with `update` answers
    *  with a patch or nothing; an instance without one is re-rendered when
-   *  the event names a dependency (as:Update) or changes its hint on the
+   *  the event names a dependency (as:Update) or changes its show on the
    *  same resource (as:View). Navigation to another resource is the
    *  host's: it calls `mount`. */
   dispatch(event: Event): Promise<void>
@@ -61,7 +61,7 @@ export const IRI_ATTR = 'data-aleph-iri'
 
 /** Inside a region, a click on an `<a href>` whose URL is `http:` or
  *  `https:` becomes an as:View event, whatever its origin, with the link's
- *  IRI as object and its fragment in the hint. The runtime installs this on
+ *  IRI as object and its fragment in the show. The runtime installs this on
  *  every region it mounts. A view marks a link the browser should follow
  *  with `target` or `download`, a click carrying a modifier key or a
  *  non-primary button belongs to the browser too, and so does a link with
@@ -185,21 +185,21 @@ export function createRuntime(
       }
       if (event.type === AS.Update && event.object !== undefined) {
         if (event.object === inst.iri || inst.deps.has(event.object))
-          await rerender(inst, inst.hint)
+          await rerender(inst, inst.show)
       } else if (event.type === AS.View && event.object === inst.iri) {
-        const hint = hintFrom(event, inst.hint)
-        if (hint.fragment !== inst.hint?.fragment || hint.view !== inst.hint?.view)
-          await rerender(inst, hint)
+        const show = showFrom(event, inst.show)
+        if (show.fragment !== inst.show?.fragment || show.view !== inst.show?.view)
+          await rerender(inst, show)
       }
     }
   }
 
-  const rerender = async (inst: Live, hint: Hint | undefined): Promise<void> => {
+  const rerender = async (inst: Live, show: Show | undefined): Promise<void> => {
     inst.handle?.dispose?.()
     inst.off()
     inst.deps.clear()
-    inst.hint = hint
-    const { view, rendered } = await draw(await resolve(inst.iri), inst.ctx, hint)
+    inst.show = show
+    const { view, rendered } = await draw(await resolve(inst.iri), inst.ctx, show)
     const held = new Map([...inst.children].map((child) => [keyOf(child), child]))
     inst.children.clear()
     paint(inst.region, view, inst.iri, rendered.html)
@@ -209,15 +209,15 @@ export function createRuntime(
     inst.handle = rendered.hydrate?.(inst.region, inst.ctx)
   }
 
-  const keyOf = (inst: Live) => transclusionKey(inst.iri, inst.hint)
+  const keyOf = (inst: Live) => transclusionKey(inst.iri, inst.show)
 
   /** `renderer.render`, with the view it selected kept for the region's
    *  mark. The two must select the same way. */
-  const draw = async (resource: Resource, ctx: Context, hint: Hint | undefined) => {
+  const draw = async (resource: Resource, ctx: Context, show: Show | undefined) => {
     const parsed = await renderer.parse(resource)
-    const view = renderer.select(parsed, hint)
+    const view = renderer.select(parsed, show)
     if (!view) throw new Error(`no view applies to ${resource.iri} (${resource.contentType})`)
-    return { view: view.id, rendered: await view.render(parsed, ctx, hint) }
+    return { view: view.id, rendered: await view.render(parsed, ctx, show) }
   }
 
   const paint = (region: Element, view: string, iri: string, html: string) => {
@@ -239,7 +239,7 @@ export function createRuntime(
     for (const element of parent.region.querySelectorAll(`[${TRANSCLUDE_ATTR}]`)) {
       const found = readPlaceholder(element)
       if (!found || found.deferred) continue
-      const key = transclusionKey(found.iri, found.hint)
+      const key = transclusionKey(found.iri, found.show)
       const kept = held?.get(key)
       if (kept) {
         held?.delete(key)
@@ -248,7 +248,7 @@ export function createRuntime(
         continue
       }
       try {
-        parent.children.add(await mount(element, found.iri, found.hint, parent))
+        parent.children.add(await mount(element, found.iri, found.show, parent))
       } catch (error) {
         element.setAttribute(ERROR_ATTR, '')
         writeHtml(element, errorHtml(found.iri, error))
@@ -256,7 +256,7 @@ export function createRuntime(
     }
   }
 
-  const mount = async (region: Element, iri: string, hint?: Hint, parent?: Live): Promise<Live> => {
+  const mount = async (region: Element, iri: string, show?: Show, parent?: Live): Promise<Live> => {
     for (const inst of [...live.values()]) if (inst.region === region) inst.dispose()
     const id = `instance-${++counter}`
     const queue = eventQueue()
@@ -266,15 +266,15 @@ export function createRuntime(
       (target) => resolve(target).then(renderer.parse),
       (e) => queueMicrotask(() => void dispatch(e)),
       queue.iterable,
-      async (childIri, childHint) => {
+      async (childIri, childShow) => {
         const how = mounting(chain, childIri, limit)
-        return placeholderHtml(childIri, childHint, how === 'auto' ? undefined : how)
+        return placeholderHtml(childIri, childShow, how === 'auto' ? undefined : how)
       }
     )
     const inst = {
       id,
       iri,
-      hint,
+      show,
       region,
       chain,
       dependencies,
@@ -295,7 +295,7 @@ export function createRuntime(
       }
     } satisfies Live
     const { view, rendered } = await resolve(iri)
-      .then((resource) => draw(resource, ctx, hint))
+      .then((resource) => draw(resource, ctx, show))
       .catch((error: unknown) => {
         region.removeAttribute(VIEW_ATTR)
         region.removeAttribute(IRI_ATTR)
@@ -310,7 +310,7 @@ export function createRuntime(
   }
 
   return {
-    mount: (region, iri, hint) => mount(region, iri, hint),
+    mount: (region, iri, show) => mount(region, iri, show),
     dispatch,
     instances: () => [...live.values()],
     listen(listener) {
@@ -320,7 +320,7 @@ export function createRuntime(
   }
 }
 
-function hintFrom(event: Event, previous: Hint | undefined): Hint {
+function showFrom(event: Event, previous: Show | undefined): Show {
   const target = typeof event.target === 'string' ? event.target : undefined
   const hash = target?.split('#')[1]
   const view = typeof event.view === 'string' ? event.view : previous?.view
@@ -333,7 +333,7 @@ export function instanceContext(
   resolve: Resolve,
   emit: (event: Event) => void,
   events: AsyncIterable<Event>,
-  transclude: (iri: string, hint?: Hint) => Promise<string>
+  transclude: (iri: string, show?: Show) => Promise<string>
 ): { ctx: Context; dependencies: ReadonlySet<string> } {
   const dependencies = new Set<string>()
   const ctx: Context = {

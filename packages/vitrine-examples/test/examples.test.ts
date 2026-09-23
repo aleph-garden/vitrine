@@ -224,7 +224,7 @@ describe('plainTextView', () => {
     expect(html).toContain('- [x] charger')
   })
 
-  test('a hint reaches it although the checklist claims the same type', async () => {
+  test('a show reaches it although the checklist claims the same type', async () => {
     const renderer = createRenderer({
       parsers: [],
       views: [checklistView, plainTextView]

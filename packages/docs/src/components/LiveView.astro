@@ -13,7 +13,7 @@ const { iri, view, caption } = Astro.props
 ---
 
 <figure class="live-view">
-  <div class="live-view__region" data-live-view={iri} data-live-hint={view}></div>
+  <div class="live-view__region" data-live-view={iri} data-live-show={view}></div>
   <figcaption>{caption ?? iri}</figcaption>
 </figure>
 
@@ -36,7 +36,7 @@ const { iri, view, caption } = Astro.props
   for (const region of document.querySelectorAll<HTMLElement>('[data-live-view]')) {
     const iri = region.dataset.liveView
     if (!iri) continue
-    const view = region.dataset.liveHint
+    const view = region.dataset.liveShow
     void runtime.mount(region, iri, view ? { view } : undefined).catch((error: unknown) => {
       region.textContent = error instanceof Error ? error.message : String(error)
     })

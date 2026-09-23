@@ -59,7 +59,7 @@ documentation build stay here.
 
 ```
 Resource ──▶ parse ──▶ select ──▶ view.render ──▶ html + hydrate?
-   raw          by         by hint,
+   raw          by         by show,
    body     content type   rules, view.when
 ```
 
@@ -104,7 +104,7 @@ notification channel already emits.
 
 ### Which view renders
 
-`hint.view` when that view is registered, then the host document's rules in
+`show.view` when that view is registered, then the host document's rules in
 order, then each view's own `when` in registration order. A condition is one
 of `iri`, `contentType`, `container` or `type`, and every condition of a
 rule must hold. A fifth, `ask`, carries a SPARQL ASK over the resource's
@@ -116,8 +116,8 @@ decides.
 ### When it renders again
 
 Two paths, and the first needs no code in the view. The runtime records
-every IRI an instance resolved: an `as:Update` naming one of them, or a hint
-change on the same resource, re-renders that instance. A view that returned
+every IRI an instance resolved: an `as:Update` naming one of them, or a change
+of `show` on the same resource, re-renders that instance. A view that returned
 a `Handle` with `update` takes the other path and answers events itself with
 a patch for one `data-slot` element.
 

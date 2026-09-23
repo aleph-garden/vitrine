@@ -15,7 +15,7 @@ hold for this note. The first one registered wins:
 
 <LiveView iri="https://example.org/notes/packing.txt" caption="the rules chose, and the checklist view was registered first" />
 
-Naming a view in the hint asks for a different reading of the same bytes:
+Naming a view in `show` asks for a different reading of the same bytes:
 
 <LiveView
   iri="https://example.org/notes/packing.txt"
@@ -28,8 +28,8 @@ which function drew it.
 
 ## Choosing one
 
-A hint names a view directly, as above, and on a browser host `?view=<iri>` on
-the address does the same. Without a hint the host document's rules are tested
+`show` names a view directly, as above, and on a browser host `?view=<iri>` on
+the address does the same. Without one the host document's rules are tested
 in order, and then each registered view's own `when`. `selection.mdx` has the
 full order.
 

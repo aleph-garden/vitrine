@@ -11,16 +11,16 @@ they get argued over.
 ## Transclusion
 
 A view names an IRI in its output and gets back rendered content, without
-learning what was behind it. `ctx.transclude(iri, hint?)` returns HTML the
+learning what was behind it. `ctx.transclude(iri, show?)` returns HTML the
 calling view drops into its own, and the runtime replaces it with a child
 instance: own region, own dependencies, own re-render. A note embedded in a
 note becomes a thing that updates on its own, a dashboard becomes a view
 that composes without branching on content type, and the Markdown view
 loses its private embed recursion.
 
-The contract delta is settled: one call, plus `clip` on the `Hint` for
+The contract delta is settled: one call, plus `clip` on `Show` for
 showing a fragment alone. The runtime work is not: children are keyed by
-`(iri, hint)` so a parent's re-render keeps them, and the cycle and depth
+`(iri, show)` so a parent's re-render keeps them, and the cycle and depth
 guards move out of views into the runtime.
 
 `docs/drafts/transclusion.md`.
@@ -35,7 +35,7 @@ carries it out over whatever it speaks. A resource gains an opaque
 successful write comes back as the `as:Update` the re-render path already
 handles.
 
-Editing would be a view like any other, selected by a hint, and the first
+Editing would be a view like any other, selected by `show`, and the first
 one worth building generates a form from a SHACL shape.
 
 `docs/drafts/write.md`.

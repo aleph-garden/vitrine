@@ -8,20 +8,20 @@ import {
 } from '../src/transclusion.ts'
 
 describe('transclusionKey', () => {
-  test('is the same key whatever order the hint was written in', () => {
+  test('is the same key whatever order the show was written in', () => {
     expect(transclusionKey('https://pod.example/a.md', { clip: true, fragment: 'Setup' })).toBe(
       transclusionKey('https://pod.example/a.md', { fragment: 'Setup', clip: true })
     )
   })
 
-  test('separates two hints on one IRI', () => {
+  test('separates two shows on one IRI', () => {
     const iri = 'https://pod.example/a.md'
     expect(transclusionKey(iri, { fragment: 'Setup' })).not.toBe(
       transclusionKey(iri, { fragment: 'Teardown' })
     )
   })
 
-  test('separates no hint from an empty hint', () => {
+  test('separates no show from an empty show', () => {
     const iri = 'https://pod.example/a.md'
     expect(transclusionKey(iri)).toBe(transclusionKey(iri, {}))
   })
@@ -57,12 +57,12 @@ const only = (html: string): Element => {
 describe('placeholderHtml', () => {
   const a = 'https://pod.example/a.md'
 
-  test('carries the IRI and the hint back out', () => {
+  test('carries the IRI and the show back out', () => {
     const found = readPlaceholder(only(placeholderHtml(a, { fragment: 'Setup', clip: true })))
-    expect(found).toEqual({ iri: a, hint: { clip: true, fragment: 'Setup' } })
+    expect(found).toEqual({ iri: a, show: { clip: true, fragment: 'Setup' } })
   })
 
-  test('carries an IRI without a hint', () => {
+  test('carries an IRI without a show', () => {
     expect(readPlaceholder(only(placeholderHtml(a)))).toEqual({ iri: a })
   })
 

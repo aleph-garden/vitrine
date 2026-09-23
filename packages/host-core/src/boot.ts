@@ -72,6 +72,6 @@ export async function boot(host: Host, chrome: Element, root: Element): Promise<
     resolveIssuer: (webId) => issuerOf(session.fetch, webId, host.parseTurtle)
   })
 
-  const { iri, hint } = host.address.of(location.href)
-  await mountInto(runtime, root, iri, hint, region)
+  const { iri, show } = host.address.of(location.href)
+  await mountInto(runtime, root, iri, show, region)
 }

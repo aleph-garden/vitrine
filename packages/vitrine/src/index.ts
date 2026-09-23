@@ -60,7 +60,7 @@ export type Context = {
   /** Brings `iri` in as a child with a life of its own, and answers the HTML
    *  to insert verbatim. Whether that string is the rendered child or a
    *  placeholder a host fills in later is the host's business. */
-  transclude(iri: string, hint?: Hint): Promise<string>
+  transclude(iri: string, show?: Show): Promise<string>
 }
 
 // ----------------------------------------------------------- selection
@@ -79,7 +79,11 @@ export type Rule = {
 
 // ---------------------------------------------------------------- view
 
-export type Hint = {
+/** What of a resource to show, and how: the view to draw it with, the part
+ *  that is meant, and whether to show that part alone. */
+export type Show = {
+  /** The view to draw with. When it names a registered view it wins over
+   *  every rule. */
   view?: string
   /** The part of the resource that is meant, named the way the media type
    *  names parts: a heading or a block id in Markdown, the subject an IRI
@@ -109,7 +113,7 @@ export type View = {
   id: string
   /** Where this view applies by default; a registry rule overrides. */
   when?: Condition[]
-  render(resource: Resource, ctx: Context, hint?: Hint): Promise<Rendered>
+  render(resource: Resource, ctx: Context, show?: Show): Promise<Rendered>
 }
 
 // -------------------------------------------------------------- parser
@@ -131,11 +135,11 @@ export type Registry = {
 export type Renderer = {
   /** Fills `graph` through the first parser whose contentType matches. */
   parse(resource: Resource): Promise<Resource>
-  /** Hint first, then registry rules in order, then each view's `when`
+  /** Show first, then registry rules in order, then each view's `when`
    *  in registration order; undefined when nothing holds. */
-  select(resource: Resource, hint?: Hint): View | undefined
+  select(resource: Resource, show?: Show): View | undefined
   /** parse, select, render. Rejects when no view applies. */
-  render(resource: Resource, ctx: Context, hint?: Hint): Promise<Rendered>
+  render(resource: Resource, ctx: Context, show?: Show): Promise<Rendered>
 }
 
 export function createRenderer(registry: Registry): Renderer {
@@ -148,9 +152,9 @@ export function createRenderer(registry: Registry): Renderer {
     return { ...resource, graph: await parser.parse(resource) }
   }
 
-  const select = (resource: Resource, hint?: Hint): View | undefined => {
-    const hinted = hint?.view === undefined ? undefined : byId.get(hint.view)
-    if (hinted) return hinted
+  const select = (resource: Resource, show?: Show): View | undefined => {
+    const shown = show?.view === undefined ? undefined : byId.get(show.view)
+    if (shown) return shown
     for (const rule of registry.rules ?? []) {
       const v = byId.get(rule.view)
       if (v && all(rule.when, resource)) return v
@@ -158,11 +162,11 @@ export function createRenderer(registry: Registry): Renderer {
     return registry.views.find((v) => v.when !== undefined && all(v.when, resource))
   }
 
-  const render = async (resource: Resource, ctx: Context, hint?: Hint): Promise<Rendered> => {
+  const render = async (resource: Resource, ctx: Context, show?: Show): Promise<Rendered> => {
     const parsed = await parse(resource)
-    const view = select(parsed, hint)
+    const view = select(parsed, show)
     if (!view) throw new Error(`no view applies to ${resource.iri} (${resource.contentType})`)
-    return view.render(parsed, ctx, hint)
+    return view.render(parsed, ctx, show)
   }
 
   return { parse, select, render }

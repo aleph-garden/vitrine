@@ -167,7 +167,7 @@ describe('select', () => {
     expect(r.select(resource())?.id).toBe('urn:md')
   })
 
-  test('hint wins when it names a registered view, is ignored otherwise', () => {
+  test('show wins when it names a registered view, is ignored otherwise', () => {
     const r = createRenderer({ parsers: [], views: [markdown, fallback] })
     expect(r.select(resource(), { view: 'urn:fallback' })?.id).toBe('urn:fallback')
     expect(r.select(resource(), { view: 'urn:unknown' })?.id).toBe('urn:md')

@@ -4,7 +4,7 @@
 // placeholders, which a browser expands later.
 
 import type { Resolve } from './dom.ts'
-import { type Context, escapeHtml, type Hint, type Renderer } from './index.ts'
+import { type Context, escapeHtml, type Renderer, type Show } from './index.ts'
 import {
   ERROR_ATTR,
   errorHtml,
@@ -23,12 +23,12 @@ export async function renderInline(
   renderer: Renderer,
   resolve: Resolve,
   iri: string,
-  hint?: Hint,
+  show?: Show,
   depth: number = TRANSCLUDE_DEPTH
 ): Promise<string> {
   const render = async (
     target: string,
-    targetHint: Hint | undefined,
+    targetShow: Show | undefined,
     chain: readonly string[]
   ): Promise<string> => {
     const resource = await resolve(target)
@@ -36,18 +36,18 @@ export async function renderInline(
       resolve: (childIri) => resolve(childIri).then(renderer.parse),
       emit: () => {},
       events: nothing,
-      async transclude(childIri, childHint) {
+      async transclude(childIri, childShow) {
         const how = mounting(chain, childIri, depth)
-        if (how !== 'auto') return placeholderHtml(childIri, childHint, how)
+        if (how !== 'auto') return placeholderHtml(childIri, childShow, how)
         try {
-          return await render(childIri, childHint, [...chain, childIri])
+          return await render(childIri, childShow, [...chain, childIri])
         } catch (error) {
           return `<div ${TRANSCLUDE_ATTR}="${escapeHtml(childIri)}" ${ERROR_ATTR}>${errorHtml(childIri, error)}</div>`
         }
       }
     }
-    const rendered = await renderer.render(resource, ctx, targetHint)
+    const rendered = await renderer.render(resource, ctx, targetShow)
     return rendered.html
   }
-  return render(iri, hint, [iri])
+  return render(iri, show, [iri])
 }

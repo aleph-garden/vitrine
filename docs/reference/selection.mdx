@@ -31,7 +31,7 @@ type Condition =
 
 ```mermaid
 flowchart TD
-  H{hint.view names<br/>a registered view?} -- yes --> HV[that view]
+  H{show.view names<br/>a registered view?} -- yes --> HV[that view]
   H -- no --> R{first registry rule<br/>whose every condition holds?}
   R -- found --> RV[rule.view]
   R -- none --> W{first view, in registration order,<br/>whose own when holds?}

@@ -15,7 +15,7 @@ runtime.dispatch({ type: AS.View, object: iri, target: `${iri}#Setup` })  // sho
 
 An instance whose handle has `update` answers for itself. Every other
 instance is re-rendered when the event names one of its dependencies or
-changes its hint. A host delivers and does not choose.
+changes what it shows. A host delivers and does not choose.
 
 ## The host listens first
 
@@ -42,7 +42,7 @@ runtime.listen((event) => {
     history.replaceState(null, '', event.target as string)   // a fragment: no refetch
   } else if (opensInPlace(event.object)) {
     history.pushState(null, '', addressFor(event.object).href)
-    void runtime.mount(root, event.object, hintOf(event.target))
+    void runtime.mount(root, event.object, showOf(event.target))
   } else {
     location.assign(event.object)                            // let the browser have it
   }
@@ -59,9 +59,9 @@ The browser's own history is the other direction of the same thing:
 
 ```ts
 window.addEventListener('popstate', () => {
-  const { iri, hint } = addressOf(location.href)
+  const { iri, show } = addressOf(location.href)
   if (current()?.iri === iri) void runtime.dispatch({ type: AS.View, object: iri, target: location.href })
-  else void runtime.mount(root, iri, hint)
+  else void runtime.mount(root, iri, show)
 })
 ```
 

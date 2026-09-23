@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import type { Context, Event, Hint, Quad, Resource } from '@aleph-garden/vitrine'
+import type { Context, Event, Quad, Resource, Show } from '@aleph-garden/vitrine'
 import { invalidateWikilinkIndex, markdownView, NOTE_CLASS, wikilinkIndex } from '../src/index.ts'
 
 const RDF_TYPE = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'
@@ -74,7 +74,7 @@ const pod = (): Record<string, Resource> => {
 const ctxFor = (entries: Record<string, Resource>) => {
   const calls: string[] = []
   const events: Event[] = []
-  const transcluded: { iri: string; hint?: Hint }[] = []
+  const transcluded: { iri: string; show?: Show }[] = []
   const ctx: Context = {
     resolve: async (iriValue) => {
       calls.push(iriValue)
@@ -84,8 +84,8 @@ const ctxFor = (entries: Record<string, Resource>) => {
     },
     emit: (e) => void events.push(e),
     events: (async function* () {})(),
-    transclude: async (iriValue, hint) => {
-      transcluded.push({ iri: iriValue, hint })
+    transclude: async (iriValue, show) => {
+      transcluded.push({ iri: iriValue, show })
       return `<div data-test-transclude="${iriValue}"></div>`
     }
   }
@@ -173,7 +173,7 @@ describe('markdownView', () => {
     const { ctx, transcluded } = ctxFor(pod())
     invalidateWikilinkIndex(WEBID, `${POD}/notes/`)
     const { html } = await view().render(note('![[Körper]]\n\n![[image.png]]\n'), ctx)
-    expect(transcluded).toEqual([{ iri: `${POD}/notes/algebra/Körper.md`, hint: undefined }])
+    expect(transcluded).toEqual([{ iri: `${POD}/notes/algebra/Körper.md`, show: undefined }])
     expect(html).toContain(`data-test-transclude="${POD}/notes/algebra/Körper.md"`)
     expect(html).not.toContain('Ein Körper.')
     expect(html).toContain(`<img src="${POD}/notes/algebra/image.png"`)
@@ -184,7 +184,7 @@ describe('markdownView', () => {
     invalidateWikilinkIndex(WEBID, `${POD}/notes/`)
     await view().render(note('![[Körper#Definition]]\n'), ctx)
     expect(transcluded).toEqual([
-      { iri: `${POD}/notes/algebra/Körper.md`, hint: { fragment: 'Definition', clip: true } }
+      { iri: `${POD}/notes/algebra/Körper.md`, show: { fragment: 'Definition', clip: true } }
     ])
   })
 
@@ -193,7 +193,7 @@ describe('markdownView', () => {
     invalidateWikilinkIndex(WEBID, `${POD}/notes/`)
     await view().render(note('![[Matrix#^b1]]\n'), ctx)
     expect(transcluded).toEqual([
-      { iri: `${POD}/notes/Matrix.md`, hint: { fragment: '^b1', clip: true } }
+      { iri: `${POD}/notes/Matrix.md`, show: { fragment: '^b1', clip: true } }
     ])
   })
 
@@ -203,7 +203,7 @@ describe('markdownView', () => {
     const { ctx, transcluded } = ctxFor(entries)
     invalidateWikilinkIndex(WEBID, `${POD}/notes/`)
     const { html } = await view().render(entries[`${POD}/notes/Matrix.md`]!, ctx)
-    expect(transcluded).toEqual([{ iri: `${POD}/notes/Matrix.md`, hint: undefined }])
+    expect(transcluded).toEqual([{ iri: `${POD}/notes/Matrix.md`, show: undefined }])
     expect(html).not.toContain('is-unresolved')
   })
 

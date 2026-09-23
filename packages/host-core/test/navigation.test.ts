@@ -4,7 +4,7 @@ import type { Instance, Runtime } from '@aleph-garden/vitrine/dom'
 import { fetchResource } from '@aleph-garden/vitrine/http'
 import { parseTurtle } from '@aleph-garden/vitrine-turtle'
 import type { Address, AddressScheme } from '../src/address.ts'
-import { hintOf, locationAddress } from '../src/address.ts'
+import { locationAddress, showOf } from '../src/address.ts'
 import { installNavigation } from '../src/navigation.ts'
 import { anonymousSession, type Fetch, issuerOf, type Session } from '../src/session.ts'
 
@@ -35,14 +35,14 @@ const anyIri: AddressScheme = {
   of(href): Address {
     const url = new URL(href)
     if (!url.pathname.startsWith(PREFIX)) return locationAddress(href)
-    return { iri: decodeURI(url.pathname.slice(PREFIX.length)), hint: hintOf(url), href }
+    return { iri: decodeURI(url.pathname.slice(PREFIX.length)), show: showOf(url), href }
   },
   for(url): Address {
     const target = new URL(url)
     if (target.origin === location.origin) return anyIri.of(target.href)
     return {
       iri: `${target.origin}${target.pathname}`,
-      hint: hintOf(target),
+      show: showOf(target),
       href: `${location.origin}${PREFIX}${target.href}`
     }
   }
@@ -87,18 +87,18 @@ describe('issuerOf', () => {
 describe('installNavigation', () => {
   /** `fails`, when given, is what every mount rejects with. */
   const fakeRuntime = (fails?: unknown) => {
-    const mounted: { iri: string; hint?: unknown }[] = []
+    const mounted: { iri: string; show?: unknown }[] = []
     const dispatched: Event[] = []
     const listeners = new Set<(e: Event) => void>()
     let current: Instance | undefined
     const runtime: Runtime = {
-      async mount(region, iri, hint) {
-        mounted.push({ iri, hint })
+      async mount(region, iri, show) {
+        mounted.push({ iri, show })
         if (fails !== undefined) throw fails
         current = {
           id: 'i',
           iri,
-          hint,
+          show,
           region,
           chain: [iri],
           dependencies: new Set(),
@@ -147,7 +147,7 @@ describe('installNavigation', () => {
       target: 'https://pod.example/b.md#Intro'
     })
     await new Promise((r) => setTimeout(r, 0))
-    expect(mounted.at(-1)).toEqual({ iri: 'https://pod.example/b.md', hint: { fragment: 'Intro' } })
+    expect(mounted.at(-1)).toEqual({ iri: 'https://pod.example/b.md', show: { fragment: 'Intro' } })
     expect(location.href).toBe('https://pod.example/b.md#Intro')
   })
 
@@ -166,7 +166,7 @@ describe('installNavigation', () => {
     expect(location.href).toBe('https://pod.example/-/https://other.example/a.md#Intro')
     expect(mounted.at(-1)).toEqual({
       iri: 'https://other.example/a.md',
-      hint: { fragment: 'Intro' }
+      show: { fragment: 'Intro' }
     })
   })
 
@@ -267,7 +267,7 @@ describe('installNavigation', () => {
     history.replaceState(null, '', 'https://pod.example/d.md?view=urn:x')
     window.dispatchEvent(new PopStateEvent('popstate'))
     await new Promise((r) => setTimeout(r, 0))
-    expect(mounted.at(-1)).toEqual({ iri: 'https://pod.example/d.md', hint: { view: 'urn:x' } })
+    expect(mounted.at(-1)).toEqual({ iri: 'https://pod.example/d.md', show: { view: 'urn:x' } })
   })
 
   test('a mount that fails with a 401 asks for a login in the region', async () => {

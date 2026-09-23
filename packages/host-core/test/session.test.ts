@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
 import type { View } from '@aleph-garden/vitrine'
 import { parseTurtle, turtleParser } from '@aleph-garden/vitrine-turtle'
 import type { Address, AddressScheme } from '../src/address.ts'
-import { hintOf, locationAddress } from '../src/address.ts'
+import { locationAddress, showOf } from '../src/address.ts'
 import type { Host } from '../src/boot.ts'
 
 const LOGIN_URL = 'https://pod.example/notes/Zeitplan.md'
@@ -26,14 +26,14 @@ const anyIri: AddressScheme = {
   of(href): Address {
     const url = new URL(href)
     if (!url.pathname.startsWith(PREFIX)) return locationAddress(href)
-    return { iri: decodeURI(url.pathname.slice(PREFIX.length)), hint: hintOf(url), href }
+    return { iri: decodeURI(url.pathname.slice(PREFIX.length)), show: showOf(url), href }
   },
   for(url): Address {
     const target = new URL(url)
     if (target.origin === location.origin) return anyIri.of(target.href)
     return {
       iri: `${target.origin}${target.pathname}`,
-      hint: hintOf(target),
+      show: showOf(target),
       href: `${location.origin}${PREFIX}${target.href}`
     }
   }

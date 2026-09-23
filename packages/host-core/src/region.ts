@@ -1,7 +1,7 @@
 // What the one region holds when the resource does not arrive. Shared by
 // every host, because a failure reads the same wherever it happens.
 
-import type { Hint } from '@aleph-garden/vitrine'
+import type { Show } from '@aleph-garden/vitrine'
 import type { Runtime } from '@aleph-garden/vitrine/dom'
 import { writeHtml } from '@aleph-garden/vitrine/dom'
 import type { Session } from './session.ts'
@@ -21,11 +21,11 @@ export async function mountInto(
   runtime: Runtime,
   root: Element,
   iri: string,
-  hint: Hint | undefined,
+  show: Show | undefined,
   region: Region
 ): Promise<void> {
   try {
-    await runtime.mount(root, iri, hint)
+    await runtime.mount(root, iri, show)
   } catch (e) {
     const status = (e as { status?: number }).status
     const link = `<a href="${escapeAttr(iri)}" target="_top">Open at source</a>`

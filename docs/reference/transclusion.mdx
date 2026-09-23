@@ -13,7 +13,7 @@ const html = await ctx.transclude('https://pod.example/notes/Setup.md')
 return { html: `<article>${body}${html}</article>` }
 ```
 
-`transclude` takes the IRI and an optional hint, the same hint selection reads
+`transclude` takes the IRI and an optional `Show`, the same `Show` selection reads
 elsewhere, and answers a string to put into the output as it is.
 
 ## What comes back
@@ -38,7 +38,7 @@ re-renders the child alone and the parent does not move.
 ## When the parent re-renders
 
 The parent's new placeholders are matched against the children it already has,
-keyed by the IRI and the hint together. A key that is still there keeps its
+keyed by the IRI and the `Show` together. A key that is still there keeps its
 instance, and the runtime moves that child's region into the new placeholder
 without calling anything on the child. A key that has gone is disposed, and a
 key that is new is mounted.
@@ -47,11 +47,11 @@ Without that matching, a parent repainting for its own reasons would throw away
 every child below it and refetch the lot.
 
 **A known limitation.** Two placeholders under one parent that carry the same
-IRI and the same hint share one key, so the reconciliation keeps one of them
+IRI and the same `Show` share one key, so the reconciliation keeps one of them
 and leaks the other: it stays live, keeps answering events, and its region is
 no longer in the document. Each re-render adds one. Until
 [issue 1](https://github.com/aleph-garden/vitrine/issues/1) is fixed, a view
-that wants one resource in two places under itself needs two different hints.
+that wants one resource in two places under itself needs two different `Show` values.
 
 ## Cycles and depth belong to the runtime
 

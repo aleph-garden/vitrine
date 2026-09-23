@@ -2,10 +2,10 @@
 // Nothing here builds DOM: the browser runtime and the server host write
 // the same markup, and the reader below takes an element the caller found.
 
-import { escapeHtml, type Hint } from './index.ts'
+import { escapeHtml, type Show } from './index.ts'
 
 export const TRANSCLUDE_ATTR = 'data-aleph-transclude'
-export const HINT_ATTR = 'data-aleph-hint'
+export const SHOW_ATTR = 'data-aleph-show'
 /** Why the runtime left this placeholder unmounted. */
 export const DEFERRED_ATTR = 'data-aleph-deferred'
 /** Set on a placeholder whose child could not be mounted. */
@@ -31,14 +31,14 @@ export function mounting(chain: readonly string[], iri: string, depth: number): 
 
 /** Identity of a child under one parent: same key, same instance across a
  *  parent re-render. */
-export function transclusionKey(iri: string, hint?: Hint): string {
-  return `${iri} ${canonical(hint)}`
+export function transclusionKey(iri: string, show?: Show): string {
+  return `${iri} ${canonical(show)}`
 }
 
-/** The hint as a string, with its keys in one order and its absent entries
- *  dropped, so that two hints meaning the same thing read the same. */
-function canonical(hint: Hint | undefined): string {
-  const entries = Object.entries(hint ?? {})
+/** The show as a string, with its keys in one order and its absent entries
+ *  dropped, so that two shows meaning the same thing read the same. */
+function canonical(show: Show | undefined): string {
+  const entries = Object.entries(show ?? {})
     .filter(([, value]) => value !== undefined)
     .sort(([a], [b]) => (a < b ? -1 : 1))
   return JSON.stringify(Object.fromEntries(entries))
@@ -46,25 +46,25 @@ function canonical(hint: Hint | undefined): string {
 
 /** The element a view drops into its own HTML in place of the child. The
  *  runtime mounts into it, or, with `deferred`, leaves it for a later ask. */
-export function placeholderHtml(iri: string, hint?: Hint, deferred?: Deferral): string {
-  const carried = canonical(hint)
-  const hintAttr = carried === '{}' ? '' : ` ${HINT_ATTR}="${escapeHtml(carried)}"`
+export function placeholderHtml(iri: string, show?: Show, deferred?: Deferral): string {
+  const carried = canonical(show)
+  const showAttr = carried === '{}' ? '' : ` ${SHOW_ATTR}="${escapeHtml(carried)}"`
   const why = deferred === undefined ? '' : ` ${DEFERRED_ATTR}="${deferred}"`
-  return `<div ${TRANSCLUDE_ATTR}="${escapeHtml(iri)}"${hintAttr}${why}></div>`
+  return `<div ${TRANSCLUDE_ATTR}="${escapeHtml(iri)}"${showAttr}${why}></div>`
 }
 
-/** The IRI, hint and deferral a placeholder carries; nothing when the
+/** The IRI, show and deferral a placeholder carries; nothing when the
  *  element is not one. */
 export function readPlaceholder(
   element: Element
-): { iri: string; hint?: Hint; deferred?: Deferral } | undefined {
+): { iri: string; show?: Show; deferred?: Deferral } | undefined {
   const iri = element.getAttribute(TRANSCLUDE_ATTR)
   if (iri === null) return undefined
-  const carried = element.getAttribute(HINT_ATTR)
+  const carried = element.getAttribute(SHOW_ATTR)
   const deferred = element.getAttribute(DEFERRED_ATTR) as Deferral | null
   return {
     iri,
-    ...(carried === null ? {} : { hint: JSON.parse(carried) as Hint }),
+    ...(carried === null ? {} : { show: JSON.parse(carried) as Show }),
     ...(deferred === null ? {} : { deferred })
   }
 }

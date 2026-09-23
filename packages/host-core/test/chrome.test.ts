@@ -3,7 +3,7 @@ import { AS, type Event } from '@aleph-garden/vitrine'
 import type { Instance, Runtime } from '@aleph-garden/vitrine/dom'
 import { parseTurtle } from '@aleph-garden/vitrine-turtle'
 import type { Address, AddressScheme } from '../src/address.ts'
-import { hintOf, locationAddress } from '../src/address.ts'
+import { locationAddress, showOf } from '../src/address.ts'
 import type { Chrome } from '../src/chrome.ts'
 import { installChrome } from '../src/chrome.ts'
 import { installNavigation } from '../src/navigation.ts'
@@ -16,14 +16,14 @@ const anyIri: AddressScheme = {
   of(href): Address {
     const url = new URL(href)
     if (!url.pathname.startsWith(PREFIX)) return locationAddress(href)
-    return { iri: decodeURI(url.pathname.slice(PREFIX.length)), hint: hintOf(url), href }
+    return { iri: decodeURI(url.pathname.slice(PREFIX.length)), show: showOf(url), href }
   },
   for(url): Address {
     const target = new URL(url)
     if (target.origin === location.origin) return anyIri.of(target.href)
     return {
       iri: `${target.origin}${target.pathname}`,
-      hint: hintOf(target),
+      show: showOf(target),
       href: `${location.origin}${PREFIX}${target.href}`
     }
   }
@@ -49,8 +49,8 @@ const fakeRuntime = () => {
   const dispatched: Event[] = []
   const listeners = new Set<(e: Event) => void>()
   const runtime: Runtime = {
-    async mount(region, iri, hint) {
-      return { id: 'i', iri, hint, region, chain: [iri], dependencies: new Set(), dispose() {} }
+    async mount(region, iri, show) {
+      return { id: 'i', iri, show, region, chain: [iri], dependencies: new Set(), dispose() {} }
     },
     async dispatch(event) {
       dispatched.push(event)
@@ -73,8 +73,8 @@ const fakeNavigableRuntime = () => {
   const listeners = new Set<(e: Event) => void>()
   let current: Instance | undefined
   const runtime: Runtime = {
-    async mount(region, iri, hint) {
-      current = { id: 'i', iri, hint, region, chain: [iri], dependencies: new Set(), dispose() {} }
+    async mount(region, iri, show) {
+      current = { id: 'i', iri, show, region, chain: [iri], dependencies: new Set(), dispose() {} }
       return current
     },
     async dispatch() {},

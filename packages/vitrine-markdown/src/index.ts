@@ -5,11 +5,11 @@ import {
   AS,
   type Context,
   escapeHtml,
-  type Hint,
   isContainer,
   objects,
   type Rendered,
   type Resource,
+  type Show,
   type View
 } from '@aleph-garden/vitrine'
 import { katex } from '@mdit/plugin-katex'
@@ -50,16 +50,16 @@ export function markdownView(options: MarkdownOptions): View {
   const renderNote = async (
     resource: Resource,
     ctx: Context,
-    hint: Hint | undefined
+    show: Show | undefined
   ): Promise<{ html: string; hasMermaid: boolean }> => {
     const source =
       typeof resource.body === 'string' ? resource.body : new TextDecoder().decode(resource.body)
     const { frontmatter, body } = splitFrontmatter(source)
     const index = await wikilinkIndex(ctx, options.webId)
-    const fragment = hint?.fragment
+    const fragment = show?.fragment
     const env: Env = { index, embeds: new Map(), sparql: new Map(), fragment }
     const parsed = md.parse(body, env)
-    const tokens = hint?.clip && fragment !== undefined ? clip(parsed, fragment) : parsed
+    const tokens = show?.clip && fragment !== undefined ? clip(parsed, fragment) : parsed
 
     for (const token of walk(tokens)) {
       if (token.type === 'wikilink' && linkOf(token).embed) {
@@ -96,14 +96,14 @@ export function markdownView(options: MarkdownOptions): View {
   return {
     id: MARKDOWN_VIEW,
     when: [{ contentType: 'text/markdown' }],
-    async render(resource, ctx, hint?: Hint): Promise<Rendered> {
-      const { html, hasMermaid } = await renderNote(resource, ctx, hint)
+    async render(resource, ctx, show?: Show): Promise<Rendered> {
+      const { html, hasMermaid } = await renderNote(resource, ctx, show)
       return {
         html,
         hydrate(root, hydrateCtx) {
           void watchContainers(hydrateCtx, options.webId)
           if (hasMermaid) void drawMermaid(root)
-          if (hint?.fragment) root.querySelector('.is-flashing')?.scrollIntoView?.()
+          if (show?.fragment) root.querySelector('.is-flashing')?.scrollIntoView?.()
         }
       }
     }
@@ -281,7 +281,7 @@ function dropPrefix(children: Token[], count: number): void {
   }
 }
 
-/** The part of a note a `clip` hint asks for: the section under a heading,
+/** The part of a note a `clip` show asks for: the section under a heading,
  *  up to the next heading of the same or higher level, or the one block
  *  carrying `^id`. An unknown fragment clips to nothing, so an embed of a
  *  heading that is gone shows nothing rather than the whole note. */

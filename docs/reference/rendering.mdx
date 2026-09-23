@@ -10,7 +10,7 @@ protocol.
 
 ```ts
 type Runtime = {
-  mount(region: Element, iri: string, hint?: Hint): Promise<Instance>
+  mount(region: Element, iri: string, show?: Show): Promise<Instance>
   dispatch(event: Event): Promise<void>
   instances(): Instance[]
   listen(listener: (event: Event) => void): () => void
@@ -19,7 +19,7 @@ type Runtime = {
 type Instance = {
   id: string
   iri: string
-  hint: Hint | undefined
+  show: Show | undefined
   region: Element
   dependencies: ReadonlySet<string>   // IRIs resolved during the last render
   dispose(): void
@@ -34,13 +34,13 @@ sequenceDiagram
   participant Runtime
   participant Renderer
   participant View
-  Host->>Runtime: mount(region, iri, hint)
+  Host->>Runtime: mount(region, iri, show)
   Runtime->>Runtime: dispose the instance that held region
   Runtime->>Host: resolve(iri)
   Host-->>Runtime: Resource
-  Runtime->>Renderer: parse(resource), select(resource, hint)
+  Runtime->>Renderer: parse(resource), select(resource, show)
   Renderer-->>Runtime: View
-  Runtime->>View: render(resource, ctx, hint)
+  Runtime->>View: render(resource, ctx, show)
   View->>Runtime: ctx.resolve(other)   (recorded as a dependency)
   View-->>Runtime: Rendered
   Runtime->>Runtime: writeHtml(region, html), mark region
