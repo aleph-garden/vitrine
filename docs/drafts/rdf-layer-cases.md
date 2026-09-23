@@ -70,3 +70,10 @@ be a property of each layer, set where that layer is framed. A related idea: a
 global edit mode in which a reader builds their frames and sets such things per
 layer, switching views and limits in place. Today both limits are constants,
 and a host that nests deeper draws the lower levels itself with `ctx.render`.
+
+The edit mode would reach views as a value of the runtime, read-only through
+the context, the same for every view on the page, the way a colour scheme is.
+Nobody reaches into a grandchild that way. A value a view hands to its whole
+subtree ("from here down, edit mode", "from here down, this depth") is the
+stronger form and the one `Show.inner` was dropped for; it waits for a case
+that confines the mode to part of a page.
