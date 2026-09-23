@@ -12,7 +12,7 @@ Six packages go to npm under the `@aleph-garden` scope, all at version
 | `@aleph-garden/vitrine-jsonld` | `vitrine` |
 | `@aleph-garden/vitrine-markdown` | `terms`, `vitrine` |
 
-`garden-host`, `pod-host`, `www`, `vitrine-examples` and `annotate` carry
+`pod-host`, `www`, `vitrine-examples` and `annotate` carry
 `"private": true` and npm refuses to publish them.
 
 ## How a package is built
@@ -25,7 +25,7 @@ stylesheet and font `host-core` exports, the README, the LICENSE, and a
 
 `npm pack` and `npm publish` run **inside `packages/<name>/dist`**, never in
 the package directory. The package directory's own `exports` point at
-`src/*.ts` and have to keep doing so, because `garden-host`, `pod-host`, `www`
+`src/*.ts` and have to keep doing so, because `pod-host`, `www`
 and the test suite resolve these packages through the bun workspace and read
 the source. npm has no way to swap `exports` at publish time: its
 `publishConfig` is flattened into npm's own config and only keys that are npm

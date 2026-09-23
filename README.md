@@ -16,10 +16,11 @@ Vitrine is one component of [Aleph Garden](https://aleph.garden).
 
 The hosts that exist speak Solid. One is a page a Community Solid Server
 hands out as the `text/html` representation of every resource it serves. The
-other reads the IRI from its own address, after a `/-/` segment, so
-`https://aleph.garden/-/<iri>` opens that resource. Both are built from
-`@aleph-garden/host-core` and differ in their address scheme, their views and
-the host document the build embeds.
+other, which draws aleph.garden and lives in the
+[www repository](https://github.com/aleph-garden/www), reads the IRI from its
+own address, after a `/-/` segment, so `https://aleph.garden/-/<iri>` opens
+that resource. Both are built from `@aleph-garden/host-core` and differ in
+their address scheme, their views and the host document the build embeds.
 
 Status: the pipeline, the Markdown view, the browser shell and the
 aleph.garden host stand. Transclusion, a server-side host and WASM views are
@@ -27,7 +28,7 @@ specified and unbuilt. The library packages are on npm at `0.1.1-dev`:
 `@aleph-garden/vitrine`, `vitrine-turtle`, `vitrine-jsonld`,
 `vitrine-markdown`, `host-core` and `terms`. That first version took the
 `latest` tag whatever the publish named, so depend on the exact version and
-expect the shape to change under you. The two hosts, the examples and the
+expect the shape to change under you. The pod host, the examples and the
 documentation build stay here.
 
 ## What it allows
@@ -147,7 +148,6 @@ resource are properties of the host package, not keys in that document.
 | `@aleph-garden/vitrine-markdown` | the Markdown view | Obsidian, a Solid type index |
 | `@aleph-garden/host-core` | session, credentialed origins, chrome, the region's failure states | Solid-OIDC |
 | `@aleph-garden/pod-host` | the host a pod hands out | its own origin, the vault's snippets |
-| `@aleph-garden/garden-host` | the host at aleph.garden | any IRI, no session |
 | `@aleph-garden/docs` | the reference documentation, deployed as its own Worker | Starlight, and the example views it runs |
 
 An application that embeds a region needs neither host package: a renderer,

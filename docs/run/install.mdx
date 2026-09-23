@@ -31,13 +31,12 @@ compiles them.
 | `@aleph-garden/terms` | the IRIs the packages share, and `ns` for your own |
 | `@aleph-garden/host-core` | session, chrome and failure states for a browser host |
 | `@aleph-garden/pod-host` | [the host a Solid server hands out](/vitrine/docs/run/pod/) |
-| `@aleph-garden/garden-host` | the host that opens any IRI from its own address |
 | `@aleph-garden/vitrine-examples` | the views these pages run, and their fixtures |
 
 ## Building a host bundle
 
-The two browser hosts are vite applications. Each takes its deployment's
-Host document through an environment variable at build time:
+The pod host is a vite application. It takes its deployment's Host
+document through an environment variable at build time:
 
 ```sh
 ALEPH_HOST=../../my-host.jsonld bun run --cwd packages/pod-host build

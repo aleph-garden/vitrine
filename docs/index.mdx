@@ -93,8 +93,9 @@ Three views ship with the library: Obsidian-flavoured Markdown, a container
 listing, and a fallback that puts RDF in a statement table. Two browser
 hosts are built from the same core. One is a single page a Solid server
 hands out as the `text/html` representation of every resource, so a note
-opens at its own URL and renders as a note. The other takes the IRI from its
-own address, after a `/-/` segment, so
+opens at its own URL and renders as a note. The other, which lives in the
+[www repository](https://github.com/aleph-garden/www), takes the IRI from
+its own address, after a `/-/` segment, so
 `https://aleph.garden/-/https://pod.example/notes/a.md` shows that note
 without the pod serving anything but the note.
 
@@ -148,7 +149,6 @@ functions, the selection order and the re-render protocol. The
 | `@aleph-garden/vitrine-markdown` | the Markdown view | Obsidian, a Solid type index |
 | `@aleph-garden/host-core` | session, credentialed origins, chrome, the region's failure states | Solid-OIDC |
 | `@aleph-garden/pod-host` | the host a pod hands out | its own origin, the vault's snippets |
-| `@aleph-garden/garden-host` | the host at aleph.garden | any IRI, no session |
 | `@aleph-garden/vitrine-examples` | the views on these pages, and their fixture resources | nothing beyond the contract |
 
 The unit stays a view: you write one, register it, and a rule picks it.

@@ -5,7 +5,7 @@
 // The output directory is the tarball root. `npm pack` and `npm publish` run
 // inside packages/<name>/dist, never in the package directory, because the
 // package directory's `exports` point at `src/*.ts` and have to keep doing so:
-// garden-host, pod-host, www and the test suite resolve these packages through
+// pod-host, www and the test suite resolve these packages through
 // the bun workspace and read the source. npm ignores `publishConfig.exports`,
 // so the swap to built output happens here instead. See PUBLISHING.md.
 

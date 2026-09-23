@@ -29,19 +29,6 @@
         "wrangler": "^4.133.0",
       },
     },
-    "packages/garden-host": {
-      "name": "@aleph-garden/garden-host",
-      "version": "0.0.0",
-      "dependencies": {
-        "@aleph-garden/host-core": "workspace:*",
-        "@aleph-garden/vitrine": "workspace:*",
-        "@aleph-garden/vitrine-jsonld": "workspace:*",
-        "@aleph-garden/vitrine-turtle": "workspace:*",
-      },
-      "devDependencies": {
-        "vite": "^8.3.0",
-      },
-    },
     "packages/host-core": {
       "name": "@aleph-garden/host-core",
       "version": "0.1.1-dev",
@@ -138,8 +125,6 @@
     "@aleph-garden/brand": ["@aleph-garden/brand@0.1.1-dev", "", {}, "sha512-MNYVpkCkcjIkJgnsg7TDA/PAHuloo+yD7qXL50utGc17Prw+veg6rPfv0bZfS+fqeFDk0JhqKTXA1iMsvRQyBg=="],
 
     "@aleph-garden/docs": ["@aleph-garden/docs@workspace:packages/docs"],
-
-    "@aleph-garden/garden-host": ["@aleph-garden/garden-host@workspace:packages/garden-host"],
 
     "@aleph-garden/host-core": ["@aleph-garden/host-core@workspace:packages/host-core"],
 
