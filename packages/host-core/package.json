@@ -27,7 +27,7 @@
     "prepublishOnly": "echo 'Publish packages/host-core/dist, see PUBLISHING.md' >&2 && exit 1"
   },
   "dependencies": {
-    "@aleph-garden/brand": "0.1.0-dev",
+    "@aleph-garden/brand": "0.1.1-dev",
     "@aleph-garden/terms": "workspace:*",
     "@aleph-garden/vitrine": "workspace:*",
     "@inrupt/solid-client-authn-browser": "^5.0.0"

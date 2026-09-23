@@ -46,7 +46,7 @@
       "name": "@aleph-garden/host-core",
       "version": "0.1.1-dev",
       "dependencies": {
-        "@aleph-garden/brand": "0.1.0-dev",
+        "@aleph-garden/brand": "0.1.1-dev",
         "@aleph-garden/terms": "workspace:*",
         "@aleph-garden/vitrine": "workspace:*",
         "@inrupt/solid-client-authn-browser": "^5.0.0",
@@ -135,7 +135,7 @@
     },
   },
   "packages": {
-    "@aleph-garden/brand": ["@aleph-garden/brand@0.1.0-dev", "", {}, "sha512-Q59/A/xHU9LDaO/vJT+o97CeAGpYk91h6N536tv3IyBAM5TFJwbHIaSqqayQqVy+7OV2QdfrPuJxzgbqbnlk/g=="],
+    "@aleph-garden/brand": ["@aleph-garden/brand@0.1.1-dev", "", {}, "sha512-MNYVpkCkcjIkJgnsg7TDA/PAHuloo+yD7qXL50utGc17Prw+veg6rPfv0bZfS+fqeFDk0JhqKTXA1iMsvRQyBg=="],
 
     "@aleph-garden/docs": ["@aleph-garden/docs@workspace:packages/docs"],
 
@@ -1516,6 +1516,8 @@
     "yaml-language-server/yaml": ["yaml@2.8.3", "", { "bin": { "yaml": "bin.mjs" } }, "sha512-AvbaCLOO2Otw/lW5bmh9d/WEdcDFdQp2Z2ZUH3pX9U2ihyUY0nvLv7J6TrWowklRGPYbB/IuIMfYgxaCPg5Bpg=="],
 
     "youch/cookie": ["cookie@1.1.1", "", {}, "sha512-ei8Aos7ja0weRpFzJnEA9UHJ/7XQmqglbRwnf2ATjcB9Wq874VKH9kfjjirM6UhU2/E5fFYadylyhFldcqSidQ=="],
+
+    "@aleph-garden/docs/@aleph-garden/starlight-theme/@aleph-garden/brand": ["@aleph-garden/brand@0.1.0-dev", "", {}, "sha512-Q59/A/xHU9LDaO/vJT+o97CeAGpYk91h6N536tv3IyBAM5TFJwbHIaSqqayQqVy+7OV2QdfrPuJxzgbqbnlk/g=="],
 
     "@bruits/satteri-wasm32-wasi/@emnapi/core/@emnapi/wasi-threads": ["@emnapi/wasi-threads@1.2.2", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-c95qOXkHdydNKhscBTebqEC1CVAZpyqOfVfBzQ1qgzyl3gfeldUjIggDbIZgDKsHLgnsM+igH7TJ/eAasaVuMA=="],
 
