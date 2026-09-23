@@ -17,6 +17,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        # The whole history, because the footer dates each page by the newest
+        # commit to its source file.
+        with:
+          fetch-depth: 0
       - uses: oven-sh/setup-bun@v2
       # No frozen lockfile: the platform binding rolldown needs on the runner
       # is an optional dependency bun resolves at install time.

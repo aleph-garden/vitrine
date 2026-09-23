@@ -34,6 +34,9 @@ export default defineConfig({
       favicon: 'https://aleph.garden/favicon.svg',
       description: 'A rendering layer for IRIs, part of Aleph Garden. One IRI in, HTML out.',
       social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/aleph-garden' }],
+      // Starlight appends the entry's path, which is relative to this package and
+      // climbs out of it to the repository's docs/; the URL resolves the `..`.
+      editLink: { baseUrl: 'https://github.com/aleph-garden/vitrine/edit/main/packages/docs/' },
       plugins: [aleph({ project: 'vitrine' })],
       sidebar: [
         {
