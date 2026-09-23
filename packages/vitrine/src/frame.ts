@@ -53,7 +53,7 @@ export function frameView(id: string, corners: Partial<Record<Corner, FieldOf>>)
   return {
     id,
     async render(resource, ctx, show) {
-      const inner = await ctx.inner({ view: ctx.state(INSIDE).get() })
+      const inner = await ctx.render(undefined, { view: ctx.state(INSIDE).get() })
       const filled: [Corner, Field][] = []
       for (const corner of CORNERS) {
         const field = await corners[corner]?.(resource, inner.view, ctx, show)

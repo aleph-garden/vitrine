@@ -90,7 +90,7 @@ const ctxFor = (entries: Record<string, Resource>) => {
     about: () => {
       throw new Error('no resource is drawn here')
     },
-    inner: () => Promise.reject(new Error('no inner view')),
+    render: () => Promise.reject(new Error('no view below')),
     state: ((_key: string, initial?: unknown) => ({
       get: () => initial,
       set() {}

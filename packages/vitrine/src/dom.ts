@@ -151,6 +151,9 @@ export type RuntimeOptions = {
   /** How deep the runtime mounts children on its own; past it a placeholder
    *  is deferred. Default TRANSCLUDE_DEPTH. */
   depth?: number
+  /** How many `ctx.render` calls may nest in one render; past it only views
+   *  without conditions are left. Default RENDER_DEPTH. */
+  renderDepth?: number
 }
 
 /** `resolve` is the host's; the runtime wraps it per instance to track
@@ -217,7 +220,7 @@ export function createRuntime(
 
   /** Render, keeping the outermost view's id for the region's mark. */
   const draw = async (resource: Resource, ctx: Context, show: Show | undefined) => {
-    const rendered = await renderer.render(resource, ctx, show)
+    const rendered = await renderer.render(resource, ctx, show, options.renderDepth)
     return { view: rendered.view.id, rendered }
   }
 
@@ -361,7 +364,7 @@ export function instanceContext(
     about: () => {
       throw new Error('about is answered only while a view is drawn')
     },
-    inner: () => Promise.reject(new Error('inner is answered only while a view is drawn')),
+    render: () => Promise.reject(new Error('render is answered only while a view is drawn')),
     state
   }
   return { ctx, dependencies }

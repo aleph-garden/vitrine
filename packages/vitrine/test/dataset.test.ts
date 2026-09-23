@@ -254,7 +254,7 @@ function context(
     emit: () => {},
     events: (async function* () {})(),
     transclude,
-    inner: () => Promise.reject(new Error('answered by the renderer')),
+    render: () => Promise.reject(new Error('answered by the renderer')),
     state: ((_key: string, initial?: unknown) => ({ get: () => initial, set() {} })) as never
   }
 }

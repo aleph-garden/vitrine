@@ -4,7 +4,7 @@
 // placeholders, which a browser expands later.
 
 import type { Resolve } from './dom.ts'
-import { type Context, escapeHtml, type Renderer, type Show } from './index.ts'
+import { type Context, escapeHtml, RENDER_DEPTH, type Renderer, type Show } from './index.ts'
 import { stateIn } from './state.ts'
 import {
   ERROR_ATTR,
@@ -20,13 +20,15 @@ const nothing: AsyncIterable<never> = { async *[Symbol.asyncIterator]() {} }
 
 /** The document at `iri` with everything it transcludes already in it.
  *  Rejects when the document itself cannot be resolved; a child that cannot
- *  fills its own placeholder and leaves the document standing. */
+ *  fills its own placeholder and leaves the document standing. `depth` bounds
+ *  nested transclusion and `renderDepth` nested `ctx.render` calls. */
 export async function renderInline(
   renderer: Renderer,
   resolve: Resolve,
   iri: string,
   show?: Show,
-  depth: number = TRANSCLUDE_DEPTH
+  depth: number = TRANSCLUDE_DEPTH,
+  renderDepth: number = RENDER_DEPTH
 ): Promise<string> {
   const render = async (
     target: string,
@@ -41,7 +43,7 @@ export async function renderInline(
       about: () => {
         throw new Error('about is answered only while a view is drawn')
       },
-      inner: () => Promise.reject(new Error('inner is answered only while a view is drawn')),
+      render: () => Promise.reject(new Error('render is answered only while a view is drawn')),
       // Rendered once and never again, so state holds its initial values and
       // a set has nothing to re-render.
       state: stateIn(new Map()),
@@ -56,7 +58,7 @@ export async function renderInline(
         }
       }
     }
-    const rendered = await renderer.render(resource, ctx, targetShow)
+    const rendered = await renderer.render(resource, ctx, targetShow, renderDepth)
     return rendered.html
   }
   return render(iri, show, [thingOf(iri, show)])

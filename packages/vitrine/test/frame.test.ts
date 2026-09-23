@@ -36,7 +36,7 @@ const around = (id: string, when = markdown): View => ({
   id,
   when,
   async render(_resource, ctx) {
-    const inner = await ctx.inner()
+    const inner = await ctx.render()
     return wrap(inner, (body) => `<section data-wrapper="${id}">${body}</section>`)
   }
 })
@@ -55,7 +55,7 @@ const region = () => {
   return el
 }
 
-describe('ctx.inner', () => {
+describe('ctx.render', () => {
   test('selects past the wrapper that asks, so it never draws itself', async () => {
     const renderer = createRenderer({ parsers: [], views: [around('w'), plain('p')] })
     const { html } = await renderer.render(note('https://pod.example/a.md'), context())
@@ -68,7 +68,10 @@ describe('ctx.inner', () => {
       id: 'w',
       when: markdown,
       async render(_resource, ctx) {
-        return wrap(await ctx.inner({ view: 'q' }), (body) => `<section>${body}</section>`)
+        return wrap(
+          await ctx.render(undefined, { view: 'q' }),
+          (body) => `<section>${body}</section>`
+        )
       }
     }
     const renderer = createRenderer({ parsers: [], views: [naming, plain('p'), plain('q', [])] })
@@ -83,7 +86,7 @@ describe('ctx.inner', () => {
       id: 'w',
       when: markdown,
       async render(_resource, ctx) {
-        const inner = await ctx.inner()
+        const inner = await ctx.render()
         seen = inner.view.id
         return wrap(inner, (body) => body)
       }
@@ -122,7 +125,7 @@ describe('ctx.inner', () => {
         const other = await ctx.resolve('https://pod.example/other.md')
         const words = String(resource.body).split(/\s+/).length
         return wrap(
-          await ctx.inner(),
+          await ctx.render(),
           (body) =>
             `<aside data-words="${words}" data-other="${String(other.body)}">${body}</aside>`
         )
@@ -190,7 +193,7 @@ describe('ctx.state', () => {
       async render(_resource, ctx) {
         const count = ctx.state('count', 0)
         return wrap(
-          await ctx.inner(),
+          await ctx.render(),
           (body) => `<button data-count="outer">${count.get()}</button>${body}`,
           (root) => {
             const button = root.querySelector<HTMLButtonElement>('[data-count="outer"]')

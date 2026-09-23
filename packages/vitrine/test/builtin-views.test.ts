@@ -33,7 +33,7 @@ const noop: Context = {
   about: () => {
     throw new Error('no resource is drawn here')
   },
-  inner: () => Promise.reject(new Error('no inner view')),
+  render: () => Promise.reject(new Error('no view below')),
   state: stateIn(new Map())
 }
 

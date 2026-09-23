@@ -82,15 +82,23 @@ export type Context = {
    *  to insert verbatim. Whether that string is the rendered child or a
    *  placeholder a host fills in later is the host's business. */
   transclude(iri: string, show?: Show): Promise<string>
-  /** Draws this resource again with the view that would have drawn it were
-   *  the calling view not there: selection skips every view already drawing
-   *  it in this render, so a wrapper never picks itself or one around it.
-   *  `show` may name the inner view; fragment and clip default to this
-   *  render's own. Given `resource`, the layer below draws that one instead,
-   *  as it is: a wrapper that derives a resource, a graph turned from one
-   *  shape into another, hands it on and lets the rules draw it. Rejects when
-   *  no view is left. */
-  inner(show?: Show, resource?: Resource): Promise<Drawn>
+  /** Draws a resource the way vitrine draws any: the rules pick a view, and
+   *  its output comes back as HTML with `hydrate`. Without `resource` it
+   *  draws the one being drawn, with the view that would have drawn it were
+   *  the calling view not there, so a wrapper never picks itself or one
+   *  around it. Given `resource`, it draws that one: a derived resource, a
+   *  graph turned from one shape into another, handed on to the rules.
+   *
+   *  A view is passed over only where it already draws the same resource
+   *  with the same focus in this render, which is a cycle. A different
+   *  resource may be drawn by the same view again, a tree drawing its
+   *  branches with itself. Past RENDER_DEPTH nested calls, or the depth a
+   *  host sets, the call draws with a view that has no conditions, the
+   *  registry's last resort, since a view that derives a new resource on
+   *  every step would never meet a cycle. `show` may name the view;
+   *  fragment and clip default to this render's own. Rejects when no view
+   *  is left. */
+  render(resource?: Resource, show?: Show): Promise<Drawn>
   /** A value this view keeps for this instance under `key`, `initial` until
    *  it is set. It survives every re-render of the instance, and `set`
    *  re-renders it, so a view reads its state while rendering and sets it
@@ -110,8 +118,8 @@ export type State<T> = {
   set(value: T): void
 }
 
-/** A view's output together with the view that drew it: what `inner` and
- *  `Renderer.render` answer. */
+/** A view's output together with the view that drew it: what `ctx.render`
+ *  and `Renderer.render` answer. */
 export type Drawn = Rendered & { view: View }
 
 // ----------------------------------------------------------- selection
@@ -168,7 +176,7 @@ export type Rendered = {
 
 let bodies = 0
 
-/** A wrapper's output around what `inner` drew. `around` receives the inner
+/** A wrapper's output around what `ctx.render` drew. `around` receives the inner
  *  body, the inner HTML inside one element of its own, and answers the
  *  wrapper's whole markup with that body placed in it once. Hydrating hands
  *  the inner view the body as its root and the wrapper `hydrate` the whole
@@ -249,10 +257,20 @@ export type Renderer = {
   select(resource: Resource, show?: Show): View | undefined
   /** parse, select, render, answering the output with the view that drew it,
    *  the outermost one when that view wraps others. The context each view
-   *  receives carries `inner` for this resource and `state` scoped to that
-   *  view. Rejects when no view applies. */
-  render(resource: Resource, ctx: Context, show?: Show): Promise<Drawn>
+   *  receives carries `render` for this resource and `state` scoped to that
+   *  view. `depth` bounds nested `ctx.render` calls, RENDER_DEPTH unless
+   *  given. Rejects when no view applies. */
+  render(resource: Resource, ctx: Context, show?: Show, depth?: number): Promise<Drawn>
 }
+
+/** How many `ctx.render` calls may nest in one render before only views
+ *  without conditions are left. */
+export const RENDER_DEPTH = 8
+
+/** One view drawing one resource and focus, the unit a cycle repeats. */
+type Drawing = { view: string; thing: string }
+
+const thingDrawn = (resource: Resource) => `${resource.iri} ${resource.subject ?? resource.iri}`
 
 export function createRenderer(registry: Registry): Renderer {
   const byId = new Map(registry.views.map((v) => [v.id, v]))
@@ -269,10 +287,21 @@ export function createRenderer(registry: Registry): Renderer {
     return { ...resource, quads: [...kept, ...read] }
   }
 
-  // `past` holds the ids of the views already drawing this resource in this
-  // render; a view in it is passed over wherever it would have been picked.
-  const pick = (resource: Resource, show: Show | undefined, past: readonly string[]) => {
-    const open = (v: View | undefined) => (v && !past.includes(v.id) ? v : undefined)
+  // `past` holds what is already being drawn in this render: each view with
+  // the resource and focus it draws. A view is passed over only for the same
+  // resource and focus, and past `limit` only views without conditions are
+  // left, so a chain that derives a new resource on every step still ends.
+  const pick = (
+    resource: Resource,
+    show: Show | undefined,
+    past: readonly Drawing[],
+    limit: number
+  ) => {
+    const here = thingDrawn(resource)
+    const open = (v: View | undefined) =>
+      v && !past.some((d) => d.view === v.id && d.thing === here) ? v : undefined
+    if (past.length >= limit)
+      return registry.views.find((v) => open(v) && v.when !== undefined && v.when.length === 0)
     const shown = show?.view === undefined ? undefined : open(byId.get(show.view))
     if (shown) return shown
     for (const rule of registry.rules ?? []) {
@@ -283,27 +312,30 @@ export function createRenderer(registry: Registry): Renderer {
   }
 
   // One layer of a render. The view picked here is handed a context whose
-  // `inner` draws the next layer with this view added to `past`, and whose
-  // `state` keys carry this view's id. The chain lives in these closures
-  // rather than in the context type, so a view never sees it and a host
-  // building its own context never has to carry it.
+  // `render` draws the next layer with this drawing added to `past`, and
+  // whose `state` keys carry this view's id. The chain lives in these
+  // closures rather than in the context type, so a view never sees it and a
+  // host building its own context never has to carry it.
   const layer = async (
     resource: Resource,
     ctx: Context,
     show: Show | undefined,
-    past: readonly string[]
+    past: readonly Drawing[],
+    limit: number
   ): Promise<Drawn> => {
-    const view = pick(resource, show, past)
+    const view = pick(resource, show, past, limit)
     if (!view) throw new Error(`no view applies to ${resource.iri} (${resource.contentType})`)
+    const drawing = { view: view.id, thing: thingDrawn(resource) }
     const own = (base: Context): Context => ({
       ...base,
       about: (subject) => about(resource, subject),
-      inner: (innerShow, derived) =>
+      render: (derived, innerShow) =>
         layer(
           derived ?? resource,
           ctx,
           { fragment: show?.fragment, clip: show?.clip, ...innerShow },
-          [...past, view.id]
+          [...past, drawing],
+          limit
         ),
       state: ((key: string, initial?: unknown) =>
         base.state(`${view.id} ${key}`, initial)) as Context['state']
@@ -317,10 +349,15 @@ export function createRenderer(registry: Registry): Renderer {
       : { ...rendered, view }
   }
 
-  const select = (resource: Resource, show?: Show) => pick(focused(resource, show), show, [])
+  const select = (resource: Resource, show?: Show) =>
+    pick(focused(resource, show), show, [], RENDER_DEPTH)
 
-  const render = async (resource: Resource, ctx: Context, show?: Show): Promise<Drawn> =>
-    layer(focused(await parse(resource), show), ctx, show, [])
+  const render = async (
+    resource: Resource,
+    ctx: Context,
+    show?: Show,
+    depth: number = RENDER_DEPTH
+  ): Promise<Drawn> => layer(focused(await parse(resource), show), ctx, show, [], depth)
 
   return { parse, select, render }
 }
