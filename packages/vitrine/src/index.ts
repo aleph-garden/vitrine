@@ -86,8 +86,11 @@ export type Context = {
    *  the calling view not there: selection skips every view already drawing
    *  it in this render, so a wrapper never picks itself or one around it.
    *  `show` may name the inner view; fragment and clip default to this
-   *  render's own. Rejects when no view is left. */
-  inner(show?: Show): Promise<Drawn>
+   *  render's own. Given `resource`, the layer below draws that one instead,
+   *  as it is: a wrapper that derives a resource, a graph turned from one
+   *  shape into another, hands it on and lets the rules draw it. Rejects when
+   *  no view is left. */
+  inner(show?: Show, resource?: Resource): Promise<Drawn>
   /** A value this view keeps for this instance under `key`, `initial` until
    *  it is set. It survives every re-render of the instance, and `set`
    *  re-renders it, so a view reads its state while rendering and sets it
@@ -295,11 +298,13 @@ export function createRenderer(registry: Registry): Renderer {
     const own = (base: Context): Context => ({
       ...base,
       about: (subject) => about(resource, subject),
-      inner: (innerShow) =>
-        layer(resource, ctx, { fragment: show?.fragment, clip: show?.clip, ...innerShow }, [
-          ...past,
-          view.id
-        ]),
+      inner: (innerShow, derived) =>
+        layer(
+          derived ?? resource,
+          ctx,
+          { fragment: show?.fragment, clip: show?.clip, ...innerShow },
+          [...past, view.id]
+        ),
       state: ((key: string, initial?: unknown) =>
         base.state(`${view.id} ${key}`, initial)) as Context['state']
     })
