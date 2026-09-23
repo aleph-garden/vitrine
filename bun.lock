@@ -14,7 +14,7 @@
     "packages/docs": {
       "name": "@aleph-garden/docs",
       "dependencies": {
-        "@aleph-garden/starlight-theme": "0.1.0-dev",
+        "@aleph-garden/starlight-theme": "0.1.2-dev",
         "@aleph-garden/vitrine": "workspace:*",
         "@aleph-garden/vitrine-examples": "workspace:*",
         "@astrojs/starlight": "^0.42.1",
@@ -130,7 +130,7 @@
 
     "@aleph-garden/pod-host": ["@aleph-garden/pod-host@workspace:packages/pod-host"],
 
-    "@aleph-garden/starlight-theme": ["@aleph-garden/starlight-theme@0.1.0-dev", "", { "dependencies": { "@aleph-garden/brand": "0.1.1-dev" }, "peerDependencies": { "@astrojs/starlight": ">=0.42.0" } }, "sha512-UPN/wVUTquJUBK4vzbnuBJ2ryKP7iZuc27PiYMBLy1kmOtxBbmcgyKJ3m4AbNYJlZ1CGScq8pq41OOla9Novuw=="],
+    "@aleph-garden/starlight-theme": ["@aleph-garden/starlight-theme@0.1.2-dev", "", { "dependencies": { "@aleph-garden/brand": "0.1.1-dev" }, "peerDependencies": { "@astrojs/starlight": ">=0.42.0" } }, "sha512-d/3uY/GRAOlBYXFeE29Sph78W1F2w32nX9LiiNFRhjY+9T857W5mVKgAIJ4168YOn7nSQlqgOb/c+Y8IhztvsQ=="],
 
     "@aleph-garden/terms": ["@aleph-garden/terms@workspace:packages/terms"],
 
