@@ -7,7 +7,7 @@ const resource = (iri: string, body = ''): Resource => ({
   iri,
   contentType: 'text/markdown',
   body,
-  meta: [],
+  quads: [],
   allow: ['read']
 })
 

@@ -3,10 +3,10 @@ import { ldp, schema, solid } from '@aleph-garden/terms'
 
 import {
   AS,
+  about,
   type Context,
   escapeHtml,
   isContainer,
-  objects,
   type Rendered,
   type Resource,
   type Show,
@@ -468,7 +468,7 @@ async function buildIndex(
     } catch {
       return
     }
-    for (const child of objects(container.meta, iri, ldp.contains)) {
+    for (const child of about(container, iri).terms(ldp.contains)) {
       const childIsContainer =
         child.value.endsWith('/') || isContainer({ ...container, iri: child.value })
       if (childIsContainer) await walkContainer(root, child.value)
@@ -478,14 +478,13 @@ async function buildIndex(
 
   try {
     const profile = await ctx.resolve(webId.split('#')[0]!)
-    for (const typeIndex of objects(profile.graph ?? [], webId, solid.privateTypeIndex)) {
+    for (const typeIndex of about(profile, webId).terms(solid.privateTypeIndex)) {
       const registry = await ctx.resolve(typeIndex.value)
-      const graph = registry.graph ?? []
-      const registrations = graph
+      const registrations = registry.quads
         .filter((q) => q.predicate.value === solid.forClass && q.object.value === NOTE_CLASS)
         .map((q) => q.subject.value)
       for (const registration of registrations) {
-        for (const root of objects(graph, registration, solid.instanceContainer)) {
+        for (const root of about(registry, registration).terms(solid.instanceContainer)) {
           await walkContainer(root.value, root.value)
         }
       }

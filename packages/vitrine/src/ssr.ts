@@ -12,7 +12,8 @@ import {
   mounting,
   placeholderHtml,
   TRANSCLUDE_ATTR,
-  TRANSCLUDE_DEPTH
+  TRANSCLUDE_DEPTH,
+  thingOf
 } from './transclusion.ts'
 
 const nothing: AsyncIterable<never> = { async *[Symbol.asyncIterator]() {} }
@@ -37,15 +38,19 @@ export async function renderInline(
       resolve: (childIri) => resolve(childIri).then(renderer.parse),
       emit: () => {},
       events: nothing,
+      about: () => {
+        throw new Error('about is answered only while a view is drawn')
+      },
       inner: () => Promise.reject(new Error('inner is answered only while a view is drawn')),
       // Rendered once and never again, so state holds its initial values and
       // a set has nothing to re-render.
       state: stateIn(new Map()),
       async transclude(childIri, childShow) {
-        const how = mounting(chain, childIri, depth)
+        const thing = thingOf(childIri, childShow)
+        const how = mounting(chain, thing, depth)
         if (how !== 'auto') return placeholderHtml(childIri, childShow, how)
         try {
-          return await render(childIri, childShow, [...chain, childIri])
+          return await render(childIri, childShow, [...chain, thing])
         } catch (error) {
           return `<div ${TRANSCLUDE_ATTR}="${escapeHtml(childIri)}" ${ERROR_ATTR}>${errorHtml(childIri, error)}</div>`
         }
@@ -54,5 +59,5 @@ export async function renderInline(
     const rendered = await renderer.render(resource, ctx, targetShow)
     return rendered.html
   }
-  return render(iri, show, [iri])
+  return render(iri, show, [thingOf(iri, show)])
 }

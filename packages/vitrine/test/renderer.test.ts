@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import {
+  ALEPH,
   type Context,
   createRenderer,
   holds,
@@ -22,12 +23,16 @@ const q = (s: string, p: string, o: string): Quad => ({
   predicate: iri(p),
   object: iri(o)
 })
+/** The statements as the store states them. */
+const meta = (quads: Quad[]): Quad[] => quads.map((x) => ({ ...x, graph: iri(ALEPH.Meta) }))
+/** The statements as the body of `doc` states them. */
+const body = (doc: string, quads: Quad[]): Quad[] => quads.map((x) => ({ ...x, graph: iri(doc) }))
 
 const resource = (over: Partial<Resource> = {}): Resource => ({
   iri: 'https://pod.example/notes/a.md',
   contentType: 'text/markdown',
   body: '# a',
-  meta: [],
+  quads: [],
   allow: ['read'],
   ...over
 })
@@ -37,6 +42,9 @@ const noop: Context = {
   emit: () => {},
   events: (async function* () {})(),
   transclude: async () => '',
+  about: () => {
+    throw new Error('no resource is drawn here')
+  },
   inner: () => Promise.reject(new Error('no inner view')),
   state: stateIn(new Map())
 }
@@ -51,50 +59,56 @@ describe('quad helpers', () => {
   const container = resource({
     iri: 'https://pod.example/notes/',
     contentType: 'text/turtle',
-    meta: [
+    quads: meta([
       q('https://pod.example/notes/', RDF_TYPE, LDP_CONTAINER),
       q('https://pod.example/notes/', LDP_CONTAINS, 'https://pod.example/notes/a.md'),
       q('https://pod.example/notes/', LDP_CONTAINS, 'https://pod.example/notes/b.md')
-    ]
+    ])
   })
 
   test('objects returns every object for subject and predicate', () => {
-    const found = objects(container.meta, container.iri, LDP_CONTAINS).map((t) => t.value)
+    const found = objects(container.quads, container.iri, LDP_CONTAINS).map((t) => t.value)
     expect(found).toEqual(['https://pod.example/notes/a.md', 'https://pod.example/notes/b.md'])
   })
 
-  test('isContainer reads rdf:type ldp:Container from meta', () => {
+  test('isContainer reads rdf:type ldp:Container as the store states it', () => {
     expect(isContainer(container)).toBe(true)
     expect(isContainer(resource())).toBe(false)
   })
 
-  test('isContainer reads rdf:type ldp:Container from graph as well', () => {
+  test('isContainer reads rdf:type ldp:Container from the body as well', () => {
     const bodyTyped = resource({
       iri: 'https://pod.example/notes/',
       contentType: 'text/turtle',
-      graph: [
+      quads: body('https://pod.example/notes/', [
         q('https://pod.example/notes/', RDF_TYPE, LDP_CONTAINER),
         q('https://pod.example/notes/', LDP_CONTAINS, 'https://pod.example/notes/a.md')
-      ]
+      ])
     })
     expect(isContainer(bodyTyped)).toBe(true)
   })
 
-  test("typesOf reads the subject's rdf:type from graph, empty without graph", () => {
+  test("typesOf reads the subject's rdf:type, empty without a statement", () => {
     const typed = resource({
-      graph: [q('https://pod.example/notes/a.md', RDF_TYPE, 'https://schema.org/Note')]
+      quads: body(resource().iri, [
+        q('https://pod.example/notes/a.md', RDF_TYPE, 'https://schema.org/Note')
+      ])
     })
     expect(typesOf(typed)).toEqual(['https://schema.org/Note'])
     expect(typesOf(resource())).toEqual([])
   })
 
-  test('typesOf unions the types in meta with the ones in graph, without repeats', () => {
+  test('typesOf unions the types the store and the body state, without repeats', () => {
     const both = resource({
-      meta: [
-        q('https://pod.example/notes/a.md', RDF_TYPE, 'https://schema.org/CreativeWork'),
-        q('https://pod.example/notes/a.md', RDF_TYPE, 'https://schema.org/Note')
-      ],
-      graph: [q('https://pod.example/notes/a.md', RDF_TYPE, 'https://schema.org/Note')]
+      quads: [
+        ...meta([
+          q('https://pod.example/notes/a.md', RDF_TYPE, 'https://schema.org/CreativeWork'),
+          q('https://pod.example/notes/a.md', RDF_TYPE, 'https://schema.org/Note')
+        ]),
+        ...body(resource().iri, [
+          q('https://pod.example/notes/a.md', RDF_TYPE, 'https://schema.org/Note')
+        ])
+      ]
     })
     expect(typesOf(both)).toEqual(['https://schema.org/CreativeWork', 'https://schema.org/Note'])
   })
@@ -122,14 +136,16 @@ describe('holds', () => {
   })
 
   test('container matches presence and absence', () => {
-    const c = resource({ meta: [q('x', RDF_TYPE, LDP_CONTAINER)], iri: 'x' })
+    const c = resource({ quads: meta([q('x', RDF_TYPE, LDP_CONTAINER)]), iri: 'x' })
     expect(holds({ container: true }, c)).toBe(true)
     expect(holds({ container: false }, c)).toBe(false)
     expect(holds({ container: false }, resource())).toBe(true)
   })
 
-  test('type needs the statement in graph and never holds without graph', () => {
-    const typed = resource({ graph: [q(resource().iri, RDF_TYPE, 'https://schema.org/Note')] })
+  test('type needs the statement and never holds without one', () => {
+    const typed = resource({
+      quads: body(resource().iri, [q(resource().iri, RDF_TYPE, 'https://schema.org/Note')])
+    })
     expect(holds({ type: 'https://schema.org/Note' }, typed)).toBe(true)
     expect(holds({ type: 'https://schema.org/Note' }, resource())).toBe(false)
   })
@@ -188,11 +204,12 @@ describe('parse and render', () => {
     parse: async (r: Resource) => [q(r.iri, RDF_TYPE, 'https://schema.org/Thing')]
   }
 
-  test('parse fills graph through the matching parser and leaves others alone', async () => {
+  test('parse fills the body graph through the matching parser and leaves others alone', async () => {
     const r = createRenderer({ parsers: [turtle], views: [] })
     const parsed = await r.parse(resource({ contentType: 'text/turtle' }))
     expect(typesOf(parsed)).toEqual(['https://schema.org/Thing'])
-    expect((await r.parse(resource())).graph).toBeUndefined()
+    expect(parsed.quads.every((x) => x.graph?.value === resource().iri)).toBe(true)
+    expect((await r.parse(resource())).quads).toEqual([])
   })
 
   test('render parses, selects by the parsed type, and renders', async () => {

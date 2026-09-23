@@ -3,6 +3,7 @@ import { dcterms, ldp, rdf } from '@aleph-garden/terms'
 import type { Fetch } from '../src/http.ts'
 import { fetchResource } from '../src/http.ts'
 import {
+  ALEPH,
   about,
   type Context,
   containerView,
@@ -20,13 +21,16 @@ const noop: Context = {
   emit: () => {},
   events: (async function* () {})(),
   transclude: async () => '',
+  about: () => {
+    throw new Error('no resource is drawn here')
+  },
   inner: () => Promise.reject(new Error('no inner view')),
   state: stateIn(new Map())
 }
 
 /** Enough of a Turtle reader for the one container fixture below: the point
  *  here is that fetchResource calls what it was handed and folds the quads
- *  into `meta`, which a real parser is not needed to show. */
+ *  into the body's graph, which a real parser is not needed to show. */
 const parseMeta = (text: string, baseIRI: string) =>
   [...text.matchAll(/<([^>]+)>\s+<([^>]+)>\s+<([^>]+)>\s*\./g)].map(([, s, p, o]) => ({
     subject: { termType: 'NamedNode' as const, value: new URL(s!, baseIRI).href },
@@ -75,7 +79,8 @@ describe('fetchResource', () => {
     expect(r.body).toBe('# a')
     expect(r.allow).toEqual(['read', 'write'])
     expect(isContainer(r)).toBe(false)
-    expect(about(r.meta, r.iri).one(dcterms.modified)).toBe('2026-09-17T10:00:00.000Z')
+    expect(about(r).meta.one(dcterms.modified)).toBe('2026-09-17T10:00:00.000Z')
+    expect(about(r).content.one(dcterms.modified)).toBeUndefined()
   })
 
   test('a type declared only in the Link header reaches a { type } condition', async () => {
@@ -88,8 +93,9 @@ describe('fetchResource', () => {
       ),
       'https://pod.example/invoice.pdf'
     )
-    expect(r.graph).toBeUndefined()
+    expect(r.quads.every((q) => q.graph?.value === ALEPH.Meta)).toBe(true)
     expect(holds({ type: 'https://schema.org/Invoice' }, r)).toBe(true)
+    expect(holds({ graph: true }, r)).toBe(false)
   })
 
   test('marks a container from the Link header and lists its children from the body', async () => {
@@ -110,7 +116,7 @@ describe('fetchResource', () => {
       parseMeta
     )
     expect(isContainer(r)).toBe(true)
-    const children = about(r.meta, r.iri).all(ldp.contains)
+    const children = about(r).content.all(ldp.contains)
     expect(children).toEqual(['https://pod.example/notes/a.md', 'https://pod.example/notes/sub/'])
     expect(isContainer({ ...r, iri: 'https://pod.example/notes/sub/' })).toBe(true)
   })
@@ -164,7 +170,7 @@ describe('a container typed only in its body', () => {
 
   test('reaches containerView and lists its children', async () => {
     const r = await fetched()
-    expect(r.meta.some((q) => q.predicate.value === ldp.contains)).toBe(false)
+    expect(about(r).meta.all(ldp.contains)).toEqual([])
 
     const renderer = createRenderer({
       parsers: [

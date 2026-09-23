@@ -15,7 +15,7 @@ describe('jsonLdParser', () => {
         '@type': 'https://schema.org/Person',
         name: { '@value': 'Toph', '@language': 'de' }
       }),
-      meta: [],
+      quads: [],
       allow: ['read']
     })
     expect(
@@ -23,9 +23,8 @@ describe('jsonLdParser', () => {
         iri: 'https://pod.example/x.jsonld#me',
         contentType: '',
         body: '',
-        meta: [],
-        allow: [],
-        graph: quads
+        quads,
+        allow: []
       })
     ).toEqual(['https://schema.org/Person'])
     const name = quads.find((q) => q.predicate.value === 'https://schema.org/name')!
@@ -44,7 +43,7 @@ describe('jsonLdParser', () => {
         iri: 'https://pod.example/x.jsonld',
         contentType: 'application/ld+json',
         body: 'not json',
-        meta: [],
+        quads: [],
         allow: ['read']
       })
     ).rejects.toThrow()

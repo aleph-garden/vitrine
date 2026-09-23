@@ -18,7 +18,7 @@ left out:
 
 ```ts
 import { schema } from '@aleph-garden/terms'
-import { escapeHtml, objects, type View } from '@aleph-garden/vitrine'
+import { about, escapeHtml, type View } from '@aleph-garden/vitrine'
 
 /** An IRI a view may put in an href. Escaping says nothing about a scheme,
  *  and `javascript:` in a graph someone else wrote is the reason to look. */
@@ -40,9 +40,9 @@ export const personCardView: View = {
   when: [{ type: schema.Person }],
 
   async render(resource, ctx) {
-    const graph = resource.graph ?? []
-    const value = (predicate: string) => objects(graph, resource.iri, predicate)[0]?.value
-    const name = value(schema.name) ?? resource.iri
+    const person = about(resource)
+    const value = (predicate: string) => person.one(predicate)
+    const name = value(schema.name) ?? person.iri
     const image = value(schema.image)
     const employerIri = value(schema.worksFor)
 
@@ -53,7 +53,7 @@ export const personCardView: View = {
     let employer = ''
     if (employerIri && linkable(employerIri)) {
       const org = await ctx.resolve(employerIri)
-      const orgName = objects(org.graph ?? [], employerIri, schema.name)[0]?.value ?? employerIri
+      const orgName = about(org).one(schema.name) ?? employerIri
       employer = `<p class="employer"><a href="${escapeHtml(employerIri)}">${escapeHtml(orgName)}</a></p>`
     }
 

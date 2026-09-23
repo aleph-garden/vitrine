@@ -35,6 +35,8 @@ export const solid = ns(
 
 export const pim = ns('http://www.w3.org/ns/pim/space#', 'storage')
 
+export const vitrine = ns('https://w3id.org/vitrine/ns#', 'View', 'Host', 'Select', 'Meta')
+
 export const schema = ns(
   'https://schema.org/',
   'Person',

@@ -11,8 +11,8 @@ export const DEFERRED_ATTR = 'data-aleph-deferred'
 /** Set on a placeholder whose child could not be mounted. */
 export const ERROR_ATTR = 'data-aleph-error'
 
-/** Why a placeholder was left unmounted. `cycle`: the IRI is already an
- *  ancestor. `depth`: the chain reached the limit. */
+/** Why a placeholder was left unmounted. `cycle`: the same thing is already
+ *  an ancestor. `depth`: the chain reached the limit. */
 export type Deferral = 'cycle' | 'depth'
 
 /** What the runtime does with a placeholder when it walks a region. */
@@ -21,12 +21,20 @@ export type Mounting = 'auto' | Deferral
 /** How deep the runtime mounts on its own. */
 export const TRANSCLUDE_DEPTH = 3
 
-/** `auto`, or the reason this child is not mounted without being asked. A
- *  deferred placeholder stays a placeholder, so an ancestor IRI reads as a
- *  spiral one level at a time instead of looping. */
-export function mounting(chain: readonly string[], iri: string, depth: number): Mounting {
-  if (chain.includes(iri)) return 'cycle'
+/** `auto`, or the reason this child is not mounted without being asked.
+ *  `chain` and `thing` are what `thingOf` answers, so a document embedding
+ *  its own subjects is no cycle while a subject embedding itself is. A
+ *  deferred placeholder stays a placeholder, so an ancestor reads as a spiral
+ *  one level at a time instead of looping. */
+export function mounting(chain: readonly string[], thing: string, depth: number): Mounting {
+  if (chain.includes(thing)) return 'cycle'
   return chain.length >= depth ? 'depth' : 'auto'
+}
+
+/** What an embedding is about, for cycle detection: the IRI, with the
+ *  fragment the show names when there is one. */
+export function thingOf(iri: string, show?: Show): string {
+  return show?.fragment === undefined ? iri : `${iri}#${show.fragment}`
 }
 
 /** Identity of a child under one parent: same key, same instance across a

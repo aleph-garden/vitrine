@@ -1,7 +1,7 @@
 // Contracts and the pipeline. No RDF library, no DOM: quads are plain data,
 // and everything that touches elements lives in ./dom.ts.
 
-import { dcterms, ldp, rdf } from '@aleph-garden/terms'
+import { dcterms, ldp, rdf, vitrine } from '@aleph-garden/terms'
 
 // ---------------------------------------------------------------- data
 
@@ -22,12 +22,24 @@ export type Quad = {
   graph?: Term
 }
 
+/** What an IRI answered, seen from the front: `body` and `contentType` for the
+ *  bytes, `quads` for everything known about it. */
 export type Resource = {
   iri: string
   contentType: string
   body: string | Uint8Array
-  graph?: Quad[]
-  meta: Quad[]
+  /** Everything known about this IRI, as one dataset. Each quad's graph says
+   *  where it came from: what the body says sits in the graph named by `iri`,
+   *  what is known about the resource from outside its content (its type as
+   *  the store states it, when it changed, its members) in `ALEPH.Meta`, and a
+   *  further document a resolver brought in under that document's IRI. A
+   *  view reads it through `about`, which takes the union unless asked for
+   *  less. */
+  quads: Quad[]
+  /** The subject within the resource this rendering is about, set by the
+   *  renderer from `show.fragment` when the quads describe `iri#fragment`.
+   *  Absent: the resource's own IRI. */
+  subject?: string
   allow: Mode[]
 }
 
@@ -46,15 +58,24 @@ export const AS = {
 } as const
 
 export const ALEPH = {
-  Select: 'https://w3id.org/vitrine/ns#Select'
+  Select: vitrine.Select,
+  /** The graph holding what is known about a resource from outside its
+   *  content. Whoever resolves the IRI fills it: from HTTP headers, from a
+   *  file's metadata, from whatever the transport tells. */
+  Meta: vitrine.Meta
 } as const
 
 // ------------------------------------------------------------- context
 
 export type Context = {
   /** Answers the resource at `iri`, parsed the way a rendered one is: when a
-   *  registered parser reads its content type, `graph` holds the quads. */
+   *  registered parser reads its content type, its quads hold what the body
+   *  says. */
   resolve(iri: string): Promise<Resource>
+  /** A reader over the resource being drawn, on `subject`, by default the
+   *  subject the rendering is about: `about(resource)` without the import. A
+   *  resource the view resolved itself is read with `about` directly. */
+  about(subject?: string): Reader
   emit(event: Event): void
   events: AsyncIterable<Event>
   /** Brings `iri` in as a child with a life of its own, and answers the HTML
@@ -96,6 +117,12 @@ export type Condition =
   | { iri: string | RegExp }
   | { contentType: string | RegExp }
   | { container: boolean }
+  /** Holds when the body produced quads: the resource can be read as a graph,
+   *  whatever its content type. */
+  | { graph: boolean }
+  /** Holds when the subject the rendering is about has this `rdf:type`. For
+   *  a thing described in RDF the type does what the content type does for
+   *  bytes. */
   | { type: string }
   | { ask: string }
 
@@ -113,8 +140,8 @@ export type Show = {
    *  every rule. */
   view?: string
   /** The part of the resource that is meant, named the way the media type
-   *  names parts: a heading or a block id in Markdown, the subject an IRI
-   *  denotes in RDF. */
+   *  names parts: a heading or a block id in Markdown, the subject
+   *  `iri#fragment` in RDF, which then becomes the resource's `subject`. */
   fragment?: string
   /** Render `fragment` alone, without the rest of the resource. A view that
    *  does not understand it ignores it. */
@@ -189,6 +216,10 @@ export type View = {
 
 // -------------------------------------------------------------- parser
 
+/** Reads quads out of a body. The first parser registered for a content type
+ *  is the one that runs; the renderer puts what it answers into the graph
+ *  named by the resource's IRI. A quad that names its own graph keeps it, so
+ *  a dataset format loses nothing. */
 export type Parser = {
   contentType: string | RegExp
   parse(resource: Resource): Promise<Quad[]>
@@ -204,10 +235,14 @@ export type Registry = {
 }
 
 export type Renderer = {
-  /** Fills `graph` through the first parser whose contentType matches. */
+  /** Puts what the first parser whose contentType matches reads out of the
+   *  body into the graph named by the resource's IRI, replacing whatever
+   *  that graph held. */
   parse(resource: Resource): Promise<Resource>
   /** Show first, then registry rules in order, then each view's `when`
-   *  in registration order; undefined when nothing holds. */
+   *  in registration order; undefined when nothing holds. Conditions are
+   *  tested on the subject `show.fragment` names, where the quads describe
+   *  one. */
   select(resource: Resource, show?: Show): View | undefined
   /** parse, select, render, answering the output with the view that drew it,
    *  the outermost one when that view wraps others. The context each view
@@ -223,7 +258,12 @@ export function createRenderer(registry: Registry): Renderer {
   const parse = async (resource: Resource): Promise<Resource> => {
     const parser = registry.parsers.find((p) => matchesType(p.contentType, resource.contentType))
     if (!parser) return resource
-    return { ...resource, graph: await parser.parse(resource) }
+    const document: Term = { termType: 'NamedNode', value: resource.iri }
+    const read = (await parser.parse(resource)).map((q) =>
+      q.graph ? q : { ...q, graph: document }
+    )
+    const kept = resource.quads.filter((q) => q.graph?.value !== resource.iri)
+    return { ...resource, quads: [...kept, ...read] }
   }
 
   // `past` holds the ids of the views already drawing this resource in this
@@ -254,6 +294,7 @@ export function createRenderer(registry: Registry): Renderer {
     if (!view) throw new Error(`no view applies to ${resource.iri} (${resource.contentType})`)
     const own = (base: Context): Context => ({
       ...base,
+      about: (subject) => about(resource, subject),
       inner: (innerShow) =>
         layer(resource, ctx, { fragment: show?.fragment, clip: show?.clip, ...innerShow }, [
           ...past,
@@ -271,12 +312,23 @@ export function createRenderer(registry: Registry): Renderer {
       : { ...rendered, view }
   }
 
-  const select = (resource: Resource, show?: Show) => pick(resource, show, [])
+  const select = (resource: Resource, show?: Show) => pick(focused(resource, show), show, [])
 
   const render = async (resource: Resource, ctx: Context, show?: Show): Promise<Drawn> =>
-    layer(await parse(resource), ctx, show, [])
+    layer(focused(await parse(resource), show), ctx, show, [])
 
   return { parse, select, render }
+}
+
+/** The resource standing on the subject `show.fragment` names, when its quads
+ *  describe `iri#fragment`. A fragment that names no subject, a heading in
+ *  Markdown for one, leaves the focus where it was. */
+function focused(resource: Resource, show: Show | undefined): Resource {
+  if (show?.fragment === undefined) return resource
+  const subject = `${resource.iri}#${show.fragment}`
+  return resource.quads.some((q) => q.subject.value === subject)
+    ? { ...resource, subject }
+    : resource
 }
 
 /** The condition holds for the resource. `iri` equals the resource IRI or,
@@ -288,8 +340,14 @@ export function holds(condition: Condition, resource: Resource): boolean {
       : condition.iri.test(resource.iri)
   if ('contentType' in condition) return matchesType(condition.contentType, resource.contentType)
   if ('container' in condition) return isContainer(resource) === condition.container
+  if ('graph' in condition) return hasContent(resource) === condition.graph
   if ('type' in condition) return typesOf(resource).includes(condition.type)
   return false
+}
+
+/** Whether the body produced quads: the graph named by the IRI holds any. */
+function hasContent(resource: Resource): boolean {
+  return resource.quads.some((q) => q.graph?.value === resource.iri)
 }
 
 function matchesType(expected: string | RegExp, contentType: string): boolean {
@@ -300,8 +358,8 @@ function matchesType(expected: string | RegExp, contentType: string): boolean {
 }
 
 // ---------------------------------------------------------- quad helpers
-// Plain scans over quad arrays, so that views and conditions read `meta`
-// and `graph` without an RDF library.
+// Plain scans over quad arrays, so that views and conditions read a
+// resource's statements without an RDF library.
 
 export function objects(quads: Quad[], subject: string, predicate: string): Term[] {
   return quads
@@ -318,18 +376,32 @@ export type Reader = {
   all(predicate: string, opts?: { lang?: string }): string[]
   /** The first object as a string. */
   one(predicate: string, opts?: { lang?: string }): string | undefined
-  /** A reader on the first object. An absent object, or a literal, yields a
-   *  reader that finds nothing, so a chain reads to the end without a check
-   *  at every step. */
+  /** A reader on the first object, over the same statements. An absent
+   *  object, or a literal, yields a reader that finds nothing, so a chain
+   *  reads to the end without a check at every step. */
   node(predicate: string): Reader
+  /** The same subject, reading only the statements in these graphs. A
+   *  reader already restricted narrows further: chained, they intersect. */
+  from(...graphs: string[]): Reader
+  /** Only what is known about the resource from outside its content:
+   *  `from(ALEPH.Meta)`. */
+  readonly meta: Reader
+  /** Only what the resource's own body says: `from(iri)` of the resource the
+   *  reader was made for; over a bare quad array, the quads in no graph. */
+  readonly content: Reader
 }
 
-/** A reader over `source`, on `subject`. The subject defaults to the
- *  resource's own IRI and the quads to its `graph`, which is the pair a view
- *  reads almost every time. */
+/** A reader over `source`, on `subject`. Over a resource the subject defaults
+ *  to the one the rendering is about and the statements are all of its quads,
+ *  whichever graph they sit in, which is what a view reads almost every
+ *  time. */
 export function about(source: Resource | Quad[], subject?: string): Reader {
-  const quads = Array.isArray(source) ? source : (source.graph ?? [])
-  const iri = subject ?? (Array.isArray(source) ? '' : source.iri)
+  if (Array.isArray(source)) return reader(source, subject ?? '', undefined)
+  return reader(source.quads, subject ?? source.subject ?? source.iri, source.iri)
+}
+
+function reader(quads: Quad[], iri: string, document: string | undefined): Reader {
+  const narrowed = (keep: (q: Quad) => boolean) => reader(quads.filter(keep), iri, document)
   const self: Reader = {
     iri,
     terms: (predicate) => objects(quads, iri, predicate),
@@ -337,7 +409,14 @@ export function about(source: Resource | Quad[], subject?: string): Reader {
     one: (predicate, opts) => self.all(predicate, opts)[0],
     node(predicate) {
       const first = self.terms(predicate)[0]
-      return about(quads, first && first.termType !== 'Literal' ? first.value : '')
+      return reader(quads, first && first.termType !== 'Literal' ? first.value : '', document)
+    },
+    from: (...graphs) => narrowed((q) => q.graph !== undefined && graphs.includes(q.graph.value)),
+    get meta() {
+      return self.from(ALEPH.Meta)
+    },
+    get content() {
+      return document === undefined ? narrowed((q) => q.graph === undefined) : self.from(document)
     }
   }
   return self
@@ -351,26 +430,23 @@ function byLanguage(terms: Term[], lang?: string): Term[] {
   return tagged.length > 0 ? tagged : terms.filter((t) => t.language === undefined)
 }
 
-/** Whether the response states that this resource is an `ldp:Container`.
- *  Reads `typesOf`, so a `Link; rel="type"` header and an `rdf:type`
- *  statement in the body are the same claim: a server is free to make it in
- *  either place, and LDP asks for the header rather than requiring it. */
+/** Whether this resource is stated to be an `ldp:Container`, by the store or
+ *  by its body alike: LDP asks for a `Link; rel="type"` header without
+ *  requiring it, so the same claim may arrive in either place. */
 export function isContainer(resource: Resource): boolean {
-  return typesOf(resource).includes(ldp.Container)
+  return about(resource, resource.iri).all(rdf.type).includes(ldp.Container)
 }
 
-/** Every `rdf:type` the response states of the resource's own subject, from
- *  the envelope and from the body alike. A `Link; rel="type"` header and an
- *  `rdf:type` statement in the graph are the same claim made in two places,
- *  so neither overrules the other and a resource with no RDF in it is
- *  typeable all the same. */
+/** Every `rdf:type` stated of the subject the rendering is about, from every
+ *  graph: a type the store states and a type the body states are the same
+ *  claim made in two places, so neither overrules the other and a resource
+ *  with no RDF in its body is typeable all the same. */
 export function typesOf(resource: Resource): string[] {
-  const here = (quads: Quad[]) => about(quads, resource.iri).all(rdf.type)
-  return [...new Set([...here(resource.meta), ...here(resource.graph ?? [])])]
+  return [...new Set(about(resource).all(rdf.type))]
 }
 
 // --------------------------------------------------------- built-in views
-// Both read `meta` and `graph` as plain quads, so they live here.
+// They read quads as plain data, so they live here.
 
 export function escapeHtml(text: string): string {
   return text
@@ -389,16 +465,15 @@ export const containerView: View = {
   id: 'https://aleph.garden/views/container',
   when: [{ container: true }],
   async render(resource) {
-    // Containment arrives in the envelope or in the body, the two places
-    // `typesOf` reads a type from, and both carry it when the server sent the
-    // type link and a parser read the body. Hence the union and the dedup:
-    // one member, one entry, wherever the statement came from.
-    const stated = [...resource.meta, ...(resource.graph ?? [])]
-    const items = [...new Set(about(stated, resource.iri).all(ldp.contains))].map((iri) => {
-      const child = about(stated, iri)
-      const container = child.all(rdf.type).includes(ldp.Container)
+    // Containment arrives from the store or in the body, and both carry it
+    // when the server sent it both ways. Hence the dedup: one member, one
+    // entry, wherever the statement came from.
+    const container = about(resource, resource.iri)
+    const items = [...new Set(container.all(ldp.contains))].map((iri) => {
+      const child = about(resource, iri)
+      const isFolder = child.all(rdf.type).includes(ldp.Container)
       const modified = child.one(dcterms.modified)
-      const cls = container ? 'child is-container' : 'child'
+      const cls = isFolder ? 'child is-container' : 'child'
       const time = modified
         ? ` <time datetime="${escapeHtml(modified)}">${escapeHtml(modified)}</time>`
         : ''
@@ -431,11 +506,20 @@ function graphHtml(graph: Quad[]): string {
   return `<table class="statements">${groups.join('')}</table>`
 }
 
+/** The statements to show for a resource: those about the subject in focus
+ *  when the rendering is about one subject, the body's otherwise. */
+function statementsOf(resource: Resource): Quad[] {
+  const focus = resource.subject ?? resource.iri
+  if (focus !== resource.iri) return resource.quads.filter((q) => q.subject.value === focus)
+  return resource.quads.filter((q) => q.graph?.value === resource.iri)
+}
+
 export const fallbackView: View = {
   id: 'https://aleph.garden/views/fallback',
   when: [],
   async render(resource) {
-    if (resource.graph) return { html: graphHtml(resource.graph) }
+    const statements = statementsOf(resource)
+    if (statements.length > 0) return { html: graphHtml(statements) }
     if (typeof resource.body === 'string' && resource.contentType.startsWith('text/')) {
       return { html: `<pre class="raw">${escapeHtml(resource.body)}</pre>` }
     }
@@ -444,3 +528,50 @@ export const fallbackView: View = {
     }
   }
 }
+
+/** The body as it arrived, text or a link to the bytes. Applies nowhere by
+ *  default; a rule or a show names it. */
+export const sourceView: View = {
+  id: 'https://aleph.garden/views/source',
+  async render(resource) {
+    if (typeof resource.body === 'string')
+      return { html: `<pre class="raw">${escapeHtml(resource.body)}</pre>` }
+    return {
+      html: `<p class="download"><a href="${escapeHtml(resource.iri)}" download>${escapeHtml(resource.iri)}</a> (${escapeHtml(resource.contentType)})</p>`
+    }
+  }
+}
+
+/** A graph taken apart into the things it describes. Every subject named
+ *  `iri#fragment` is embedded on its own, so the rules choose a view for it
+ *  by its type. Statements about any other subject, blank nodes among them,
+ *  have no address to embed and are drawn beneath as a table. When the
+ *  rendering is already about one subject, that subject's statements are
+ *  drawn instead, which is what an untyped subject falls back to. */
+function subjects(id: string, layout: 'grid' | 'list'): View {
+  return {
+    id,
+    when: [{ graph: true }],
+    async render(resource, ctx) {
+      if ((resource.subject ?? resource.iri) !== resource.iri)
+        return { html: graphHtml(statementsOf(resource)) }
+      const content = statementsOf(resource)
+      const prefix = `${resource.iri}#`
+      const embedded = (term: Term) =>
+        term.termType === 'NamedNode' && term.value.startsWith(prefix) && term.value !== prefix
+      const fragments = [
+        ...new Set(content.filter((q) => embedded(q.subject)).map((q) => q.subject.value))
+      ].map((subject) => subject.slice(prefix.length))
+      const cells = await Promise.all(
+        fragments.map((fragment) => ctx.transclude(resource.iri, { fragment }))
+      )
+      const rest = content.filter((q) => !embedded(q.subject))
+      const items = cells.map((cell) => `<li class="subject-item">${cell}</li>`).join('')
+      const list = items ? `<ul class="subjects subjects-${layout}">${items}</ul>` : ''
+      return { html: list + (rest.length > 0 ? graphHtml(rest) : '') }
+    }
+  }
+}
+
+export const subjectsGridView: View = subjects('https://aleph.garden/views/subjects-grid', 'grid')
+export const subjectsListView: View = subjects('https://aleph.garden/views/subjects-list', 'list')

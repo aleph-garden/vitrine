@@ -13,7 +13,7 @@ const resource = (iri: string, body = ''): Resource => ({
   iri,
   contentType: 'text/markdown',
   body,
-  meta: [],
+  quads: [],
   allow: ['read']
 })
 
@@ -290,7 +290,7 @@ describe('createRuntime', () => {
       render: async (r, ctx) => {
         if (!r.body) return { html: '' }
         const other = await ctx.resolve(r.body as string)
-        return { html: `<p>${other.graph?.length ?? 'none'}</p>` }
+        return { html: `<p>${other.quads.length}</p>` }
       }
     }
     const { resolve } = store({ a: 'dep', dep: '' })

@@ -10,7 +10,7 @@ describe('turtleParser', () => {
       iri: 'https://pod.example/x.ttl',
       contentType: 'text/turtle',
       body: '<#me> a <https://schema.org/Person> ; <https://schema.org/name> "Toph"@de .',
-      meta: [],
+      quads: [],
       allow: ['read']
     })
     expect(
@@ -18,9 +18,8 @@ describe('turtleParser', () => {
         iri: 'https://pod.example/x.ttl#me',
         contentType: '',
         body: '',
-        meta: [],
-        allow: [],
-        graph: quads
+        quads,
+        allow: []
       })
     ).toEqual(['https://schema.org/Person'])
     const name = quads.find((q) => q.predicate.value === 'https://schema.org/name')!

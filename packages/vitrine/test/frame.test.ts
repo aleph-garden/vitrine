@@ -16,7 +16,7 @@ const note = (iri: string, body = 'hello'): Resource => ({
   iri,
   contentType: 'text/markdown; charset=utf-8',
   body,
-  meta: [],
+  quads: [],
   allow: ['read']
 })
 

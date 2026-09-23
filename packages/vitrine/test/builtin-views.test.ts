@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import {
+  ALEPH,
   type Context,
   containerView,
   fallbackView,
@@ -19,12 +20,19 @@ const q = (s: string, p: string, o: Quad['object'] | string): Quad => ({
   predicate: iri(p),
   object: typeof o === 'string' ? iri(o) : o
 })
+/** The statements as the store states them. */
+const meta = (quads: Quad[]): Quad[] => quads.map((x) => ({ ...x, graph: iri(ALEPH.Meta) }))
+/** The statements as the body of `doc` states them. */
+const body = (doc: string, quads: Quad[]): Quad[] => quads.map((x) => ({ ...x, graph: iri(doc) }))
 
 const noop: Context = {
   resolve: () => Promise.reject(new Error('no resolve')),
   emit: () => {},
   events: (async function* () {})(),
   transclude: async () => '',
+  about: () => {
+    throw new Error('no resource is drawn here')
+  },
   inner: () => Promise.reject(new Error('no inner view')),
   state: stateIn(new Map())
 }
@@ -35,7 +43,7 @@ describe('containerView', () => {
     iri: root,
     contentType: 'text/turtle',
     body: '',
-    meta: [
+    quads: meta([
       q(root, RDF_TYPE, LDP_CONTAINER),
       q(root, LDP_CONTAINS, `${root}a.md`),
       q(root, LDP_CONTAINS, `${root}sub/`),
@@ -45,7 +53,7 @@ describe('containerView', () => {
         value: '2026-09-17T10:00:00Z',
         datatype: 'http://www.w3.org/2001/XMLSchema#dateTime'
       })
-    ],
+    ]),
     allow: ['read']
   }
 
@@ -66,7 +74,7 @@ describe('containerView', () => {
   test('escapes names', async () => {
     const r: Resource = {
       ...container,
-      meta: [q(root, RDF_TYPE, LDP_CONTAINER), q(root, LDP_CONTAINS, `${root}a<b>.md`)]
+      quads: meta([q(root, RDF_TYPE, LDP_CONTAINER), q(root, LDP_CONTAINS, `${root}a<b>.md`)])
     }
     const { html } = await containerView.render(r, noop)
     expect(html).not.toContain('<b>')
@@ -74,20 +82,19 @@ describe('containerView', () => {
   })
 
   // A server that states containment in the body and sends no
-  // `Link; rel="type"` leaves `meta` empty of it, so a listing read from
-  // `meta` alone comes back with nothing in it.
+  // `Link; rel="type"` leaves the store's graph empty of it, so a listing
+  // read from that graph alone comes back with nothing in it.
   test('lists children stated only in the body', async () => {
     const r: Resource = {
       iri: root,
       contentType: 'text/turtle',
       body: '',
-      meta: [],
-      graph: [
+      quads: body(root, [
         q(root, RDF_TYPE, LDP_CONTAINER),
         q(root, LDP_CONTAINS, `${root}a.md`),
         q(root, LDP_CONTAINS, `${root}sub/`),
         q(`${root}sub/`, RDF_TYPE, LDP_CONTAINER)
-      ],
+      ]),
       allow: ['read']
     }
     const { html } = await containerView.render(r, noop)
@@ -97,11 +104,13 @@ describe('containerView', () => {
 
   // Both sources carry the same statements when the server sends the header
   // and a parser reads the body. One member, one entry.
-  test('lists a child stated in both meta and graph once', async () => {
+  test('lists a child stated by the store and by the body once', async () => {
     const r: Resource = {
       ...container,
-      meta: [q(root, RDF_TYPE, LDP_CONTAINER), q(root, LDP_CONTAINS, `${root}a.md`)],
-      graph: [q(root, RDF_TYPE, LDP_CONTAINER), q(root, LDP_CONTAINS, `${root}a.md`)]
+      quads: [
+        ...meta([q(root, RDF_TYPE, LDP_CONTAINER), q(root, LDP_CONTAINS, `${root}a.md`)]),
+        ...body(root, [q(root, RDF_TYPE, LDP_CONTAINER), q(root, LDP_CONTAINS, `${root}a.md`)])
+      ]
     }
     const { html } = await containerView.render(r, noop)
     expect(html.match(new RegExp(`href="${root}a\\.md"`, 'g'))).toHaveLength(1)
@@ -114,15 +123,14 @@ describe('fallbackView', () => {
       iri: 'https://pod.example/x.ttl',
       contentType: 'text/turtle',
       body: '',
-      graph: [
+      quads: body('https://pod.example/x.ttl', [
         q('https://pod.example/x.ttl#me', RDF_TYPE, 'https://schema.org/Person'),
         q('https://pod.example/x.ttl#me', 'https://schema.org/name', {
           termType: 'Literal',
           value: 'Toph',
           language: 'de'
         })
-      ],
-      meta: [],
+      ]),
       allow: ['read']
     }
     const { html } = await fallbackView.render(r, noop)
@@ -136,7 +144,7 @@ describe('fallbackView', () => {
       iri: 'https://pod.example/x.txt',
       contentType: 'text/plain',
       body: '<script>x</script>',
-      meta: [],
+      quads: [],
       allow: ['read']
     }
     const { html } = await fallbackView.render(r, noop)
@@ -149,7 +157,7 @@ describe('fallbackView', () => {
       iri: 'https://pod.example/x.bin',
       contentType: 'application/octet-stream',
       body: new Uint8Array([1, 2, 3]),
-      meta: [],
+      quads: [],
       allow: ['read']
     }
     const { html } = await fallbackView.render(r, noop)

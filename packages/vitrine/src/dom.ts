@@ -21,6 +21,7 @@ import {
   readPlaceholder,
   TRANSCLUDE_ATTR,
   TRANSCLUDE_DEPTH,
+  thingOf,
   transclusionKey
 } from './transclusion.ts'
 
@@ -29,7 +30,8 @@ export type Instance = {
   iri: string
   show: Show | undefined
   region: Element
-  /** The IRIs this instance hangs under, outermost first, its own last. */
+  /** What this instance hangs under, outermost first, its own last: each an
+   *  IRI, with the fragment its show names when there is one. */
   readonly chain: readonly string[]
   /** IRIs this instance resolved during its last render. */
   dependencies: ReadonlySet<string>
@@ -259,14 +261,14 @@ export function createRuntime(
     for (const inst of [...live.values()]) if (inst.region === region) inst.dispose()
     const id = `instance-${++counter}`
     const queue = eventQueue()
-    const chain = [...(parent?.chain ?? []), iri]
+    const chain = [...(parent?.chain ?? []), thingOf(iri, show)]
     // Deferred so an emit inside hydrate reaches the emitter’s own handle too.
     const { ctx, dependencies } = instanceContext(
       (target) => resolve(target).then(renderer.parse),
       (e) => queueMicrotask(() => void dispatch(e)),
       queue.iterable,
       async (childIri, childShow) => {
-        const how = mounting(chain, childIri, limit)
+        const how = mounting(chain, thingOf(childIri, childShow), limit)
         return placeholderHtml(childIri, childShow, how === 'auto' ? undefined : how)
       },
       // A set re-renders the instance once the handler that set it returns.
@@ -354,8 +356,11 @@ export function instanceContext(
     emit,
     events,
     transclude,
-    // Only a renderer drawing a view can answer this; it replaces `inner` on
+    // Only a renderer drawing a view can answer these; it replaces them on
     // the context each view receives.
+    about: () => {
+      throw new Error('about is answered only while a view is drawn')
+    },
     inner: () => Promise.reject(new Error('inner is answered only while a view is drawn')),
     state
   }

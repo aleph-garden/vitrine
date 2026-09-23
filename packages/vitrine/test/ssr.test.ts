@@ -9,7 +9,7 @@ const notes = (entries: Record<string, string>) => async (iri: string) => {
     iri,
     contentType: 'text/markdown',
     body: entries[iri]!,
-    meta: [],
+    quads: [],
     allow: ['read']
   } satisfies Resource
 }
@@ -70,7 +70,7 @@ describe('renderInline', () => {
       when: [{ contentType: 'text/markdown' }],
       render: async (r, ctx) => {
         const other = await ctx.resolve(r.body as string)
-        return { html: `<p>${other.graph?.length ?? 'none'}</p>` }
+        return { html: `<p>${other.quads.length}</p>` }
       }
     }
     const parsing = createRenderer({ parsers: [parser], views: [counting] })

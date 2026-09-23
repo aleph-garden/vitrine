@@ -2,14 +2,16 @@
 // is an argument and a parser for a container's own body is another, so an
 // application that embeds a region reuses this with whatever it already has.
 
-import { dcterms, ldp, ma, rdf, xsd } from '@aleph-garden/terms'
+import { dcterms, ldp, ma, rdf, vitrine, xsd } from '@aleph-garden/terms'
 import type { Quad, Resource, Term } from './index.ts'
 
 /** What this needs of fetch; narrower than the global's type. */
 export type Fetch = (input: string, init?: RequestInit) => Promise<Response>
 
 /** Quads from a container's Turtle body, which the caller supplies because
- *  the parser carries a dependency this package refuses. */
+ *  the parser carries a dependency this package refuses. They are the body's
+ *  statements, so they go into the graph named by the IRI; a renderer with a
+ *  Turtle parser registered reads the same body again and replaces them. */
 export type ParseMeta = (text: string, baseIRI: string) => Quad[]
 
 const ACCEPT = [
@@ -20,10 +22,12 @@ const ACCEPT = [
   '*/*;q=0.5'
 ].join(', ')
 
-/** GET with an Accept that omits text/html; Resource from body and headers
- *  (Content-Type, Link rel=type, Last-Modified, WAC-Allow). A container's
- *  Turtle body joins `meta` when `parseMeta` is given. Rejects with an error
- *  carrying `status` on a non-2xx answer. */
+/** GET with an Accept that omits text/html; Resource from body and headers.
+ *  What the headers say about the resource (Content-Type, Link rel=type,
+ *  Last-Modified) goes into the graph `vitrine:Meta`; WAC-Allow becomes
+ *  `allow`. A container's Turtle body is read into the graph named by the IRI
+ *  when `parseMeta` is given. Rejects with an error carrying `status` on a
+ *  non-2xx answer. */
 export async function fetchResource(
   fetch: Fetch,
   iri: string,
@@ -38,28 +42,36 @@ export async function fetchResource(
   const textual = mediaType.startsWith('text/') || /[/+]json$|[/+]xml$/.test(mediaType)
   const body = textual ? await response.text() : new Uint8Array(await response.arrayBuffer())
 
-  const meta: Quad[] = [
-    { subject: named(iri), predicate: named(ma.format), object: literal(mediaType) }
+  const meta = named(vitrine.Meta)
+  const quads: Quad[] = [
+    { subject: named(iri), predicate: named(ma.format), object: literal(mediaType), graph: meta }
   ]
   for (const type of linkRelations(response.headers.get('link'), 'type')) {
-    meta.push({ subject: named(iri), predicate: named(rdf.type), object: named(type) })
+    quads.push({
+      subject: named(iri),
+      predicate: named(rdf.type),
+      object: named(type),
+      graph: meta
+    })
   }
   const modified = response.headers.get('last-modified')
   if (modified && !Number.isNaN(Date.parse(modified))) {
-    meta.push({
+    quads.push({
       subject: named(iri),
       predicate: named(dcterms.modified),
-      object: literal(new Date(modified).toISOString(), xsd.dateTime)
+      object: literal(new Date(modified).toISOString(), xsd.dateTime),
+      graph: meta
     })
   }
-  const container = meta.some(
+  const container = quads.some(
     (q) => q.predicate.value === rdf.type && q.object.value === ldp.Container
   )
   if (parseMeta && container && mediaType === 'text/turtle' && typeof body === 'string') {
-    meta.push(...parseMeta(body, iri))
+    const document = named(iri)
+    quads.push(...parseMeta(body, iri).map((q) => ({ ...q, graph: q.graph ?? document })))
   }
 
-  return { iri, contentType, body, meta, allow: wacAllow(response.headers.get('wac-allow')) }
+  return { iri, contentType, body, quads, allow: wacAllow(response.headers.get('wac-allow')) }
 }
 
 export function linkRelations(header: string | null, rel: string): string[] {

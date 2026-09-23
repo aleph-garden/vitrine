@@ -9,10 +9,10 @@ describe('podHost', () => {
       iri: 'https://pod.example/x.jsonld',
       contentType: 'application/ld+json',
       body: '{"@id":"#me","@type":"https://schema.org/Person"}',
-      meta: [],
+      quads: [],
       allow: ['read']
     })
-    expect(parsed.graph).toBeDefined()
-    expect(parsed.graph?.map((q) => q.object.value)).toContain('https://schema.org/Person')
+    expect(parsed.quads.length).toBeGreaterThan(0)
+    expect(parsed.quads.map((q) => q.object.value)).toContain('https://schema.org/Person')
   })
 })

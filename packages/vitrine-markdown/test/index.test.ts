@@ -25,14 +25,14 @@ const pod = (): Record<string, Resource> => {
     iri: `${POD}${path}`,
     contentType: 'text/markdown',
     body,
-    meta: [],
+    quads: [],
     allow: ['read']
   })
   const container = (path: string, children: string[]): Resource => ({
     iri: `${POD}${path}`,
     contentType: 'text/turtle',
     body: '',
-    meta: [
+    quads: [
       q(`${POD}${path}`, RDF_TYPE, LDP_CONTAINER),
       ...children.map((c) => q(`${POD}${path}`, LDP_CONTAINS, `${POD}${path}${c}`)),
       ...children
@@ -45,8 +45,7 @@ const pod = (): Record<string, Resource> => {
     iri: iriValue,
     contentType: 'text/turtle',
     body: '',
-    graph,
-    meta: [],
+    quads: graph,
     allow: ['read']
   })
   return {
@@ -88,6 +87,9 @@ const ctxFor = (entries: Record<string, Resource>) => {
       transcluded.push({ iri: iriValue, show })
       return `<div data-test-transclude="${iriValue}"></div>`
     },
+    about: () => {
+      throw new Error('no resource is drawn here')
+    },
     inner: () => Promise.reject(new Error('no inner view')),
     state: ((_key: string, initial?: unknown) => ({
       get: () => initial,
@@ -102,7 +104,7 @@ const note = (body: string, path = '/notes/Note.md'): Resource => ({
   iri: `${POD}${path}`,
   contentType: 'text/markdown',
   body,
-  meta: [],
+  quads: [],
   allow: ['read']
 })
 
@@ -279,7 +281,7 @@ describe('markdownView', () => {
         head: { vars: ['s'] },
         results: { bindings: [{ s: { type: 'uri', value: 'https://x.example/1' } }] }
       }),
-      meta: [],
+      quads: [],
       allow: ['read']
     }
     const { ctx, calls } = ctxFor(entries)

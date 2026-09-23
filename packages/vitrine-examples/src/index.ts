@@ -6,10 +6,10 @@
 import { rdf, schema, xsd } from '@aleph-garden/terms'
 import {
   ALEPH,
+  about,
   type Context,
   escapeHtml,
   type Handle,
-  objects,
   type Quad,
   type Resource,
   type Term,
@@ -24,10 +24,13 @@ const literal = (value: string): Term => ({
   value,
   datatype: xsd.string
 })
+// Each statement sits in the graph of the document it describes, where a
+// renderer would have put what a parser read out of that document's body.
 const quad = (subject: string, predicate: string, object: Term): Quad => ({
   subject: named(subject),
   predicate: named(predicate),
-  object
+  object,
+  graph: named(subject)
 })
 
 type PersonFields = {
@@ -41,15 +44,15 @@ type PersonFields = {
 }
 
 function person(iri: string, fields: PersonFields): Resource {
-  const graph = [
+  const quads = [
     quad(iri, rdf.type, named(schema.Person)),
     quad(iri, schema.name, literal(fields.name))
   ]
-  if (fields.image) graph.push(quad(iri, schema.image, named(fields.image)))
-  if (fields.birthDate) graph.push(quad(iri, schema.birthDate, literal(fields.birthDate)))
-  if (fields.deathDate) graph.push(quad(iri, schema.deathDate, literal(fields.deathDate)))
-  if (fields.worksFor) graph.push(quad(iri, schema.worksFor, named(fields.worksFor)))
-  return { iri, contentType: 'text/turtle', body: '', graph, meta: [], allow: ['read'] }
+  if (fields.image) quads.push(quad(iri, schema.image, named(fields.image)))
+  if (fields.birthDate) quads.push(quad(iri, schema.birthDate, literal(fields.birthDate)))
+  if (fields.deathDate) quads.push(quad(iri, schema.deathDate, literal(fields.deathDate)))
+  if (fields.worksFor) quads.push(quad(iri, schema.worksFor, named(fields.worksFor)))
+  return { iri, contentType: 'text/turtle', body: '', quads, allow: ['read'] }
 }
 
 const PACKING = ['- [ ] passport', '- [x] charger', '- [ ] towel'].join('\n')
@@ -85,18 +88,17 @@ export const exampleResources: Record<string, Resource> = {
     iri: 'https://example.org/orgs/aeo',
     contentType: 'text/turtle',
     body: '',
-    graph: [
+    quads: [
       quad('https://example.org/orgs/aeo', rdf.type, named(schema.Organization)),
       quad('https://example.org/orgs/aeo', schema.name, literal('Analytical Engine Office'))
     ],
-    meta: [],
     allow: ['read']
   },
   'https://example.org/notes/packing.txt': {
     iri: 'https://example.org/notes/packing.txt',
     contentType: 'text/plain',
     body: PACKING,
-    meta: [],
+    quads: [],
     allow: ['read']
   }
 }
@@ -149,9 +151,9 @@ export const personCardView: View = {
   when: [{ type: schema.Person }],
 
   async render(resource, ctx) {
-    const graph = resource.graph ?? []
-    const value = (predicate: string) => objects(graph, resource.iri, predicate)[0]?.value
-    const name = value(schema.name) ?? resource.iri
+    const person = about(resource)
+    const value = (predicate: string) => person.one(predicate)
+    const name = value(schema.name) ?? person.iri
     const image = value(schema.image)
     const employerIri = value(schema.worksFor)
 
@@ -162,7 +164,7 @@ export const personCardView: View = {
     let employer = ''
     if (employerIri && linkable(employerIri)) {
       const org = await ctx.resolve(employerIri)
-      const orgName = objects(org.graph ?? [], employerIri, schema.name)[0]?.value ?? employerIri
+      const orgName = about(org).one(schema.name) ?? employerIri
       employer = `<p class="employer"><a href="${escapeHtml(employerIri)}">${escapeHtml(orgName)}</a></p>`
     }
 
