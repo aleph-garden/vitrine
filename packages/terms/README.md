@@ -25,7 +25,7 @@ pull it in either way.
 
 ## Status
 
-Version `0.1.1-dev`. The interfaces change between releases without a
+Version `0.2.0-dev`. The interfaces change between releases without a
 deprecation period, so pin an exact version. The repository holds TypeScript;
 the published package holds the JavaScript and declaration files compiled from
 it at build time.

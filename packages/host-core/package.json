@@ -1,6 +1,6 @@
 {
   "name": "@aleph-garden/host-core",
-  "version": "0.1.1-dev",
+  "version": "0.2.0-dev",
   "description": "A browser host over Vitrine: Solid session, navigation, chrome and the region a resource renders into",
   "license": "MIT",
   "repository": {
