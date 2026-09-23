@@ -1,7 +1,7 @@
 # Publishing
 
 Six packages go to npm under the `@aleph-garden` scope, all at version
-`0.2.0-dev`:
+`0.3.0-dev`:
 
 | Package | Depends on |
 | --- | --- |
