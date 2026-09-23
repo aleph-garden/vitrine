@@ -1,5 +1,9 @@
 # @aleph-garden/vitrine-turtle
 
+> Before 1.0. Any interface here can change in any release, including the
+> ones marked `-dev` patches. Build against it to experiment, depend on an
+> exact version, and expect to follow breaking changes by hand.
+
 Turtle and TriG as quads for [Vitrine](https://www.npmjs.com/package/@aleph-garden/vitrine).
 Register `turtleParser()` in a registry's `parsers` and a resource served as
 `text/turtle` arrives at its view with `graph` filled.

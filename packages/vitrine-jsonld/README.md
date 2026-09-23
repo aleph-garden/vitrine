@@ -1,5 +1,9 @@
 # @aleph-garden/vitrine-jsonld
 
+> Before 1.0. Any interface here can change in any release, including the
+> ones marked `-dev` patches. Build against it to experiment, depend on an
+> exact version, and expect to follow breaking changes by hand.
+
 JSON-LD as quads for [Vitrine](https://www.npmjs.com/package/@aleph-garden/vitrine).
 Register `jsonLdParser()` in a registry's `parsers` and a resource served as
 `application/ld+json` arrives at its view with `graph` filled.

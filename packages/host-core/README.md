@@ -1,5 +1,9 @@
 # @aleph-garden/host-core
 
+> Before 1.0. Any interface here can change in any release, including the
+> ones marked `-dev` patches. Build against it to experiment, depend on an
+> exact version, and expect to follow breaking changes by hand.
+
 The browser end of a Vitrine host. It carries a Solid session, a fetch that
 uses the session's credentials, navigation, the surrounding chrome, and the
 region a resource renders into with its loading and failure states.

@@ -1,5 +1,9 @@
 # @aleph-garden/vitrine
 
+> Before 1.0. Any interface here can change in any release, including the
+> ones marked `-dev` patches. Build against it to experiment, depend on an
+> exact version, and expect to follow breaking changes by hand.
+
 Vitrine turns an address into HTML. Give it the IRI of a resource and you get
 something you can read: a note as a note, a person as a card, a directory as a
 list. What draws each one is a small function you can replace with your own.

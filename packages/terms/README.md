@@ -1,5 +1,9 @@
 # @aleph-garden/terms
 
+> Before 1.0. Any interface here can change in any release, including the
+> ones marked `-dev` patches. Build against it to experiment, depend on an
+> exact version, and expect to follow breaking changes by hand.
+
 The RDF vocabulary IRIs that more than one Aleph Garden package names, and the
 `ns` helper that declares a vocabulary this dictionary does not carry. The
 terms are plain strings, so a consumer working in RDF/JS wraps them in its own

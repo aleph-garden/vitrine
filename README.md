@@ -1,5 +1,9 @@
 # Vitrine
 
+> Before 1.0. Any interface here can change in any release, including the
+> ones marked `-dev` patches. Build against it to experiment, depend on an
+> exact version, and expect to follow breaking changes by hand.
+
 Vitrine turns an address into HTML. Give it the IRI of a resource and you
 get something you can read: a note as a note, a person as a card, a
 directory as a list. What draws each one is a small function, and you can
@@ -27,8 +31,7 @@ aleph.garden host stand. Transclusion, a server-side host and WASM views are
 specified and unbuilt. The library packages are on npm at `0.1.1-dev`:
 `@aleph-garden/vitrine`, `vitrine-turtle`, `vitrine-jsonld`,
 `vitrine-markdown`, `host-core` and `terms`. That first version took the
-`latest` tag whatever the publish named, so depend on the exact version and
-expect the shape to change under you. The pod host, the examples and the
+`latest` tag whatever the publish named. The pod host, the examples and the
 documentation build stay here.
 
 ## What it allows

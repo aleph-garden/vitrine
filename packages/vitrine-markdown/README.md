@@ -1,5 +1,9 @@
 # @aleph-garden/vitrine-markdown
 
+> Before 1.0. Any interface here can change in any release, including the
+> ones marked `-dev` patches. Build against it to experiment, depend on an
+> exact version, and expect to follow breaking changes by hand.
+
 Obsidian-flavoured Markdown as a Vitrine view: frontmatter as properties,
 wikilinks resolved through the pod's type index, embeds, tags, tasks, callouts,
 math, diagrams, and SPARQL blocks run through the host.
