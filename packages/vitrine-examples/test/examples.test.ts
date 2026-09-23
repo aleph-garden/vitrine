@@ -66,7 +66,9 @@ describe('personCardView, the fuller card', () => {
     const { ctx } = ctxFor()
     const resource = await exampleResolve('https://example.org/people/ada')
     const { html } = await personCardView.render(resource, ctx)
-    expect(html).toContain('<img class="portrait" src="/fixtures/ada.svg" alt="Ada Lovelace"')
+    expect(html).toContain(
+      '<img class="portrait" src="/vitrine/docs/fixtures/ada.svg" alt="Ada Lovelace"'
+    )
   })
 
   test('leaves the portrait out when the resource carries no image', async () => {
@@ -200,7 +202,7 @@ describe('the docs host', () => {
 
     await runtime.mount(region, 'https://example.org/people/ada')
     const portrait = region.querySelector('img.portrait')
-    expect(portrait?.getAttribute('src')).toBe('/fixtures/ada.svg')
+    expect(portrait?.getAttribute('src')).toBe('/vitrine/docs/fixtures/ada.svg')
     expect(portrait?.getAttribute('alt')).toBe('Ada Lovelace')
     expect(region.querySelector('time')?.getAttribute('datetime')).toBe('1815-12-10')
   })

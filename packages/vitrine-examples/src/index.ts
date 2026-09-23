@@ -60,7 +60,7 @@ const PACKING = ['- [ ] passport', '- [x] charger', '- [ ] towel'].join('\n')
 export const exampleResources: Record<string, Resource> = {
   'https://example.org/people/ada': person('https://example.org/people/ada', {
     name: 'Ada Lovelace',
-    image: '/fixtures/ada.svg',
+    image: '/vitrine/docs/fixtures/ada.svg',
     birthDate: '1815-12-10',
     deathDate: '1852-11-27',
     worksFor: 'https://example.org/orgs/aeo'

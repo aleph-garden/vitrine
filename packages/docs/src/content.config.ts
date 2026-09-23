@@ -10,21 +10,9 @@ const DOCS = '../../docs'
 // directory beside these cannot reach the site by being added.
 const PUBLISHED = ['[^_]*.mdx', '{run,author,host,reference,design}/**/[^_]*.mdx']
 
-// The deployment answers `/vitrine/docs/*` and the sources are flat, so the
-// path segment is put on the entry id. Expressing it as Astro's `base`
-// instead would prefix every absolute link the documents already carry.
-const MOUNT = 'vitrine/docs'
-
 export const collections = {
   docs: defineCollection({
-    loader: glob({
-      base: DOCS,
-      pattern: PUBLISHED,
-      generateId: ({ entry }) => {
-        const path = entry.replace(/\.mdx$/, '').replace(/(^|\/)index$/, '')
-        return path ? `${MOUNT}/${path}` : MOUNT
-      }
-    }),
+    loader: glob({ base: DOCS, pattern: PUBLISHED }),
     schema: docsSchema()
   })
 }
