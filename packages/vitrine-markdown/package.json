@@ -1,6 +1,6 @@
 {
   "name": "@aleph-garden/vitrine-markdown",
-  "version": "0.3.0-dev",
+  "version": "0.3.1-dev",
   "description": "Obsidian-flavoured Markdown as a Vitrine view",
   "license": "MIT",
   "repository": {
