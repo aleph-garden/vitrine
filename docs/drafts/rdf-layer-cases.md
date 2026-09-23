@@ -60,3 +60,13 @@ once writes are frequent. Today the IRI is the unit.
 local. A SPARQL query goes to a source and is asynchronous. The two meet at the
 resource: a query becomes a resource whose body is a CONSTRUCT result, and
 `about` reads it like any other dataset. Nothing of this exists yet.
+
+## Depth decided per layer
+
+Transclusion stops at a fixed depth (3, and host-core offers no way to raise
+it) and `render` at 8. A fixed number fits no page: a view that draws one line
+can nest twenty deep, a view that fans out cannot nest three. The depth should
+be a property of each layer, set where that layer is framed. A related idea: a
+global edit mode in which a reader builds their frames and sets such things per
+layer, switching views and limits in place. Today both limits are constants,
+and a host that nests deeper draws the lower levels itself with `ctx.render`.
