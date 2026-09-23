@@ -52,7 +52,9 @@ Selector(Inspector(Card))
 
 Each layer asks for the layer below it with `ctx.inner`, which selects past
 every view already drawing the resource, so a wrapper is registered, selected
-and replaced like anything else. [Wrapper views](/vitrine/docs/author/wrappers/)
+and replaced like anything else. What a wrapper draws inside is its own
+choice, kept in its own state; the view that embedded the resource named the
+wrapper and nothing below it. [Wrapper views](/vitrine/docs/author/wrappers/)
 has the call, the frame that ships with the library, and a wrapper that reads
 the content.
 

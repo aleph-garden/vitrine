@@ -13,10 +13,10 @@ does that other views do not is call `ctx.inner`.
 ```ts
 type Context = {
   // …
-  inner(show?: Show): Promise<Inner>
+  inner(show?: Show): Promise<Drawn>
 }
 
-type Inner = Rendered & { view: View }
+type Drawn = Rendered & { view: View }
 ```
 
 `inner` draws the same resource again. Selection runs as it always does,
@@ -25,9 +25,12 @@ current render, so a wrapper never picks itself or a wrapper around it. The
 answer is the inner view's output together with the view that drew it.
 
 A wrapper can name the view it wants inside with `inner({ view })`. When it
-names nothing, the `inner` part of the `show` it was drawn under decides, and
-after that the rules. Fragment and clip carry through to the inner view
-unless the wrapper sets them.
+names nothing, the rules decide. Fragment and clip carry through to the inner
+view unless the wrapper sets them.
+
+What a wrapper draws inside is its own business. The view that embeds the
+resource names the wrapper and nothing below it, because a view speaks for
+itself and for its direct children only.
 
 ## Putting the output inside your own markup
 
@@ -98,9 +101,12 @@ await ctx.transclude(child)
 
 A rule that names the frame frames everything it matches instead.
 
-`viewSwitch` emits `as:View` on the resource with the choice as the inner
-view. The runtime draws the instance again under the same outer view, so the
-frame stays and only its content changes.
+The frame keeps the view it draws inside in its own state, and `viewSwitch`
+sets that state. The instance is drawn again, the frame stays, and only its
+content changes. The choice holds through every later re-render of the
+instance, an `as:Update` on the resource included. It is not announced: no
+other instance of the same resource switches with it, and the view inside
+never hears about it.
 
 The frame's look comes from the host stylesheet in
 `@aleph-garden/host-core`, under the classes `aleph-frame` and
@@ -118,11 +124,14 @@ import { menu } from '@aleph-garden/vitrine/menu'
 const actions: FieldOf = (resource) =>
   menu('Share', [
     { label: 'Copy address', event: { type: COPY, object: resource.iri } },
-    { label: 'Open raw', event: { type: AS.View, object: resource.iri, inner: { view: RAW } } }
+    { label: 'Open raw', event: { type: AS.View, object: resource.iri, view: RAW } }
   ])
 ```
 
-Picking an entry emits that entry's event and closes the list. The list opens
+Picking an entry emits that entry's event through the context the menu was
+hydrated with, and closes the list. `viewSwitch` hydrates it with a context
+whose `emit` takes the pick in and sets the frame's state, which is how a
+generic menu ends up switching one frame. The list opens
 as a native popover, in the top layer, so a frame or a region that clips its
 content cannot cut it off.
 
@@ -148,3 +157,33 @@ export const wordCountView: View = {
 Every IRI it resolves becomes a dependency of the instance, the same as for
 any view, so an `as:Update` on one of them draws the wrapper and its inner
 view again.
+
+## State
+
+A view keeps values for its instance with `ctx.state`:
+
+```ts
+const count = ctx.state('count', 0)   // a number, 0 until it is set
+const view = ctx.state('view')        // a string or undefined
+```
+
+`get` answers the current value. `set` stores a new one and draws the
+instance again, so a view reads its state while rendering and sets it from a
+handler. Setting it while rendering would draw the instance again without end.
+
+The values survive every re-render of the instance: a set, an `as:View`, an
+`as:Update`. Mounting the region again, or navigating to another resource,
+starts them over. Keys belong to the view that asks, so a wrapper and the
+view inside it can both use `'view'` and never meet. Keep values to what JSON
+can carry, since a host may one day keep them in the address or in storage.
+
+## How an event reaches an instance
+
+The runtime hands every event to every instance it holds, and each one
+decides for itself. An instance whose `hydrate` returned a handle with
+`update` answers the event itself, with a patch or with nothing. An instance
+without one is drawn again when the event is an `as:Update` on something it
+resolved, or an `as:View` on its own resource.
+Inside one instance, `wrap` offers an event to the view inside first and to
+the wrapper's own handle when the view inside answered no patch, so a view
+keeps the events it knows how to answer.

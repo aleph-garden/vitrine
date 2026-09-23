@@ -103,6 +103,10 @@ sequenceDiagram
 with a `Patch` or with nothing. The host does not re-render such an instance
 on its own; the instance decides.
 
+On either path, a `set` on the instance's state draws it again, once the
+handler that set it has returned. The state itself is kept across that
+render and every other.
+
 ```mermaid
 sequenceDiagram
   participant Bus as dispatch
