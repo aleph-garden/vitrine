@@ -18,7 +18,8 @@ const noop: Context = {
   resolve: () => Promise.reject(new Error('no resolve')),
   emit: () => {},
   events: (async function* () {})(),
-  transclude: async () => ''
+  transclude: async () => '',
+  inner: () => Promise.reject(new Error('no inner view'))
 }
 
 /** Enough of a Turtle reader for the one container fixture below: the point

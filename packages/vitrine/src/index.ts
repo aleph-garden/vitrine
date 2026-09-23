@@ -61,7 +61,16 @@ export type Context = {
    *  to insert verbatim. Whether that string is the rendered child or a
    *  placeholder a host fills in later is the host's business. */
   transclude(iri: string, show?: Show): Promise<string>
+  /** Draws this resource again with the view that would have drawn it were
+   *  the calling view not there: selection skips every view already drawing
+   *  it in this render, so a wrapper never picks itself or one around it.
+   *  `show` may name the inner view; left out, it is this render's
+   *  `show.inner`, and fragment and clip default to this render's own. Rejects when no view is left. */
+  inner(show?: Show): Promise<Inner>
 }
+
+/** What `inner` answers: the inner view's output and the view that drew it. */
+export type Inner = Rendered & { view: View }
 
 // ----------------------------------------------------------- selection
 
@@ -92,6 +101,9 @@ export type Show = {
   /** Render `fragment` alone, without the rest of the resource. A view that
    *  does not understand it ignores it. */
   clip?: boolean
+  /** What the view inside shows, when the view drawing this is a wrapper:
+   *  its `inner` reads this before the rules. */
+  inner?: Show
 }
 
 export type Patch = {
@@ -107,6 +119,50 @@ export type Handle = {
 export type Rendered = {
   html: string
   hydrate?(root: Element, ctx: Context): Handle | void
+}
+
+let bodies = 0
+
+/** A wrapper's output around what `inner` drew. `around` receives the inner
+ *  body, the inner HTML inside one element of its own, and answers the
+ *  wrapper's whole markup with that body placed in it once. Hydrating hands
+ *  the inner view the body as its root and the wrapper `hydrate` the whole
+ *  root. A patch the inner view answers without a slot lands on the body,
+ *  so the wrapper's own markup survives it; every other event reaches the
+ *  wrapper's handle once the inner one has not answered it. */
+export function wrap(
+  inner: Rendered,
+  around: (body: string) => string,
+  hydrate?: (root: Element, ctx: Context) => Handle | void
+): Rendered {
+  // The body is a named slot so the runtime can find it for a patch. The
+  // name is unique per wrap, because nested wrappers each have a body and
+  // the runtime patches the first element carrying the name.
+  const slot = `aleph-body-${++bodies}`
+  return {
+    html: around(`<div data-slot="${slot}">${inner.html}</div>`),
+    hydrate(root, ctx) {
+      const body = root.querySelector(`[data-slot="${slot}"]`) ?? root
+      const own = inner.hydrate?.(body, ctx)
+      const outer = hydrate?.(root, ctx)
+      if (!own && !outer) return
+      const handle: Handle = {
+        dispose() {
+          own?.dispose?.()
+          outer?.dispose?.()
+        }
+      }
+      // Only when a layer answers events itself: a handle with `update` takes
+      // the runtime's own re-render on as:View and as:Update away.
+      if (own?.update || outer?.update)
+        handle.update = (event) => {
+          const patch = own?.update?.(event)
+          if (patch) return patch.slot === undefined ? { ...patch, slot } : patch
+          return outer?.update?.(event)
+        }
+      return handle
+    }
+  }
 }
 
 export type View = {
@@ -136,9 +192,15 @@ export type Renderer = {
   /** Fills `graph` through the first parser whose contentType matches. */
   parse(resource: Resource): Promise<Resource>
   /** Show first, then registry rules in order, then each view's `when`
-   *  in registration order; undefined when nothing holds. */
-  select(resource: Resource, show?: Show): View | undefined
-  /** parse, select, render. Rejects when no view applies. */
+   *  in registration order; undefined when nothing holds. A view whose id is
+   *  in `past` is passed over wherever it would have been picked. */
+  select(resource: Resource, show?: Show, past?: readonly string[]): View | undefined
+  /** select and render on a resource that is already parsed, answering the
+   *  outermost view with its output. The context each view receives carries
+   *  `inner`, bound to this resource and to the views drawing it so far.
+   *  Rejects when no view applies. */
+  draw(resource: Resource, ctx: Context, show?: Show): Promise<{ view: View; rendered: Rendered }>
+  /** parse, then draw. */
   render(resource: Resource, ctx: Context, show?: Show): Promise<Rendered>
 }
 
@@ -152,24 +214,51 @@ export function createRenderer(registry: Registry): Renderer {
     return { ...resource, graph: await parser.parse(resource) }
   }
 
-  const select = (resource: Resource, show?: Show): View | undefined => {
-    const shown = show?.view === undefined ? undefined : byId.get(show.view)
+  const select = (
+    resource: Resource,
+    show?: Show,
+    past: readonly string[] = []
+  ): View | undefined => {
+    const open = (v: View | undefined) => (v && !past.includes(v.id) ? v : undefined)
+    const shown = show?.view === undefined ? undefined : open(byId.get(show.view))
     if (shown) return shown
     for (const rule of registry.rules ?? []) {
-      const v = byId.get(rule.view)
+      const v = open(byId.get(rule.view))
       if (v && all(rule.when, resource)) return v
     }
-    return registry.views.find((v) => v.when !== undefined && all(v.when, resource))
+    return registry.views.find((v) => open(v) && v.when !== undefined && all(v.when, resource))
   }
 
-  const render = async (resource: Resource, ctx: Context, show?: Show): Promise<Rendered> => {
-    const parsed = await parse(resource)
-    const view = select(parsed, show)
+  // One layer of a draw. `past` holds the ids of the views already drawing
+  // this resource, outermost first; the view picked here is handed a context
+  // whose `inner` draws the next layer with this view added to it. The chain
+  // lives in these closures rather than in the context type, so a view never
+  // sees it and a host building its own context never has to carry it.
+  const layer = async (
+    resource: Resource,
+    ctx: Context,
+    show: Show | undefined,
+    past: readonly string[]
+  ): Promise<{ view: View; rendered: Rendered }> => {
+    const view = select(resource, show, past)
     if (!view) throw new Error(`no view applies to ${resource.iri} (${resource.contentType})`)
-    return view.render(parsed, ctx, show)
+    const here: Context = {
+      ...ctx,
+      async inner(innerShow) {
+        const next = { fragment: show?.fragment, clip: show?.clip, ...show?.inner, ...innerShow }
+        const drawn = await layer(resource, ctx, next, [...past, view.id])
+        return { ...drawn.rendered, view: drawn.view }
+      }
+    }
+    return { view, rendered: await view.render(resource, here, show) }
   }
 
-  return { parse, select, render }
+  const draw = (resource: Resource, ctx: Context, show?: Show) => layer(resource, ctx, show, [])
+
+  const render = async (resource: Resource, ctx: Context, show?: Show): Promise<Rendered> =>
+    (await draw(await parse(resource), ctx, show)).rendered
+
+  return { parse, select, draw, render }
 }
 
 /** The condition holds for the resource. `iri` equals the resource IRI or,

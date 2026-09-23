@@ -23,7 +23,8 @@ const noop: Context = {
   resolve: () => Promise.reject(new Error('no resolve')),
   emit: () => {},
   events: (async function* () {})(),
-  transclude: async () => ''
+  transclude: async () => '',
+  inner: () => Promise.reject(new Error('no inner view'))
 }
 
 describe('containerView', () => {

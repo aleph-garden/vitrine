@@ -36,6 +36,7 @@ export async function renderInline(
       resolve: (childIri) => resolve(childIri).then(renderer.parse),
       emit: () => {},
       events: nothing,
+      inner: () => Promise.reject(new Error('inner is answered only while a view is drawn')),
       async transclude(childIri, childShow) {
         const how = mounting(chain, childIri, depth)
         if (how !== 'auto') return placeholderHtml(childIri, childShow, how)

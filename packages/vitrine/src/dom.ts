@@ -85,9 +85,10 @@ export function linkEvents(region: Element, emit: (event: Event) => void): () =>
 }
 
 // The allowlist view HTML passes through: the profiles the views emit, plus
-// the two attributes DOMPurify strips although a view needs them (the
+// the four attributes DOMPurify strips although a view needs them (the
 // landing view's docs links carry `target`, the fallback view's offer of a
-// binary carries `download`), plus the two MathML wrapper elements the
+// binary carries `download`, a menu opens its list through `popover` and
+// `popovertarget`), plus the two MathML wrapper elements the
 // `mathMl` profile itself excludes (KaTeX emits a formula's TeX source inside
 // `<semantics><annotation>`, and without them the sanitizer strips the
 // wrappers and leaves the TeX as visible text). `data-*` is allowed by
@@ -101,7 +102,7 @@ export function linkEvents(region: Element, emit: (event: Event) => void): () =>
 // the CSP's `trusted-types` directive.
 const ALLOWLIST = {
   USE_PROFILES: { html: true, svg: true, svgFilters: true, mathMl: true },
-  ADD_ATTR: ['target', 'download'],
+  ADD_ATTR: ['target', 'download', 'popover', 'popovertarget'],
   ADD_TAGS: ['semantics', 'annotation']
 } satisfies Config
 
@@ -188,7 +189,12 @@ export function createRuntime(
           await rerender(inst, inst.show)
       } else if (event.type === AS.View && event.object === inst.iri) {
         const show = showFrom(event, inst.show)
-        if (show.fragment !== inst.show?.fragment || show.view !== inst.show?.view)
+        const inner = (s: Show | undefined) => transclusionKey(inst.iri, s?.inner)
+        if (
+          show.fragment !== inst.show?.fragment ||
+          show.view !== inst.show?.view ||
+          inner(show) !== inner(inst.show)
+        )
           await rerender(inst, show)
       }
     }
@@ -211,13 +217,10 @@ export function createRuntime(
 
   const keyOf = (inst: Live) => transclusionKey(inst.iri, inst.show)
 
-  /** `renderer.render`, with the view it selected kept for the region's
-   *  mark. The two must select the same way. */
+  /** Parse and draw, keeping the outermost view's id for the region's mark. */
   const draw = async (resource: Resource, ctx: Context, show: Show | undefined) => {
-    const parsed = await renderer.parse(resource)
-    const view = renderer.select(parsed, show)
-    if (!view) throw new Error(`no view applies to ${resource.iri} (${resource.contentType})`)
-    return { view: view.id, rendered: await view.render(parsed, ctx, show) }
+    const { view, rendered } = await renderer.draw(await renderer.parse(resource), ctx, show)
+    return { view: view.id, rendered }
   }
 
   const paint = (region: Element, view: string, iri: string, html: string) => {
@@ -320,12 +323,23 @@ export function createRuntime(
   }
 }
 
+/** The show an as:View asks for. `view` and `inner` replace the previous ones
+ *  when the event carries them, so a switch of the inner view keeps whatever
+ *  wrapper drew the instance. */
 function showFrom(event: Event, previous: Show | undefined): Show {
   const target = typeof event.target === 'string' ? event.target : undefined
   const hash = target?.split('#')[1]
   const view = typeof event.view === 'string' ? event.view : previous?.view
-  return { view, fragment: hash === undefined ? previous?.fragment : decodeURIComponent(hash) }
+  const inner = isShow(event.inner) ? event.inner : previous?.inner
+  const show: Show = {
+    view,
+    fragment: hash === undefined ? previous?.fragment : decodeURIComponent(hash)
+  }
+  if (inner !== undefined) show.inner = inner
+  return show
 }
+
+const isShow = (value: unknown): value is Show => typeof value === 'object' && value !== null
 
 /** The context a runtime hands one instance: resolve with tracking, emit
  *  into dispatch, events from it. Exposed so a view test can build one. */
@@ -343,7 +357,10 @@ export function instanceContext(
     },
     emit,
     events,
-    transclude
+    transclude,
+    // Only a renderer drawing a view can answer this; it replaces `inner` on
+    // the context each view receives.
+    inner: () => Promise.reject(new Error('inner is answered only while a view is drawn'))
   }
   return { ctx, dependencies }
 }

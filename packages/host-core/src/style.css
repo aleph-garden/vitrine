@@ -310,6 +310,158 @@ input:focus-visible {
   }
 }
 
+/* A frame, what frameView from @aleph-garden/vitrine/frame draws around the
+   view inside it: a hairline box on the raised ground with up to four corner
+   fields sunk into its corners. The frame reserves room at an edge only when
+   a corner sits there, which its `data-top` and `data-bottom` say. Rules are
+   anchored on the frame's own classes rather than a view id, since each host
+   names its frame views itself, and on `>` so a frame nested in a frame keeps
+   its own corners. */
+.aleph-frame {
+  position: relative;
+  min-width: 0;
+  padding: var(--ag-space-3);
+  background: var(--ag-raised);
+  border: var(--ag-stroke-hair) solid var(--ag-border);
+  border-radius: var(--ag-radius-2);
+}
+.aleph-frame[data-top] {
+  padding-top: calc(var(--ag-leading-xs) + var(--ag-space-1) + var(--ag-space-3));
+}
+.aleph-frame[data-bottom] {
+  padding-bottom: calc(var(--ag-leading-xs) + var(--ag-space-1) + var(--ag-space-3));
+}
+.aleph-frame > .aleph-corner {
+  position: absolute;
+  z-index: 1;
+  max-width: 55%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: var(--ag-space-1);
+  padding: calc(var(--ag-space-1) / 2) calc(var(--ag-space-2) + var(--ag-space-1) / 2);
+  background: var(--ag-sunken);
+  color: var(--ag-text-muted);
+  font-family: var(--ag-font-mono);
+  font-size: var(--ag-type-xs);
+  line-height: var(--ag-leading-xs);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.aleph-frame > [data-corner="top-start"] {
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  border-start-start-radius: calc(var(--ag-radius-2) - var(--ag-stroke-hair));
+  border-end-end-radius: var(--ag-radius-2);
+  color: var(--ag-text);
+  font-family: var(--ag-font-display);
+  font-weight: 600;
+}
+.aleph-frame > [data-corner="top-end"] {
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  border-start-end-radius: calc(var(--ag-radius-2) - var(--ag-stroke-hair));
+  border-end-start-radius: var(--ag-radius-2);
+  color: var(--ag-text);
+}
+.aleph-frame > [data-corner="bottom-start"] {
+  inset-block-end: 0;
+  inset-inline-start: 0;
+  border-end-start-radius: calc(var(--ag-radius-2) - var(--ag-stroke-hair));
+  border-start-end-radius: var(--ag-radius-2);
+}
+.aleph-frame > [data-corner="bottom-end"] {
+  inset-block-end: 0;
+  inset-inline-end: 0;
+  border-end-end-radius: calc(var(--ag-radius-2) - var(--ag-stroke-hair));
+  border-start-start-radius: var(--ag-radius-2);
+}
+.aleph-frame-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* A menu, what `menu` from @aleph-garden/vitrine/menu draws into a field. The
+   list is a popover in the top layer, so the frame's own clipping cannot cut
+   it off; it opens under its button, by anchor where the browser has anchor
+   positioning and from the button's box otherwise. The shadow is the one
+   elevation the design language has no token for yet. */
+.aleph-menu-button {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: var(--ag-space-1);
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+.aleph-menu-button:focus-visible {
+  outline: 2px solid var(--ag-focus);
+  outline-offset: 2px;
+}
+.aleph-menu {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  width: 17rem;
+  box-sizing: border-box;
+  padding: var(--ag-space-1) 0;
+  flex-direction: column;
+  background: var(--ag-raised);
+  color: var(--ag-text);
+  border: var(--ag-stroke-hair) solid var(--ag-border);
+  border-radius: var(--ag-radius-2);
+  box-shadow: 0 4px 16px rgb(19 32 37 / 0.12);
+  font-family: var(--ag-font-text);
+}
+.aleph-menu:popover-open {
+  display: flex;
+}
+@supports (anchor-name: --aleph-menu) {
+  .aleph-menu {
+    top: calc(anchor(bottom) + var(--ag-space-1));
+    right: anchor(right);
+  }
+}
+.aleph-menu-heading {
+  padding: var(--ag-space-2) var(--ag-space-3) var(--ag-space-1);
+  font-size: var(--ag-type-xs);
+  line-height: var(--ag-leading-xs);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--ag-text-muted);
+}
+.aleph-menu-entry {
+  all: unset;
+  box-sizing: border-box;
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  gap: var(--ag-space-2);
+  padding: calc(var(--ag-space-1) + var(--ag-space-1) / 2) var(--ag-space-3);
+  font-family: var(--ag-font-mono);
+  font-size: var(--ag-type-xs);
+  line-height: var(--ag-leading-ui);
+  color: var(--ag-text);
+  cursor: pointer;
+}
+.aleph-menu-entry:hover,
+.aleph-menu-entry:focus-visible {
+  background: var(--ag-sunken);
+}
+.aleph-menu-mark {
+  width: var(--ag-space-3);
+}
+.aleph-menu-label {
+  flex: 1;
+}
+.aleph-menu-note {
+  color: var(--ag-text-muted);
+}
+
 /* The shell's chrome: a frame of four corner slots over the region. Only the
    top left is filled: the brand mark, the host name of the resource on show
    and the dot, with the rest behind the mark in a panel. */

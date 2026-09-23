@@ -87,7 +87,8 @@ const ctxFor = (entries: Record<string, Resource>) => {
     transclude: async (iriValue, show) => {
       transcluded.push({ iri: iriValue, show })
       return `<div data-test-transclude="${iriValue}"></div>`
-    }
+    },
+    inner: () => Promise.reject(new Error('no inner view'))
   }
   return { ctx, calls, events, transcluded }
 }
