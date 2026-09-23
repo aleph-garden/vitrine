@@ -37,7 +37,7 @@ export default defineConfig({
       // Starlight appends the entry's path, which is relative to this package and
       // climbs out of it to the repository's docs/; the URL resolves the `..`.
       editLink: { baseUrl: 'https://github.com/aleph-garden/vitrine/edit/main/packages/docs/' },
-      plugins: [aleph({ project: 'vitrine' })],
+      plugins: [aleph({ project: 'vitrine', prerelease: true })],
       sidebar: [
         {
           label: 'Start',
