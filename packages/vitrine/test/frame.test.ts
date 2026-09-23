@@ -261,6 +261,30 @@ describe('wrap', () => {
 })
 
 describe('frameView', () => {
+  test('marks the body with the view that drew it, so its scoped styles reach inside the wrapper', async () => {
+    const renderer = createRenderer({
+      parsers: [],
+      rules: [{ view: 'frame', when: markdown }],
+      views: [frameView('frame', { 'top-start': name }), plain('p')]
+    })
+    const runtime = createRuntime(renderer, async (iri) => note(iri))
+    const root = region()
+    await runtime.mount(root, 'https://pod.example/a.md')
+    // The region names the outermost view, the body the view inside it, so
+    // `@scope ([data-aleph-view="frame"]) to ([data-aleph-view])` stops at
+    // the body and `@scope ([data-aleph-view="p"])` starts there.
+    expect(root.getAttribute(VIEW_ATTR)).toBe('frame')
+    const body = root.querySelector('.aleph-frame > [data-slot]')
+    expect(body?.getAttribute(VIEW_ATTR)).toBe('p')
+    expect(body?.querySelector('[data-view="p"]')).not.toBeNull()
+    expect(root.querySelector('.aleph-corner')?.closest(`[${VIEW_ATTR}]`)).toBe(root)
+  })
+
+  test('leaves the body unmarked when the inner output names no view', () => {
+    const drawn = wrap({ html: '<p>x</p>' }, (body) => `<section>${body}</section>`)
+    expect(drawn.html).not.toContain(VIEW_ATTR)
+  })
+
   test('fills only the corners it names and the fields that answer', async () => {
     const renderer = createRenderer({
       parsers: [],

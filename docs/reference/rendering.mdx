@@ -65,7 +65,10 @@ rules to it:
 ```
 
 The lower bound stops the rules at the next region down, so a view's `.child`
-does not style a transcluded child's `.child`. Both names are exported as
+does not style a transcluded child's `.child`. The region names the outermost
+view. A view drawn inside a wrapper carries its own id on the element that
+holds it (see [Wrapper views](/vitrine/docs/author/wrappers/)), so its scoped rules apply
+there too and the wrapper's stop at it. Both names are exported as
 `VIEW_ATTR` and `IRI_ATTR`.
 
 Mount and every patch go through `writeHtml`, the one place view HTML

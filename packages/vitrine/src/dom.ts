@@ -10,7 +10,8 @@ import {
   type Handle,
   type Renderer,
   type Resource,
-  type Show
+  type Show,
+  VIEW_ATTR
 } from './index.ts'
 import { stateIn } from './state.ts'
 import {
@@ -54,12 +55,11 @@ export type Runtime = {
   listen(listener: (event: Event) => void): () => void
 }
 
-/** Set by the runtime on every region it holds: the id of the view that drew
- *  it, and the IRI of the resource. A stylesheet scopes a view's rules with
- *  `@scope ([data-aleph-view="<view id>"]) to ([data-aleph-view])`, which
- *  keeps them out of a transcluded child. A region whose mount failed
- *  carries neither. */
-export const VIEW_ATTR = 'data-aleph-view'
+/** Set by the runtime on every region it holds: `VIEW_ATTR` with the id of the
+ *  outermost view that drew it, and `IRI_ATTR` with the IRI of the resource.
+ *  A layer drawn inside a wrapper carries its own view's id on its body (see
+ *  `wrap`). A region whose mount failed carries neither. */
+export { VIEW_ATTR }
 export const IRI_ATTR = 'data-aleph-iri'
 
 /** Inside a region, a click on an `<a href>` whose URL is `http:` or

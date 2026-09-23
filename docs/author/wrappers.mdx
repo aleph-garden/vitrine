@@ -64,6 +64,11 @@ written into it, and the wrapper's own markup around it stays untouched. A
 third argument to `wrap` is the wrapper's own `hydrate`, which receives the
 whole root.
 
+The same element carries `data-aleph-view` with the id of the view that drew
+the inside, since `ctx.render` answers it. A view's scoped styles therefore
+reach its markup inside a wrapper as they do in a region of its own, and the
+wrapper's scoped styles stop at the body.
+
 Wrappers nest. With two wrappers and a card registered for the same type, in
 that order, the result is `Selector(Inspector(Card))`: each layer calls
 `render` and gets the next one down.

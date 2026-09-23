@@ -174,17 +174,29 @@ export type Rendered = {
   hydrate?(root: Element, ctx: Context): Handle | void
 }
 
+/** The attribute that names the view which drew an element's content: set
+ *  by the runtime on every region it holds, with the outermost view, and by
+ *  `wrap` on the body of every layer below it, with that layer's view. A
+ *  stylesheet scopes a view's rules with
+ *  `@scope ([data-aleph-view="<view id>"]) to ([data-aleph-view])`, so they
+ *  reach that view's own markup whether it draws a region or the inside of a
+ *  wrapper, and stop at the next view down. */
+export const VIEW_ATTR = 'data-aleph-view'
+
 let bodies = 0
 
 /** A wrapper's output around what `ctx.render` drew. `around` receives the inner
  *  body, the inner HTML inside one element of its own, and answers the
- *  wrapper's whole markup with that body placed in it once. Hydrating hands
+ *  wrapper's whole markup with that body placed in it once. When `inner`
+ *  names the view that drew it, as a `Drawn` does, the body carries that
+ *  view's id in `VIEW_ATTR`, so the inner view's scoped styles apply inside
+ *  the wrapper and the wrapper's stop at the body. Hydrating hands
  *  the inner view the body as its root and the wrapper `hydrate` the whole
  *  root. A patch the inner view answers without a slot lands on the body,
  *  so the wrapper's own markup survives it; every other event reaches the
  *  wrapper's handle once the inner one has not answered it. */
 export function wrap(
-  inner: Rendered,
+  inner: Rendered & { view?: View },
   around: (body: string) => string,
   hydrate?: (root: Element, ctx: Context) => Handle | void
 ): Rendered {
@@ -193,7 +205,9 @@ export function wrap(
   // the runtime patches the first element carrying the name.
   const slot = `aleph-body-${++bodies}`
   return {
-    html: around(`<div data-slot="${slot}">${inner.html}</div>`),
+    html: around(
+      `<div data-slot="${slot}"${inner.view ? ` ${VIEW_ATTR}="${escapeHtml(inner.view.id)}"` : ''}>${inner.html}</div>`
+    ),
     hydrate(root, ctx) {
       const body = root.querySelector(`[data-slot="${slot}"]`) ?? root
       const own = inner.hydrate?.(body, ctx)
