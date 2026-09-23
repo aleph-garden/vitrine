@@ -29,7 +29,10 @@ it may read, and an API that hands out a fixed shape fixes what any renderer
 can do with it. That is why this is built against a graph you hold. Nothing
 in the contract requires RDF, though: a condition on the content type is
 enough, so a host can hand a view a CSV or a PDF and the same selection
-applies.
+applies. Where statements are there, a thing described in RDF is selected by
+its `rdf:type`, which plays the part the content type plays for bytes, and a
+rule over the type holds whether the statements came as Turtle, JSON-LD or the
+result of a query.
 
 There is a longer version of the argument, and an account of the twenty
 attempts that came before this one, in

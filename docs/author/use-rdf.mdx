@@ -8,7 +8,8 @@ sidebar:
 import LiveView from '@components/LiveView.astro'
 
 When a resource carries RDF, a parser the host registered has already turned
-it into quads and put them on `resource.graph`. They are plain objects:
+it into quads and put them on `resource.quads`, next to what the host knows
+about the resource from outside. They are plain objects:
 
 ```ts
 type Term = {
@@ -28,19 +29,23 @@ and that choice stays inside the view.
 
 ## Reading
 
-One helper covers most of what a card-shaped view needs:
+One reader covers most of what a card-shaped view needs:
 
 ```ts
 import { schema } from '@aleph-garden/terms'
-import { objects } from '@aleph-garden/vitrine'
+import { about } from '@aleph-garden/vitrine'
 
-const name = objects(resource.graph ?? [], resource.iri, schema.name)[0]?.value
+const person = about(resource)
+person.one(schema.name)        // "Mara Lind"
+person.all(schema.knows)       // every value, from every graph
+person.node(schema.worksFor).one(schema.name)
 ```
 
-`objects(quads, subject, predicate)` scans the array and returns the object
-terms. `isContainer(resource)` and `typesOf(resource)` are there for the two
-questions that come up constantly. Anything more specific is a filter over
-the array you already have.
+`about(resource)` stands on the subject the rendering is about and reads all
+of the resource's quads. Inside `render`, `ctx.about()` is the same without
+the import. `isContainer(resource)` and `typesOf(resource)` are there for the
+two questions that come up constantly, and `objects(quads, subject,
+predicate)` scans an array when you have one.
 
 ## Naming predicates
 
@@ -74,7 +79,7 @@ export const personCardView: View = {
   when: [{ type: schema.Person }],
 
   async render (resource) {
-    const name = objects(resource.graph ?? [], resource.iri, schema.name)[0]?.value
+    const name = about(resource).one(schema.name)
     return { html: `<article class="person-card"><h2>${escapeHtml(name ?? resource.iri)}</h2></article>` }
   }
 }
@@ -82,22 +87,40 @@ export const personCardView: View = {
 
 <LiveView iri="https://example.org/people/grace" caption="selected by rdf:type, rendered from the graph" />
 
-A `type` condition holds when `graph` says the resource has that
-`rdf:type`. It never holds when `graph` is absent, which is the case for a
-resource nobody parsed.
+A `type` condition holds when the quads say the subject in focus has that
+`rdf:type`, whichever graph says it. For a thing described in RDF the type
+does what the content type does for bytes, so the card applies to a person
+in Turtle, in JSON-LD, or in the result of a query alike.
 
-## What the host says versus what the document says
+## One document, several things
 
-Two quad arrays arrive, and mixing them up causes bugs that only show on
-somebody else's server.
+A Turtle file that describes two people is one document and two things. With
+no rule for the document itself, it falls to the subjects view: every subject
+named `people.ttl#…` is embedded as its own child with `show.fragment`, and
+the rules pick the card for each by its type. The view sees the same
+`about(resource)` either way, because the fragment moves the subject in focus.
 
-`graph` is the document: what the resource says about itself and about
-anything else. `meta` is what the server says about the resource, so
-`ldp:contains` for a container, the modification date, the type from a
-`Link` header. A listing view reads `meta`; a person card reads `graph`.
+```ts
+ctx.transclude('https://pod.example/people.ttl', { fragment: 'mara' })
+// drawn by the card, and about(resource).one(schema.name) is "Mara Lind"
+```
 
-`allow` sits beside both, as the modes this requester has. It is a fact
-about the request, so it is never in `meta`, where a cached resource would
+## What the store says versus what the document says
+
+Every quad carries the graph it came from. What the body says sits in the
+graph named by the resource's IRI; what is known about the resource from
+outside, its modification date, the type the store gives it, a container's
+members, sits in `vitrine:Meta`. Most views never ask, since `about` reads the
+union. One that cares narrows the reader:
+
+```ts
+about(resource).meta.one(dcterms.modified)   // only from outside
+about(resource).content.all(schema.name)     // only what the body says
+about(resource).from(otherDocument)          // only one named graph
+```
+
+`allow` sits beside the quads, as the modes this requester has. It is a fact
+about the request, so it is never among them, where a cached resource would
 carry one agent's permissions to another.
 
 ## Subjects without an IRI
@@ -105,7 +128,9 @@ carry one agent's permissions to another.
 A blank node has no IRI, so nothing can address it: no rule selects on it,
 no link points at it, and transclusion cannot bring it in. It is part of the
 resource that carries it, and the view that renders that resource renders it
-inline, reached by walking the quads from a subject that does have an IRI.
+inline, reached by walking the quads from a subject that does have an IRI. The
+subjects view draws the statements about blank nodes as a table beneath the
+things it embeds.
 
 If you want a part of a document to be addressable, give it a fragment IRI.
 `<#claim-1>` is a subject like any other, and a view can hand it to whatever

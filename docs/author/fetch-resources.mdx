@@ -26,10 +26,10 @@ decides what an IRI even means, which is how the same view runs against a
 pod over the network and against the fixture resources these pages use.
 
 ```ts
-const employerIri = objects(graph, resource.iri, `${SCHEMA}worksFor`)[0]?.value
+const employerIri = ctx.about().one(schema.worksFor)
 if (employerIri) {
   const org = await ctx.resolve(employerIri)
-  const orgName = objects(org.graph ?? [], employerIri, `${SCHEMA}name`)[0]?.value
+  const orgName = about(org).one(schema.name)
 }
 ```
 
@@ -59,7 +59,7 @@ is gone, a server that is down. A view may catch it and render what it can:
 let orgName = employerIri
 try {
   const org = await ctx.resolve(employerIri)
-  orgName = objects(org.graph ?? [], employerIri, `${SCHEMA}name`)[0]?.value ?? employerIri
+  orgName = about(org).one(schema.name) ?? employerIri
 } catch {
   // The card is still worth showing without the employer's name.
 }

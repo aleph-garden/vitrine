@@ -13,8 +13,8 @@ classDiagram
     iri: string
     contentType: string
     body: string | Uint8Array
-    graph?: Quad[]
-    meta: Quad[]
+    quads: Quad[]
+    subject?: string
     allow: Mode[]
   }
   class Quad {
@@ -32,6 +32,7 @@ classDiagram
   }
   class Context {
     resolve(iri) Promise~Resource~
+    about(subject?) Reader
     emit(event)
     events: AsyncIterable~Event~
   }
@@ -82,8 +83,10 @@ host uses.
 | `linkEvents(region, emit)` | turns a click on a link inside a region into an `as:View` event |
 | `writeHtml(target, html)` | the sanitised write every mount and patch goes through |
 | `VIEW_ATTR`, `IRI_ATTR` | the attributes the runtime writes on every region it holds: the view's id and the resource |
+| `about(resource, subject?)` | a reader over the resource's statements, see [Reading statements](#reading-statements) |
 | `objects(quads, subject, predicate)` | the object terms of matching quads |
 | `isContainer(resource)`, `typesOf(resource)` | the two questions that come up constantly |
+| `subjectsGridView`, `subjectsListView`, `sourceView`, `fallbackView`, `containerView` | the built-in views |
 | `escapeHtml(text)` | escape a value before it lands in HTML |
 | `holds(condition, resource)` | evaluate one condition, the way selection does |
 | `ns(base, ...names)` | declare a vocabulary, from `@aleph-garden/terms` |
@@ -104,20 +107,36 @@ type Resource = {
   iri: string
   contentType: string
   body: string | Uint8Array
-  graph?: Quad[]   // filled by a parser when the body carries RDF
-  meta: Quad[]     // statements the server makes about the resource
-  allow: Mode[]    // "read" | "write" | "append" | "control"
+  quads: Quad[]     // everything known about the IRI, one dataset
+  subject?: string  // the subject this rendering is about; absent: the IRI
+  allow: Mode[]     // "read" | "write" | "append" | "control"
 }
 ```
 
-`meta` holds what the server asserts about the resource for every
-requester: `rdf:type ldp:Container`, `ldp:contains`, `dcterms:modified`, the
-media type as a statement. A browser host derives it from response headers
-and, for a container, from the body. A server-side host has it in hand.
+Seen from the front, a resource is two things: `body` and `contentType` for
+the bytes, `quads` for the statements. The quads form one dataset, and each
+quad's `graph` says where it came from:
 
-`allow` stays outside `meta` because it is a fact about this request and
+| Graph | Holds | Filled by |
+|---|---|---|
+| the resource's own IRI | what the body says | the renderer, from what the parser read |
+| `vitrine:Meta` | what is known about the resource from outside its content: its type as the store states it, when it changed, its members, its media type | the host's resolver, from whatever its transport tells: HTTP headers, file metadata |
+| another document's IRI | what a document the resolver brought in says, `describedby` metadata for one | the resolver |
+
+The first and the third follow the usual Linked Data convention: a graph is
+named by the document its statements came from. `vitrine:Meta` is this
+library's own name for statements with no document behind them. A view
+rarely needs any of this, because [`about`](#reading-statements) reads the
+union.
+
+`subject` is set by the renderer when `show.fragment` names a subject the
+quads describe, `iri#fragment`. Selection tests `type` conditions on it and
+`about` stands on it, so a view draws one subject of a document with the same
+code it would use for a whole resource.
+
+`allow` stays outside the quads because it is a fact about this request and
 never about the resource: the same resource answers a different `WAC-Allow`
-to every agent. Inside `meta`, a cached `Resource` would carry one agent's
+to every agent. Among the quads, a cached `Resource` would carry one agent's
 permissions to another.
 
 ### Quads and terms
@@ -137,15 +156,45 @@ type Term = {
 These follow the RDF/JS shape without the prototypes. A view that wants a
 store loads them into one; the core never does.
 
+### Reading statements
+
+```ts
+about(resource).one(schema.name)             // every graph, the usual case
+about(resource).meta.one(dcterms.modified)   // only what is known from outside
+about(resource).content.all(schema.knows)    // only what the body says
+about(resource).from(docA, docB)             // the union of the graphs named
+```
+
+`about(resource)` stands on the subject the rendering is about and reads every
+graph. `.from(...graphs)` restricts to the union of the graphs it names;
+`.meta` and `.content` are the two restrictions a view needs most. A
+restriction applied to a restricted reader narrows it further, so
+`about(r).meta.from(doc)` is the statements in both, which is usually none.
+`node(predicate)` moves to the object and keeps the restriction.
+
+```ts
+type Reader = {
+  readonly iri: string
+  terms(predicate): Term[]
+  all(predicate, { lang? }): string[]
+  one(predicate, { lang? }): string | undefined
+  node(predicate): Reader
+  from(...graphs: string[]): Reader
+  readonly meta: Reader
+  readonly content: Reader
+}
+```
+
 ## Context
 
 ```ts
 type Context = {
   resolve(iri: string): Promise<Resource>
+  about(subject?: string): Reader
   emit(event: Event): void
   events: AsyncIterable<Event>
   transclude(iri: string, show?: Show): Promise<string>
-  inner(show?: Show): Promise<Rendered & { view: View }>
+  inner(show?: Show, resource?: Resource): Promise<Rendered & { view: View }>
   state<T>(key: string, initial: T): State<T>
   state<T = string>(key: string): State<T | undefined>
 }
@@ -160,14 +209,19 @@ through `resolve` like everything else. Whether the host answers that IRI
 over the network or from a store it holds in memory is the host's business.
 
 The resource `resolve` answers is parsed the same way as the one a view is
-handed: when a registered parser reads its content type, `graph` holds the
-quads. A view that needs another document as RDF reads `graph` and never
-parses `body` itself.
+handed: when a registered parser reads its content type, its quads hold what
+the body says. A view that needs another document as RDF reads it with
+`about` and never parses `body` itself.
+
+`about` is `about(resource)` for the resource being drawn, without the import.
+Given a subject it reads that one instead.
 
 `transclude` is on [Transclusion](/vitrine/docs/reference/transclusion/).
 `inner` draws the same resource with the view that would have drawn it were
 the calling view not there, which is how a view wraps another; [Wrapper
-views](/vitrine/docs/author/wrappers/) has it.
+views](/vitrine/docs/author/wrappers/) has it. Given a `resource`, it draws that
+one instead, which is how a view hands on a graph it derived; [Compose
+views](/vitrine/docs/author/compose/) has it.
 
 `state` keeps a value for this view in this instance. It survives every
 re-render of the instance, `set` draws the instance again, and a remount
@@ -247,6 +301,11 @@ and wins over every rule; `fragment` names what within the resource to bring
 forward: a heading or block in a note, a subject in an RDF document; `clip`
 asks for that part alone. A `view` that is not registered is ignored and the rules decide.
 
+When the quads describe `iri#fragment`, the fragment becomes the resource's
+`subject`: selection and `about` then work on that subject. A fragment that
+names no subject, a heading in Markdown for one, leaves the subject on the
+IRI.
+
 ## Parser
 
 ```ts
@@ -258,4 +317,11 @@ type Parser = {
 
 Runs before selection so that selection can look at `rdf:type`. A host
 registers the parsers it wants; the core ships none, since each brings an
-RDF library.
+RDF library. The first parser registered for a content type is the one that
+runs, and whatever it answers goes into the graph named by the resource's IRI.
+A parser that reads a dataset format keeps the graphs it found; only its
+default graph becomes the document's.
+
+A parser is not limited to RDF formats. One that reads EXIF out of a JPEG
+adds statements about an image, and the image stays an image: which reading
+of a resource is drawn by default is up to the rules.

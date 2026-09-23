@@ -32,6 +32,44 @@ Registered on this page, that view renders a text resource:
   caption="plainTextView over a text resource"
 />
 
+## Seen from the front
+
+Seen from the front, a view looks like this: `resource.body` and
+`resource.contentType` for the bytes, `about(resource)` for the statements.
+`resource.quads` is there for views that want the graph as a whole, such as
+statements, Turtle and the force diagram.
+
+```ts
+import { dcterms, schema } from '@aleph-garden/terms'
+import { about, escapeHtml, type View } from '@aleph-garden/vitrine'
+
+export const noteCardView: View = {
+  id: 'https://example.org/views#NoteCard',
+  when: [{ contentType: 'text/markdown' }],
+
+  async render (resource) {
+    const text = typeof resource.body === 'string' ? resource.body : ''  // the bytes
+    const title = about(resource).one(schema.name) ?? resource.iri         // the statements
+    return { html: `<article><h2>${escapeHtml(title)}</h2><p>${escapeHtml(text.slice(0, 140))}</p></article>` }
+  }
+}
+```
+
+`about(resource)` reads every statement known about the resource, whoever made
+it. Three narrower readings are there for a view that cares where a statement
+came from:
+
+```ts
+// only what is known about it from outside its content: the store, the transport
+about(resource).meta.one(dcterms.modified)
+
+// only what its own body says
+about(resource).content.one(schema.name)
+
+// only the graphs you name, here metadata a resolver brought in
+about(resource).from('https://pod.example/notes/today.md.meta').all(schema.description)
+```
+
 ## The three parts
 
 **`id` is an IRI**, because a view is a thing that can be referred to: by a
@@ -40,7 +78,7 @@ anything.
 
 **`when` says where it applies.** A `contentType` condition holds when the
 resource's media type matches. The host checks it; the view is never asked
-whether it should run. Other conditions match an `rdf:type`, a container, or
+whether it should run. Other conditions match an `rdf:type`, a container, a graph, or
 an IRI pattern, and [Selection](/vitrine/docs/reference/selection/) has the
 list.
 

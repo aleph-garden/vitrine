@@ -5,8 +5,9 @@ description: One resource read several ways, and how a view wraps another.
 
 import LiveView from '@components/LiveView.astro'
 
-A resource is a set of bytes, a content type, and, where the bytes carry RDF, a
-set of statements. A view is one way to read that. The same note can arrive as
+A resource is a set of bytes, a content type, and a set of statements: what
+its body says when a parser read it, and what is known about it from outside.
+A view is one way to read that. The same note can arrive as
 a checklist, as its own text, as a table of statements, or as a card, and the
 resource is the same in every case.
 
@@ -33,10 +34,21 @@ the address does the same. Without one the host document's rules are tested
 in order, and then each registered view's own `when`. `selection.mdx` has the
 full order.
 
-A rule is a condition over the content type, the `rdf:type`, the IRI, or
-whether the resource is a container. So a deployment says "every recipe looks
-like this" in one row, and a reader who wants another reading changes that row
-rather than the view.
+A rule is a condition over the content type, the `rdf:type`, the IRI, whether
+the resource is a container, or whether its body gave a graph. So a deployment
+says "every recipe looks like this" in one row, and a reader who wants another
+reading changes that row rather than the view.
+
+## A graph is a reading too
+
+Once parsed, an RDF document is a graph, and a graph has readings of its own:
+its subjects in a grid or a list, a table of statements, its source as it
+arrived. They are views like any other, chosen by `{ graph: true }` and
+switched between the same way. The subjects views embed every subject named
+`iri#fragment` as its own child, so each is drawn by the view its type calls
+for. The same holds for any resource a parser read quads out of, an image with
+EXIF for one: the rules decide which reading comes first, and the rest stay a
+switch away.
 
 ## A view over a view
 

@@ -13,7 +13,7 @@ does that other views do not is call `ctx.inner`.
 ```ts
 type Context = {
   // …
-  inner(show?: Show): Promise<Drawn>
+  inner(show?: Show, resource?: Resource): Promise<Drawn>
 }
 
 type Drawn = Rendered & { view: View }
@@ -27,6 +27,11 @@ answer is the inner view's output together with the view that drew it.
 A wrapper can name the view it wants inside with `inner({ view })`. When it
 names nothing, the rules decide. Fragment and clip carry through to the inner
 view unless the wrapper sets them.
+
+Given a second argument, `inner` draws that resource instead of this one. A
+wrapper that derives a resource, a graph turned from one shape into another,
+hands it on this way and leaves the drawing to whatever the rules pick for it.
+[Compose views](/vitrine/docs/author/compose/) shows it.
 
 What a wrapper draws inside is its own business. The view that embeds the
 resource names the wrapper and nothing below it, because a view speaks for

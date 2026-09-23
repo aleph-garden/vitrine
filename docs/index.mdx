@@ -89,8 +89,10 @@ is at [github.com/aleph-garden/vitrine](https://github.com/aleph-garden/vitrine)
 
 ## What exists, and what does not
 
-Three views ship with the library: Obsidian-flavoured Markdown, a container
-listing, and a fallback that puts RDF in a statement table. Two browser
+The views that ship with the library: Obsidian-flavoured Markdown, a
+container listing, a subjects view that takes a graph apart into the things it
+describes and lets the rules draw each one, the source as it arrived, and a
+fallback that puts statements in a table. Two browser
 hosts are built from the same core. One is a single page a Solid server
 hands out as the `text/html` representation of every resource, so a note
 opens at its own URL and renders as a note. The other, which lives in the
@@ -161,6 +163,7 @@ or version to depend on. Using Vitrine today means cloning
 It is MIT licensed.
 
 The terms the library defines live under `https://w3id.org/vitrine/ns#`:
-`View`, `Host` and `Select`. A view itself is a resource rather than a term,
-and the views shipped here carry ids under `https://aleph.garden/views/`,
-where each one describes itself.
+`View`, `Host`, `Select`, and `Meta`, the name of the graph that holds what is
+known about a resource from outside its content. A view itself is a resource
+rather than a term, and the views shipped here carry ids under
+`https://aleph.garden/views/`, where each one describes itself.

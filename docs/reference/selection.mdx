@@ -23,9 +23,39 @@ type Condition =
   | { iri: string | RegExp }
   | { contentType: string | RegExp }
   | { container: boolean }
+  | { graph: boolean }
   | { type: string }
   | { ask: string }
 ```
+
+## What a resource is selected by
+
+A resource that is only bytes is selected by its content type: a Markdown
+note, a CSV, an image. A thing described in RDF is selected by its
+`rdf:type`, which does for it what the content type does for bytes. Turtle,
+JSON-LD or the result of a query are only the packaging, and a rule over the
+type holds whichever packaging the statements arrived in.
+
+Both are conditions in the same list, so a resource can have several readings
+and the order of the rules picks the default:
+
+```
+1  type schema:Person     → Card       the subject in focus has a type
+2  contentType image/*    → Photo      an image is an image first
+3  contentType text/csv   → Table
+…
+n  graph                  → Subjects   the body gave quads, nothing more specific held
+   (no condition)         → Fallback
+```
+
+An image whose EXIF a parser read carries quads as well, and it is still drawn
+as a photo because that rule comes first. Its graph, its statements or a map
+are alternatives a reader switches to, and a host that wants the graph first
+moves the rule.
+
+An RDF document with no type of its own falls to `graph`, where the subjects
+views take it apart: every subject named `iri#fragment` is embedded as its own
+child, and the rules choose a view for each by its type.
 
 ## Order
 
@@ -62,7 +92,8 @@ A subject typed `foaf:Person` and `schema:Person` at once is the normal
 case, not the exception, and both conditions hold. There is no specificity
 score and no entailment: the registry has no ontology, so `owl:sameAs`,
 `rdfs:subClassOf` and the rest do not enter into it. Two views that both
-hold are settled by position, the first one in the list.
+hold are settled by position, the first one in the list. The same goes for
+parsers: two registered for one content type, the first one runs.
 
 That is the whole tie-break, and it puts the burden where it can be seen:
 
@@ -80,9 +111,10 @@ everything, which is how a fallback view is registered last.
 |---|---|
 | `iri` | the resource's IRI equals the string or matches the regular expression |
 | `contentType` | the resource's media type, parameters stripped, equals the string or matches the regular expression |
-| `container: true` | `meta` contains `<iri> rdf:type ldp:Container`; `false` holds when it does not |
-| `type` | `graph` contains `<iri> rdf:type <type>`; never holds when `graph` is absent |
-| `ask` | a SPARQL ASK over `graph` and `meta` together. **Not usable today:** the core has no RDF engine and `Registry` has no slot to register an evaluator in, so this condition never holds. It is in the grammar because a Fresnel lens with an instance domain becomes one |
+| `container: true` | some graph states `<iri> rdf:type ldp:Container`; `false` holds when none does |
+| `graph: true` | the body produced quads, whatever its content type; `false` holds when it did not |
+| `type` | some graph states `<subject> rdf:type <type>` of the subject in focus: `iri#fragment` when the show names a subject the quads describe, the IRI otherwise |
+| `ask` | a SPARQL ASK over the quads. **Not usable today:** the core has no RDF engine and `Registry` has no slot to register an evaluator in, so this condition never holds. It is in the grammar because a Fresnel lens with an instance domain becomes one |
 
 `ask` is the condition a Fresnel lens with an instance domain becomes, where
 the lens applies to resources of a certain shape, whatever their class. The

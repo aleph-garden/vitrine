@@ -12,9 +12,10 @@ permissions stay with the tools you already use for them.
 
 Which function runs is decided by a table of rules over the content type,
 the `rdf:type`, or the IRI itself. What the library hands that function is
-the body, the content type, what the server says about the resource, and
-quads when the body carries RDF. It knows no server, no protocol and no RDF
-library of its own: a host fetches, Vitrine renders.
+the body and its content type, and the statements known about the resource:
+what its body says when a parser read it, and what the host knows from
+outside. It knows no server, no protocol and no RDF library of its own: a host
+fetches, Vitrine renders.
 
 Vitrine is one component of [Aleph Garden](https://aleph.garden).
 
@@ -77,24 +78,28 @@ type Resource = {
   iri: string
   contentType: string
   body: string | Uint8Array
-  graph?: Quad[]    // filled by a parser when the body carries RDF
-  meta: Quad[]      // what the server says about the resource
+  quads: Quad[]     // everything known about the IRI, one dataset
+  subject?: string  // the subject a rendering is about; absent: the IRI
   allow: Mode[]     // what this requester may do
 }
 ```
 
-Quads follow the RDF/JS shape as plain objects, without prototypes and
-without a store. A view that wants a store loads them into one. `meta` is
-where a host puts response headers it has turned into statements, which is
-how a listing view learns about containment without the core knowing LDP.
-`allow` sits outside `meta` because it is a fact about the request, so a
-cached `Resource` can never carry one agent's permissions to another.
+Seen from the front, a view reads `body` and `contentType` for the bytes and
+`about(resource)` for the statements. The quads follow the RDF/JS shape as
+plain objects, without prototypes and without a store, and each names the
+graph it came from: what the body says sits in the graph named by the IRI,
+what the host knows about the resource from outside, the response headers
+over HTTP, in `vitrine:Meta`. That is how a listing view learns about
+containment without the core knowing LDP. `allow` sits outside the quads
+because it is a fact about the request, so a cached `Resource` can never carry
+one agent's permissions to another.
 
 ### How a view reaches further
 
 ```ts
 type Context = {
   resolve(iri: string): Promise<Resource>
+  about(subject?: string): Reader
   emit(event: Event): void
   events: AsyncIterable<Event>
 }
@@ -109,10 +114,12 @@ notification channel already emits.
 
 `show.view` when that view is registered, then the host document's rules in
 order, then each view's own `when` in registration order. A condition is one
-of `iri`, `contentType`, `container` or `type`, and every condition of a
-rule must hold. A fifth, `ask`, carries a SPARQL ASK over the resource's
-graph and waits for a host that registers an evaluator for it; until then it
-never holds. An empty `when` holds for everything, which is how the
+of `iri`, `contentType`, `container`, `graph` or `type`, and every condition
+of a rule must hold. Bytes are selected by their content type; a thing
+described in RDF by its `rdf:type`, tested on the subject a rendering is
+about. A sixth, `ask`, carries a SPARQL ASK over the resource's quads and
+waits for a host that registers an evaluator for it; until then it never
+holds. An empty `when` holds for everything, which is how the
 fallback view is registered last. Order is explicit and nothing else
 decides.
 
@@ -157,9 +164,10 @@ An application that embeds a region needs neither host package: a renderer,
 a `Resolve`, and `runtime.mount` are the whole surface.
 
 The terms the library defines live under `https://w3id.org/vitrine/ns#`:
-`View`, `Host` and `Select`. A view itself is a resource rather than a term,
-and the views shipped here carry ids under `https://aleph.garden/views/`,
-where each one describes itself.
+`View`, `Host`, `Select`, and `Meta`, the name of the graph that holds what is
+known about a resource from outside its content. A view itself is a resource
+rather than a term, and the views shipped here carry ids under
+`https://aleph.garden/views/`, where each one describes itself.
 
 ## Development
 

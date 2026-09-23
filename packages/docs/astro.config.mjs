@@ -63,7 +63,8 @@ export default defineConfig({
             { label: 'Use RDF', link: '/author/use-rdf/' },
             { label: 'Fetch resources', link: '/author/fetch-resources/' },
             { label: 'Interaction', link: '/author/interaction/' },
-            { label: 'Wrapper views', link: '/author/wrappers/' }
+            { label: 'Wrapper views', link: '/author/wrappers/' },
+            { label: 'Compose views', link: '/author/compose/' }
           ]
         },
         {

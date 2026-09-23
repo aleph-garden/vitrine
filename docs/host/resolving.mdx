@@ -1,6 +1,6 @@
 ---
 title: Resolving
-description: Turning an HTTP response into a Resource, and the two things worth doing here and nowhere else.
+description: Turning what an IRI answers into a Resource, and the two things worth doing here and nowhere else.
 sidebar:
   order: 2
 ---
@@ -13,11 +13,19 @@ type Resource = {
   iri: string
   contentType: string
   body: string | Uint8Array
-  graph?: Quad[]      // filled by a parser, not by you
-  meta: Quad[]        // what the server says about the resource
+  quads: Quad[]       // what you know about it, in the graph vitrine:Meta
   allow: Mode[]       // what this requester may do
 }
 ```
+
+What the body says is not yours to fill: the renderer parses the body and
+puts those statements into the graph named by the IRI. What a resolver adds is
+what it knows about the resource from outside its content, and that goes into
+the graph `vitrine:Meta` (`ALEPH.Meta` in code). Over HTTP it comes from the
+headers; a resolver for `file:` would take it from the file's metadata, one for
+another store from whatever that store tells. A further document the resolver
+brings in, `describedby` metadata for one, goes into a graph named by that
+document's IRI.
 
 ## From a response
 
@@ -34,15 +42,16 @@ because a view's conditions depend on it:
 
 - `Content-Type` is the content type, parameters and all. Conditions strip
   them.
-- `Link rel="type"` becomes `<iri> rdf:type <type>` in `meta`. This is how
-  a container announces itself, and how `{ container: true }` holds.
-- `Last-Modified` becomes `dcterms:modified` in `meta`, as an
+- `Link rel="type"` becomes `<iri> rdf:type <type>` in `vitrine:Meta`. This
+  is how a container announces itself, and how `{ container: true }` holds.
+- `Last-Modified` becomes `dcterms:modified` in `vitrine:Meta`, as an
   `xsd:dateTime`.
 - `WAC-Allow` becomes `allow`. It belongs to the request, so it never goes
-  into `meta`: a cached resource must not carry one agent's permissions to
-  another.
-- For a container, the body itself describes the children, so parsing it
-  into `meta` is what makes a listing possible.
+  among the quads: a cached resource must not carry one agent's permissions
+  to another.
+- For a container, the body itself describes the children. `fetchResource`
+  reads it into the IRI's graph when it is handed a Turtle reader, so a host
+  with no parser registered still gets a listing.
 
 Whether the body is text or bytes follows from the media type, and a view
 that gets a `Uint8Array` where it expected a string is a bug in the host.
@@ -65,7 +74,9 @@ const renderer = createRenderer({
 ```
 
 Quads must come out as plain objects, not as the library's own term
-instances, since that is what crosses the boundary to a view. A host that
+instances, since that is what crosses the boundary to a view. The renderer
+puts them into the graph named by the IRI; a parser only names a graph when
+the format carries one. A host that
 never sees RDF registers no parsers, and views then select by content type
 alone.
 
