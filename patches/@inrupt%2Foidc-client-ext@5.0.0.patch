@@ -1,0 +1,18 @@
+diff --git a/package.json b/package.json
+index 998a4ffb837af8f8bee314065cbf9ec47b711db1..323fd9beeac8b08b7872ed7a66cc3d9c4e44e11e 100644
+--- a/package.json
++++ b/package.json
+@@ -32,5 +32,13 @@
+   },
+   "publishConfig": {
+     "access": "public"
++  },
++  "exports": {
++    ".": {
++      "types": "./dist/index.d.ts",
++      "import": "./dist/index.es.js",
++      "require": "./dist/index.js"
++    },
++    "./package.json": "./package.json"
+   }
+ }

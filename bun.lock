@@ -121,6 +121,9 @@
       },
     },
   },
+  "patchedDependencies": {
+    "@inrupt/oidc-client-ext@5.0.0": "patches/@inrupt%2Foidc-client-ext@5.0.0.patch",
+  },
   "packages": {
     "@aleph-garden/brand": ["@aleph-garden/brand@0.1.1-dev", "", {}, "sha512-MNYVpkCkcjIkJgnsg7TDA/PAHuloo+yD7qXL50utGc17Prw+veg6rPfv0bZfS+fqeFDk0JhqKTXA1iMsvRQyBg=="],
 

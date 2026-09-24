@@ -21,5 +21,8 @@
     "@happy-dom/global-registrator": "^20.14.5",
     "@types/bun": "^1.4.2",
     "typescript": "^7.0.2"
+  },
+  "patchedDependencies": {
+    "@inrupt/oidc-client-ext@5.0.0": "patches/@inrupt%2Foidc-client-ext@5.0.0.patch"
   }
 }
