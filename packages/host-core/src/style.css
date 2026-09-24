@@ -276,6 +276,90 @@ input:focus-visible {
   }
 }
 
+/* A container as a folder tree, the view https://aleph.garden/views/folder.
+   Each row holds a transcluded child, which the lower bound keeps these rules
+   out of; the row itself is the next block. The branch lines are borders on
+   the row: a vertical one down the row's left edge, stopping at the name for
+   the last row, and a horizontal one into the name. */
+@scope ([data-aleph-view="https://aleph.garden/views/folder"]) to ([data-aleph-view]) {
+  .folder-root {
+    font-family: var(--ag-font-mono);
+    font-size: var(--ag-type-ui);
+    line-height: var(--ag-leading-ui);
+    color: var(--ag-text);
+  }
+  .folder-rows {
+    list-style: none;
+    margin: 0 0 0 0.5em;
+    padding: 0;
+  }
+  /* flow-root keeps an open row's margins inside it, so the branch line runs
+     on to the next row without a gap. */
+  .folder-row {
+    display: flow-root;
+    position: relative;
+    padding-left: 1.25em;
+  }
+  .folder-row::before,
+  .folder-row::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    border-color: var(--ag-border-strong);
+    border-style: solid;
+    border-width: 0;
+  }
+  .folder-row::before {
+    top: 0;
+    bottom: 0;
+    border-left-width: var(--ag-stroke-hair);
+  }
+  .folder-row:last-child::before {
+    bottom: auto;
+    height: calc(var(--ag-space-1) + var(--ag-leading-ui) / 2);
+  }
+  .folder-row::after {
+    top: calc(var(--ag-space-1) + var(--ag-leading-ui) / 2);
+    width: 1em;
+    border-top-width: var(--ag-stroke-hair);
+  }
+}
+
+/* One member of a folder, the view https://aleph.garden/views/file-row. Each
+   row is a region of its own, so the columns line up by fixed widths in the
+   monospace face rather than by a grid shared across rows: 10ch holds an ISO
+   date, 8ch a size such as `999.9 kB`. */
+@scope ([data-aleph-view="https://aleph.garden/views/file-row"]) to ([data-aleph-view]) {
+  .file-row {
+    display: flex;
+    align-items: baseline;
+    gap: var(--ag-space-4);
+    padding: var(--ag-space-1) 0;
+    font-family: var(--ag-font-mono);
+    font-size: var(--ag-type-ui);
+    line-height: var(--ag-leading-ui);
+  }
+  .file-row-name {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .file-row-modified,
+  .file-row-size {
+    flex: none;
+    color: var(--ag-text-muted);
+    font-size: var(--ag-type-xs);
+    white-space: nowrap;
+  }
+  .file-row-modified {
+    width: 10ch;
+  }
+  .file-row-size {
+    width: 8ch;
+    text-align: right;
+  }
+}
+
 /* A graph taken apart into its subjects, the views
    https://aleph.garden/views/subjects-grid and .../subjects-list. Each item
    holds a transcluded child, which the lower bound keeps these rules out of. */

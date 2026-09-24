@@ -539,6 +539,83 @@ export const containerView: View = {
   }
 }
 
+/** A container as a folder tree: the container's name, then one row per
+ *  member, and each row a transcluded child with its own region, drawn by
+ *  `fileRowView` unless a rule or a show names another. It has no `when`, so
+ *  a rule or a show picks it; a host that wants every container drawn this
+ *  way names it in a rule.
+ *
+ *  The ceiling: every member is fetched to draw its row, one request each.
+ *  That suits a folder of a few dozen files. A container of thousands needs
+ *  rows drawn from the container's own statements, which `containerView`
+ *  does. */
+export const folderView: View = {
+  id: 'https://aleph.garden/views/folder',
+  async render(resource, ctx) {
+    const members = [...new Set(about(resource, resource.iri).all(ldp.contains))]
+    const rows = await Promise.all(
+      members.map((iri) => ctx.transclude(iri, { view: fileRowView.id }))
+    )
+    const items = rows.map((row) => `<li class="folder-row">${row}</li>`).join('')
+    return {
+      html: `<div class="folder"><span class="folder-root">${escapeHtml(lastSegment(resource.iri))}</span><ul class="folder-rows">${items}</ul></div>`
+    }
+  }
+}
+
+const stat = { size: 'http://www.w3.org/ns/posix/stat#size' }
+
+/** The last path segment, decoded, with a container's trailing slash. */
+function lastSegment(iri: string): string {
+  const path = new URL(iri).pathname
+  const segment = path.split('/').filter(Boolean).pop() ?? iri
+  return decodeURIComponent(segment) + (path.endsWith('/') && segment ? '/' : '')
+}
+
+function bytes(size: number): string {
+  if (size < 1000) return `${size} B`
+  const units = ['kB', 'MB', 'GB']
+  let value = size / 1000
+  let unit = 0
+  while (value >= 1000 && unit < units.length - 1) {
+    value /= 1000
+    unit += 1
+  }
+  return `${value < 10 ? value.toFixed(1) : Math.round(value)} ${units[unit]}`
+}
+
+/** One member of a folder on one line: its name, which links to it and opens
+ *  it in a new browsing context, then when it changed and its size, each in a
+ *  column of its own width so the rows line up.
+ *
+ *  Both facts come first from the parent container, which is where a Solid
+ *  server states them (`dcterms:modified`, `stat:size`), and otherwise from
+ *  the member itself: the `Last-Modified` its server sent and the length of
+ *  its body. */
+export const fileRowView: View = {
+  id: 'https://aleph.garden/views/file-row',
+  async render(resource, ctx) {
+    const name = lastSegment(resource.iri)
+    const parentIri = new URL(resource.iri.endsWith('/') ? '..' : '.', resource.iri).href
+    const parent = await ctx.resolve(parentIri).catch(() => undefined)
+    const stated = parent ? about(parent, resource.iri) : undefined
+    const modified =
+      stated?.one(dcterms.modified) ?? about(resource, resource.iri).one(dcterms.modified)
+    const size =
+      Number(stated?.one(stat.size) ?? Number.NaN) ||
+      (typeof resource.body === 'string'
+        ? new TextEncoder().encode(resource.body).length
+        : resource.body.length)
+    const day =
+      modified && !Number.isNaN(Date.parse(modified))
+        ? `<time datetime="${escapeHtml(modified)}">${new Date(modified).toISOString().slice(0, 10)}</time>`
+        : ''
+    return {
+      html: `<div class="file-row"><a class="file-row-name" href="${escapeHtml(resource.iri)}" target="_blank" rel="noopener">${escapeHtml(name)}</a><span class="file-row-modified">${day}</span><span class="file-row-size">${bytes(size)}</span></div>`
+    }
+  }
+}
+
 function termHtml(term: Term): string {
   if (term.termType === 'NamedNode')
     return `<a href="${escapeHtml(term.value)}">${escapeHtml(term.value)}</a>`

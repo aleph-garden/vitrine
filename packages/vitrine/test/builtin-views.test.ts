@@ -4,6 +4,8 @@ import {
   type Context,
   containerView,
   fallbackView,
+  fileRowView,
+  folderView,
   type Quad,
   type Resource
 } from '../src/index.ts'
@@ -114,6 +116,97 @@ describe('containerView', () => {
     }
     const { html } = await containerView.render(r, noop)
     expect(html.match(new RegExp(`href="${root}a\\.md"`, 'g'))).toHaveLength(1)
+  })
+})
+
+describe('folderView', () => {
+  const root = 'https://pod.example/trip/'
+  const folder: Resource = {
+    iri: root,
+    contentType: 'text/turtle',
+    body: '',
+    quads: [
+      ...meta([q(root, RDF_TYPE, LDP_CONTAINER), q(root, LDP_CONTAINS, `${root}a.md`)]),
+      ...body(root, [q(root, LDP_CONTAINS, `${root}a.md`), q(root, LDP_CONTAINS, `${root}sub/`)])
+    ],
+    allow: ['read']
+  }
+
+  test('transcludes each member once, as a row', async () => {
+    const asked: [string, string | undefined][] = []
+    const ctx: Context = {
+      ...noop,
+      transclude: async (iri, show) => {
+        asked.push([iri, show?.view])
+        return `<div data-aleph-transclude="${iri}"></div>`
+      }
+    }
+    const { html } = await folderView.render(folder, ctx)
+    expect(asked).toEqual([
+      [`${root}a.md`, fileRowView.id],
+      [`${root}sub/`, fileRowView.id]
+    ])
+    expect(html.match(/<li class="folder-row">/g)).toHaveLength(2)
+  })
+})
+
+describe('fileRowView', () => {
+  const file: Resource = {
+    iri: 'https://pod.example/trip/a%20b.md',
+    contentType: 'text/markdown; charset=utf-8',
+    body: '# Plan\n',
+    quads: [],
+    allow: ['read']
+  }
+
+  test('names the member and links it', async () => {
+    const { html } = await fileRowView.render(file, noop)
+    expect(html).toContain(
+      '<a class="file-row-name" href="https://pod.example/trip/a%20b.md" target="_blank" rel="noopener">a b.md</a>'
+    )
+  })
+
+  test('takes the date and size the parent container states', async () => {
+    const parent: Resource = {
+      iri: 'https://pod.example/trip/',
+      contentType: 'text/turtle',
+      body: '',
+      quads: body('https://pod.example/trip/', [
+        q(file.iri, DC_MODIFIED, {
+          termType: 'Literal',
+          value: '2026-09-17T10:00:00Z',
+          datatype: 'http://www.w3.org/2001/XMLSchema#dateTime'
+        }),
+        q(file.iri, 'http://www.w3.org/ns/posix/stat#size', {
+          termType: 'Literal',
+          value: '3267',
+          datatype: 'http://www.w3.org/2001/XMLSchema#integer'
+        })
+      ]),
+      allow: ['read']
+    }
+    const ctx: Context = {
+      ...noop,
+      resolve: async (iri) => {
+        if (iri !== parent.iri) throw new Error(`resolved ${iri}`)
+        return parent
+      }
+    }
+    const { html } = await fileRowView.render(file, ctx)
+    expect(html).toContain('<time datetime="2026-09-17T10:00:00Z">2026-09-17</time>')
+    expect(html).toContain('<span class="file-row-size">3.3 kB</span>')
+  })
+
+  test("falls back to the body's length without a parent", async () => {
+    const { html } = await fileRowView.render(file, noop)
+    expect(html).toContain('<span class="file-row-size">7 B</span>')
+    expect(html).not.toContain('<time')
+  })
+
+  test("keeps a container's trailing slash", async () => {
+    const r: Resource = { ...file, iri: 'https://pod.example/trip/sub/' }
+    const { html } = await fileRowView.render(r, noop)
+    expect(html).toContain('>sub/</a>')
   })
 })
 

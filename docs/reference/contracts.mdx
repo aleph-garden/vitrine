@@ -86,7 +86,7 @@ host uses.
 | `about(resource, subject?)` | a reader over the resource's statements, see [Reading statements](#reading-statements) |
 | `objects(quads, subject, predicate)` | the object terms of matching quads |
 | `isContainer(resource)`, `typesOf(resource)` | the two questions that come up constantly |
-| `subjectsGridView`, `subjectsListView`, `sourceView`, `fallbackView`, `containerView` | the built-in views |
+| `subjectsGridView`, `subjectsListView`, `sourceView`, `fallbackView`, `containerView`, `folderView`, `fileRowView` | the built-in views. `folderView` draws a container with each member as a transcluded row, which `fileRowView` draws unless a rule names another; a host registers both, and a rule or a show picks `folderView` |
 | `escapeHtml(text)` | escape a value before it lands in HTML |
 | `holds(condition, resource)` | evaluate one condition, the way selection does |
 | `ns(base, ...names)` | declare a vocabulary, from `@aleph-garden/terms` |
