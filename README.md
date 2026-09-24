@@ -29,7 +29,7 @@ their address scheme, their views and the host document the build embeds.
 
 Status: the pipeline, the Markdown view, transclusion, the browser shell and
 the aleph.garden host stand. A server-side host and WASM views are
-specified and unbuilt. The library packages are on npm at `0.3.1-dev`:
+specified and unbuilt. The library packages are on npm at `0.3.2-dev`:
 `@aleph-garden/vitrine`, `vitrine-turtle`, `vitrine-jsonld`,
 `vitrine-markdown`, `host-core` and `terms`. That first version took the
 `latest` tag whatever the publish named. The pod host, the examples and the

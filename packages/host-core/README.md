@@ -32,7 +32,7 @@ dependency. The rest of the package does not.
 
 ## Status
 
-Version `0.3.1-dev`. The interfaces change between releases without a
+Version `0.3.2-dev`. The interfaces change between releases without a
 deprecation period, so pin an exact version. The repository holds TypeScript;
 the published package holds the JavaScript and declaration files compiled from
 it at build time.

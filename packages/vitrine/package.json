@@ -1,6 +1,6 @@
 {
   "name": "@aleph-garden/vitrine",
-  "version": "0.3.1-dev",
+  "version": "0.3.2-dev",
   "description": "Renders an addressed resource as HTML: a rule table picks the view, the host does the fetching",
   "license": "MIT",
   "repository": {
