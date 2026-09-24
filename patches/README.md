@@ -6,5 +6,6 @@ CommonJS build under `main` but declares no `exports`. Without the map, bun
 reaches the CommonJS build when `mock.module` replaces
 `@inrupt/solid-client-authn-browser` after the real package has loaded, and
 that build's `require('jose')` fails under bun 1.4 because jose 6 is ESM only.
-The failure depends on test order. Drop the patch once the package declares
+The failure depends on test order. The same map is proposed upstream in
+inrupt/solid-client-authn-js#4406; drop the patch once a release declares
 `exports` itself.
