@@ -18,17 +18,20 @@
 }: let
   version = "0.0.0";
 
-  hostDocument =
-    writeText "host.jsonld" (builtins.toJSON (host
-      // {
-        "@context" = "https://w3id.org/vitrine/context";
-        "@type" = "Host";
-      }));
+  hostDocument = writeText "host.jsonld" (builtins.toJSON (host
+    // {
+      "@context" = "https://w3id.org/vitrine/context";
+      "@type" = "Host";
+    }));
 
   # The install covers the whole workspace, the docs site in packages/docs
   # and the aleph.garden host included, so a dependency bump there changes this hash as well and
   # costs the fleet a fresh fetch. The upgrade path is a scoped install
   # (`bun install --filter`) or a lockfile of this host's own.
+  #
+  # The hash also depends on the bun version, so it holds for the nixpkgs in
+  # this flake's lock only. A consumer that overrides this flake's nixpkgs
+  # input gets a different bun and a hash mismatch.
   node_modules = stdenvNoCC.mkDerivation {
     pname = "vitrine-node-modules";
     inherit version src;
@@ -56,7 +59,7 @@
 
     outputHashAlgo = "sha256";
     outputHashMode = "recursive";
-    outputHash = "sha256-n+jqn/bukYSnfpnLxcVH+CH14AGylUG/vYIxgU98Bqs=";
+    outputHash = "sha256-wgv7TUVPLgTHM+o/uALoFK/HA/0GKBogk6TffswY9uo=";
   };
 in
   stdenvNoCC.mkDerivation {
