@@ -1,0 +1,7 @@
+schema: spec-driven
+
+# Constraints an agent cannot infer from the code. Rules per artifact go under
+# `rules:`, guidance for apply and archive under `operations:`; see the
+# OpenSpec documentation for both.
+context: |
+  Write all artifacts in English, even when the conversation is in German.
