@@ -43,13 +43,13 @@ What each part is doing:
 - **`options_container` and `options_document`** make it apply to both, so
   a container listing renders as well as a note.
 - **`options_minQuality: 1`** keeps it out of content negotiation for
-  clients that did not really ask for HTML.
+  clients that list HTML only below another type.
 - **`options_disabledMediaRanges`** excludes what a browser shows natively.
   An image should stay an image.
 - Your config must not also import CSS's `util/index`, which binds the same
   slot to the built-in interface.
 
-The server also serves this page on a `401`, which is what lets the host
+The server also serves this page on a `401`, so the host can
 show a login and then fetch the resource itself.
 
 ## What the host does once it loads

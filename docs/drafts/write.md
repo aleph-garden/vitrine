@@ -122,5 +122,4 @@ view has to be able to live with one landing and the other failing.
 
 A pod stops being a place you can only look at. An inbox view accepts, an
 annotation view writes back, and the capture-and-triage pile that wants to
-exist becomes a container you can actually add to from the thing that shows
-it to you.
+exist becomes a container you add to from the thing that shows it to you.

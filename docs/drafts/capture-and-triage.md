@@ -23,10 +23,10 @@ maintained by hand.
 - **erker**: issues that live inside the repository they belong to. This is
   the half that turns an entry into work.
 
-The missing piece is not a fourth tool. It is that capture, triage and work
-are three stores with no path between them: a blurb in the inbox never
-becomes a Weltbild concept unless someone retypes it, and a decision in a
-walk record never becomes an erker issue unless someone opens one.
+Capture, triage and work are three stores with no path between them: a
+blurb in the inbox never becomes a Weltbild concept unless someone retypes
+it, and a decision in a walk record never becomes an erker issue unless
+someone opens one.
 
 ## Why this belongs near the view layer
 

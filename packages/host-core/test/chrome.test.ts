@@ -67,7 +67,7 @@ const fakeRuntime = () => {
   return { runtime, dispatched, emit }
 }
 
-/** A runtime that actually tracks the mounted instance, so installNavigation
+/** A runtime that tracks the mounted instance, so installNavigation
  *  can find it through instances() the way the real one does. */
 const fakeNavigableRuntime = () => {
   const listeners = new Set<(e: Event) => void>()

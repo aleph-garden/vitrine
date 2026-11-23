@@ -96,7 +96,7 @@ The token is the host's and never reaches a view. Two rules keep that from
 leaking:
 
 - Attach credentials per origin, and only to the origins the session
-  actually stands on. A host that renders foreign resources must send them
+  belongs to. A host that renders foreign resources must send them
   nothing.
 - Never put anything derived from a credential into `Resource`, apart from
   `allow`.

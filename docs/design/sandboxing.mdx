@@ -43,7 +43,7 @@ paragraph above becomes the reason nobody shares them.
 
 **A region that is its own origin.** The view renders inside a sandboxed
 iframe on a null origin, and reaches the outside through a narrow channel. This
-is the only option on the list that actually contains the code rather than
+is the only option on the list that confines the code rather than
 asking it to behave. It costs: two documents to style consistently, a message
 protocol for every call the view makes, and a real question about how a
 transcluded child inside a sandboxed parent gets mounted.
