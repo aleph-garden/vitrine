@@ -4,3 +4,4 @@ result
 result-*
 packages/www/.astro/
 packages/www/.wrangler/
+.direnv/

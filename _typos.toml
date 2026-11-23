@@ -1,0 +1,4 @@
+# German words in the Markdown view's test input.
+[default.extend-words]
+offen = "offen"
+Titel = "Titel"

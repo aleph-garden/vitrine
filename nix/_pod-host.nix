@@ -61,6 +61,18 @@
     outputHashMode = "recursive";
     outputHash = "sha256-wgv7TUVPLgTHM+o/uALoFK/HA/0GKBogk6TffswY9uo=";
   };
+
+  # Puts the installed dependencies into a checkout of the workspace, run from
+  # its root. The test check reuses it, so both install the same tree.
+  linkNodeModules = ''
+    cp -R ${node_modules}/node_modules .
+    for p in packages/*/; do
+      if [ -d "${node_modules}/$p/node_modules" ]; then
+        cp -R "${node_modules}/$p/node_modules" "$p/"
+      fi
+    done
+    chmod -R u+w node_modules packages
+  '';
 in
   stdenvNoCC.mkDerivation {
     pname = "vitrine-pod-host";
@@ -70,13 +82,7 @@ in
 
     buildPhase = ''
       export HOME=$TMPDIR
-      cp -R ${node_modules}/node_modules .
-      for p in packages/*/; do
-        if [ -d "${node_modules}/$p/node_modules" ]; then
-          cp -R "${node_modules}/$p/node_modules" "$p/"
-        fi
-      done
-      chmod -R u+w node_modules packages
+      ${linkNodeModules}
       (
         cd packages/pod-host
         ALEPH_HOST=${hostDocument} bun --bun node_modules/vite/bin/vite.js build
@@ -87,6 +93,8 @@ in
       mkdir -p $out
       cp -R packages/pod-host/dist/. $out/
     '';
+
+    passthru = {inherit linkNodeModules;};
 
     meta = {
       description = "The pod's browser host over @aleph-garden/vitrine: a Solid server hands it out as the HTML view of every resource it holds";
